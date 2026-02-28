@@ -43,6 +43,7 @@ int LocalIndex = 0;
 MMINTEGER getinteger(const char *p) { return 0; }
 MmResult PrepareProgram(bool abort_on_error) { return kOk; }
 MmResult ClearRuntime(void) { return kOk; }
+void perform_background_tasks(void) {}
 
 // Defined in "stubs/display_stubs.c"
 extern bool display_bell_sounded;
@@ -145,7 +146,7 @@ protected:
         // Initialize options
         mmb_options.syntax_highlight = true;
         mmb_options.tab = 4;
-        mmb_options.break_key = 0;
+        SDL_AtomicSet(&mmb_options.break_key, 0);
 
         // Reset syntax state
         memset(&syntax, 0, sizeof(syntax));

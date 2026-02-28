@@ -6,6 +6,38 @@ cmake_minimum_required(VERSION 3.14)
 # set the project name
 project(MMB4L)
 
+# =============================================================================
+# SDL2 Configuration Function
+# =============================================================================
+
+function(configure_sdl2 target_name link_sdl2main)
+    if(WIN32)
+        set(SDL2_ROOT "D:/github/thwill1000/SDL2-2.32.10")
+
+        if(NOT EXISTS "${SDL2_ROOT}/include/SDL.h")
+            message(FATAL_ERROR "SDL2 not found at ${SDL2_ROOT}")
+        endif()
+
+        target_include_directories(${target_name} PUBLIC "${SDL2_ROOT}/include")
+        target_link_directories(${target_name} PUBLIC "${SDL2_ROOT}/lib/x64")
+
+        if(link_sdl2main)
+            target_link_libraries(${target_name} SDL2main SDL2)
+        else()
+            target_link_libraries(${target_name} SDL2)
+        endif()
+
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SDL2_ROOT}/lib/x64/SDL2.dll"
+                $<TARGET_FILE_DIR:${target_name}>
+        )
+    else()
+        target_include_directories(${target_name} PUBLIC /usr/include/SDL2)
+        target_link_libraries(${target_name} SDL2)
+    endif()
+endfunction()
+
 # Unit tests require at least C++20
 #  - GoogleTest framework requires at least C++17
 #  - Some C++ tests use C style designated initializers (C++20)
@@ -311,9 +343,7 @@ set(MMB4L_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
-target_include_directories(mmbasic PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(mmbasic TRUE)
 
 target_link_libraries(
     mmbasic
@@ -343,6 +373,8 @@ add_executable(test_console_getc
     src/common/gtest/stubs/serial_stubs.c
 )
 
+configure_sdl2(test_console_getc FALSE)
+
 # GoogleTest
 
 enable_testing()
@@ -368,6 +400,8 @@ add_executable(test_cmdline
     src/common/gtest/stubs/serial_stubs.c
     src/core/vartbl.c
 )
+
+configure_sdl2(test_cmdline FALSE)
 
 target_link_libraries(test_cmdline
     gtest_main
@@ -408,6 +442,8 @@ add_executable(test_cmd_do
     src/core/tokentbl.c
     src/core/vartbl.c
 )
+
+configure_sdl2(test_cmd_do FALSE)
 
 target_link_libraries(test_cmd_do
     gtest_main
@@ -450,6 +486,8 @@ add_executable(test_cmd_run
     src/functions/fun_mmcmdline.c
 )
 
+configure_sdl2(test_cmd_run FALSE)
+
 target_compile_definitions(test_cmd_run PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_link_libraries(test_cmd_run
@@ -470,6 +508,8 @@ add_executable(test_bitset
     src/common/gtest/bitset_test.cxx
 )
 
+configure_sdl2(test_bitset FALSE)
+
 target_link_libraries(
     test_bitset
     gtest_main
@@ -487,6 +527,8 @@ add_executable(test_cstring
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/cstring_test.cxx
 )
+
+configure_sdl2(test_cstring FALSE)
 
 target_link_libraries(test_cstring
     gtest_main
@@ -509,6 +551,8 @@ add_executable(test_file
     src/common/gtest/file_test.cxx
     src/common/gtest/stubs/serial_stubs.c
 )
+
+configure_sdl2(test_file FALSE)
 
 target_link_libraries(test_file
     gtest_main
@@ -533,9 +577,7 @@ add_executable(test_display
     src/common/gtest/stubs/sdl2_stubs.c
 )
 
-target_include_directories(test_display PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_display FALSE)
 
 target_link_libraries(
     test_display
@@ -563,6 +605,8 @@ add_executable(test_editor
     src/core/tokentbl.c
 )
 
+configure_sdl2(test_editor FALSE)
+
 target_compile_definitions(test_editor PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_link_libraries(test_editor
@@ -583,6 +627,8 @@ add_executable(test_funtbl
     src/core/funtbl.c
     src/core/gtest/funtbl_test.cxx
 )
+
+configure_sdl2(test_funtbl FALSE)
 
 target_link_libraries(
     test_funtbl
@@ -631,9 +677,7 @@ add_executable(test_fun_sprite
 
 target_compile_definitions(test_fun_sprite PUBLIC ENABLE_GTEST_EXTRAS)
 
-target_include_directories(test_fun_sprite PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_fun_sprite FALSE)
 
 target_link_libraries(test_fun_sprite
     gtest_main
@@ -656,9 +700,7 @@ add_executable(test_gpio
     src/common/gtest/gpio_test.cxx
 )
 
-target_include_directories(test_gpio PUBLIC
-  /usr/include/SDL2
-)
+configure_sdl2(test_gpio FALSE)
 
 target_link_libraries(test_gpio
     gtest_main
@@ -681,9 +723,7 @@ add_executable(test_gamepad
     src/common/gtest/stubs/sdl2_stubs.c
 )
 
-target_include_directories(test_gamepad PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_gamepad FALSE)
 
 target_link_libraries(test_gamepad
     gtest_main
@@ -720,9 +760,7 @@ add_executable(test_graphics
     src/third_party/upng.c
 )
 
-target_include_directories(test_graphics PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_graphics FALSE)
 
 target_link_libraries(test_graphics
     gtest_main
@@ -741,6 +779,8 @@ add_executable(test_safe_buffer
     src/common/gtest/safe_buffer_test.cxx
 )
 
+configure_sdl2(test_safe_buffer FALSE)
+
 target_link_libraries(test_safe_buffer
     gtest_main
     gmock
@@ -757,6 +797,8 @@ add_executable(test_hash
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/hash_test.cxx
 )
+
+configure_sdl2(test_hash FALSE)
 
 target_link_libraries(test_hash
     gtest_main
@@ -778,9 +820,7 @@ add_executable(test_keyboard
     src/common/gtest/stubs/interrupt_stubs.c
 )
 
-target_include_directories(test_keyboard PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_keyboard FALSE)
 
 target_link_libraries(test_keyboard
     gtest_main
@@ -804,6 +844,8 @@ add_executable(test_options
     src/common/gtest/options_test.cxx
     src/common/gtest/stubs/serial_stubs.c
 )
+
+configure_sdl2(test_options FALSE)
 
 target_compile_definitions(test_options PUBLIC OPTION_TESTS)
 
@@ -853,6 +895,8 @@ add_executable(test_parse
     src/core/vartbl.c
 )
 
+configure_sdl2(test_parse FALSE)
+
 target_link_libraries(test_parse
     gtest_main
     gmock
@@ -879,6 +923,8 @@ add_executable(test_path
     src/common/gtest/stubs/interrupt_stubs.c
     src/common/gtest/stubs/serial_stubs.c
 )
+
+configure_sdl2(test_path FALSE)
 
 target_link_libraries(test_path
     gtest_main
@@ -925,6 +971,8 @@ add_executable(test_program
     src/core/vartbl.c
 )
 
+configure_sdl2(test_program FALSE)
+
 target_compile_definitions(test_program PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_link_libraries(test_program
@@ -953,6 +1001,8 @@ add_executable(test_prompt
     src/common/gtest/stubs/serial_stubs.c
 )
 
+configure_sdl2(test_prompt FALSE)
+
 target_link_libraries(test_prompt
     gtest_main
     gmock
@@ -971,6 +1021,8 @@ add_executable(test_queue
     src/common/gtest/queue_test.cxx
 )
 
+configure_sdl2(test_queue FALSE)
+
 target_link_libraries(test_queue
     gtest_main
     gmock
@@ -988,6 +1040,8 @@ add_executable(test_rx_buf
     src/common/rx_buf.c
     src/common/gtest/rx_buf_test.cxx
 )
+
+configure_sdl2(test_rx_buf FALSE)
 
 target_link_libraries(test_rx_buf
   gtest_main
@@ -1024,9 +1078,7 @@ add_executable(test_sprite
     src/third_party/upng.c
 )
 
-target_include_directories(test_sprite PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_sprite FALSE)
 
 target_link_libraries(test_sprite
     gtest_main
@@ -1044,6 +1096,8 @@ add_executable(test_stack
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/stack_test.cxx
 )
+
+configure_sdl2(test_stack FALSE)
 
 target_link_libraries(test_stack
   gtest_main
@@ -1066,6 +1120,8 @@ add_executable(test_streamio
     src/common/gtest/streamio_test.cxx
     src/common/gtest/stubs/serial_stubs.c
 )
+
+configure_sdl2(test_streamio FALSE)
 
 target_compile_definitions(test_streamio PUBLIC ENABLE_GTEST_EXTRAS)
 
@@ -1114,6 +1170,8 @@ add_executable(test_mmbasic_core
     src/core/gtest/mmbasic_core_test.cxx
 )
 
+configure_sdl2(test_mmbasic_core FALSE)
+
 target_compile_definitions(test_mmbasic_core PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_link_libraries(test_mmbasic_core
@@ -1135,6 +1193,8 @@ add_executable(test_tokentbl
     src/core/gtest/tokentbl_test.cxx
 )
 
+configure_sdl2(test_tokentbl FALSE)
+
 target_link_libraries(test_tokentbl
     gtest_main
     gmock
@@ -1154,6 +1214,8 @@ add_executable(test_vartbl
     src/core/gtest/vartbl_test.cxx
 )
 
+configure_sdl2(test_vartbl FALSE)
+
 target_link_libraries(test_vartbl
     gtest_main
     gmock
@@ -1172,6 +1234,8 @@ add_executable(test_spbmp
     src/third_party/spbmp.c
     src/third_party/gtest/spbmp_test.cxx
 )
+
+configure_sdl2(test_spbmp FALSE)
 
 target_link_libraries(test_spbmp
     gtest_main

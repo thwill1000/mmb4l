@@ -58,7 +58,8 @@ typedef struct {
    bool no_title;
 } ConsoleState;
 
-MmResult console_private_init(ConsoleState *_self);
+MmResult console_init_platform(ConsoleState *_self);
+MmResult console_term_platform(void);
 MmResult console_sync_size(int timeout_ms);
 
 #endif // #if !defined(MMB4L_CONSOLE_PRIVATE)

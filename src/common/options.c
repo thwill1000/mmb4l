@@ -578,9 +578,10 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
         case kOptionBase:
             *ivalue = options->base;
             break;
-        case kOptionBreakKey:
-            *ivalue = options->break_key;
+        case kOptionBreakKey: {
+            *ivalue = SDL_AtomicGet(&((Options *) options)->break_key);
             break;
+        }
         case kOptionSyntaxHighlight:
             *ivalue = options->syntax_highlight;
             break;
@@ -808,7 +809,7 @@ static MmResult options_set_base(Options *options, int ivalue) {
 
 static MmResult options_set_break_key(Options *options, int ivalue) {
     if (ivalue > 0 && ivalue < 256) {
-        options->break_key = ivalue;
+        SDL_AtomicSet(&options->break_key, ivalue);
         return kOk;
     } else {
         return kInvalidValue;

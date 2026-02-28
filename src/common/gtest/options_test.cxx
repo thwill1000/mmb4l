@@ -63,7 +63,7 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_EQ(false, options->autorun);
     EXPECT_EQ(true, options->auto_scale);
     EXPECT_EQ(false, options->base);
-    EXPECT_EQ(3, options->break_key);
+    EXPECT_EQ(3, SDL_AtomicGet(&options->break_key));
     EXPECT_EQ(NULL, options->codepage);
     EXPECT_EQ(kSerial, options->console);
     EXPECT_EQ(0x1, options->default_type); // 0x1 = T_NBR
@@ -818,11 +818,11 @@ TEST_F(OptionsTest, GetIntegerValue_ForBreakKey) {
     options_init(&options);
     MMINTEGER ivalue = 0;
 
-    options.break_key = 3;
+    SDL_AtomicSet(&options.break_key, 3);
     EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBreakKey, &ivalue));
     EXPECT_EQ(3, ivalue);
 
-    options.break_key = 4;
+    SDL_AtomicSet(&options.break_key, 4);
     EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBreakKey, &ivalue));
     EXPECT_EQ(4, ivalue);
 }
@@ -945,11 +945,11 @@ TEST_F(OptionsTest, GetStringValue_ForBreakKey) {
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
 
-    options.break_key = 3;
+    SDL_AtomicSet(&options.break_key, 3);
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBreakKey, svalue));
     EXPECT_STREQ("3", svalue);
 
-    options.break_key = 4;
+    SDL_AtomicSet(&options.break_key, 4);
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBreakKey, svalue));
     EXPECT_STREQ("4", svalue);
 }
@@ -1278,7 +1278,7 @@ TEST_F(OptionsTest, SetIntegerValue_ForBreakKey) {
     options_init(&options);
 
     EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionBreakKey, 5));
-    EXPECT_EQ(5, options.break_key);
+    EXPECT_EQ(5, SDL_AtomicGet(&options.break_key));
 
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 0));
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 256));
@@ -1440,7 +1440,7 @@ TEST_F(OptionsTest, SetStringValue_ForBreakKey) {
     options_init(&options);
 
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionBreakKey, "42"));
-    EXPECT_EQ(42, options.break_key);
+    EXPECT_EQ(42, SDL_AtomicGet(&options.break_key));
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "0"));
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "256"));

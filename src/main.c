@@ -393,13 +393,14 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
+#if defined(__ANDROID__)
     ON_FAILURE_EXIT(keybuf_init());
-
-#if !defined(__ANDROID__)
+#else
     // Initialise the tty console.
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
+    ON_FAILURE_EXIT(keybuf_init());
     ON_FAILURE_EXIT(console_sync());
 #endif
 
@@ -458,7 +459,7 @@ int main(int argc, char *argv[]) {
 // #endif
 
     while (!mmb_state.exiting) {
-        MMAbort = false;
+        SDL_AtomicSet(&MMAbort, false);
         LocalIndex = 0;     // this should not be needed but it ensures that all
                             // space will be cleared
         ClearTempMemory();  // clear temp string space (might have been used by
@@ -510,6 +511,8 @@ int main(int argc, char *argv[]) {
 
     ON_FAILURE_LOG(prompt_save_history(""));
 
+    console_term(); // Restore original terminal settings before exiting.
+
 #if defined(__ANDROID__)
     android_term();
     // 24-Jan-2026: The call to SDL_Quit() was segfaulting when built and run
@@ -528,7 +531,7 @@ void IntHandler(int signo) {
     signal(SIGBREAK, IntHandler);
     signal(SIGINT, IntHandler);
 #endif
-    MMAbort = true;
+    SDL_AtomicSet(&MMAbort, true);
 }
 
 /**

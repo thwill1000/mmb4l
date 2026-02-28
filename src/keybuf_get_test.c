@@ -30,14 +30,13 @@ uint32_t graphics_font;
 bool interrupt_check_key_press(char ch) { return false; }
 
 // Defined in "core/MMBasic.c"
-volatile bool MMAbort;
-void perform_background_tasks() { keybuf_pump_tty(); }
+SDL_atomic_t MMAbort;
 
 int main(int argc, char **argv) {
     printf("Press Keys\n");
 
     options_init(&mmb_options);
-    mmb_options.break_key = 0; // So that it isn't caught.
+    SDL_AtomicSet(&mmb_options.break_key, 0); // So that it isn't caught.
     ON_FAILURE_EXIT(keybuf_init());
     ON_FAILURE_EXIT(console_init(false));
     console_enable_raw_mode();

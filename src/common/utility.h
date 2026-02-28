@@ -102,6 +102,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CASE_FALLTHROUGH  __attribute__ ((fallthrough))
 #endif
 
+#if !defined(__cplusplus)
+
 #define max(a,b) \
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
@@ -111,6 +113,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
         _a < _b ? _a : _b; })
+
+#endif // #if !defined(__cplusplus)
 
 #define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
 
