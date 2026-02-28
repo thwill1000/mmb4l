@@ -172,6 +172,20 @@ void error_clear_callback();
     return result__; \
 } while (0)
 
+#define THROW_ERROR(x, y) { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("threw error: %s (%d)", mmresult_to_string(result__), result__); \
+    error_throw(result__); \
+    return y; \
+}
+
+#define THROW_ERROR_VOID(x) { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("threw error: %s (%d)", mmresult_to_string(result__), result__); \
+    error_throw(result__); \
+    return; \
+}
+
 #define INTERNAL_FAULT mmresult_ex(kInternalFault, "%s:%d internal fault", __FILE__, __LINE__)
 #define INTERNAL_FAULT_EX(fmt, ...) \
     mmresult_ex(kInternalFault, "%s:%d internal fault: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
