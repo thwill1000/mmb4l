@@ -99,7 +99,7 @@ protected:
             } else if(targ & T_INT) {
                 iret = iarg1 + iarg2;
             } else {
-                if(*sarg1 + *sarg2 > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
+                if ((*sarg1 + *sarg2) > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
                 sret = (char *) GetTempStrMemory();
                 Mstrcpy(sret, sarg1);
                 Mstrcat(sret, sarg2);
