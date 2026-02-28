@@ -258,31 +258,27 @@ int streamio_putc(int fnbr, int ch) {
     }
 }
 
-size_t streamio_read(int fnbr, char *buf, size_t sz) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+size_t streamio_read(int fnbr, char *buf, size_t buf_sz) {
+    CHECK_PARAM(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
         ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
     }
-    assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
+            THROW_ERROR(kFileNotOpen, 0);
             break;
 
-        case fet_file: {
-            errno = 0;
-            size_t result = fread(buf, 1, sz, file_table[fnbr].file_ptr);
-            if (result < sz && ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-            return result;
-        }
+        case fet_file:
+            RETURN_INT(file_read(fnbr, buf, buf_sz));
 
         case fet_serial:
-            assert(false); // return serial_write(fnbr, buf, sz);
-            break;
-    }
+            THROW_ERROR(INTERNAL_FAULT_EX("streamio_read() not implemented for serial ports"), 0);
+            // return serial_read(fnbr, buf, sz);
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, 0);
-    return 0;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), 0);
+    }
 }
 
 MmResult streamio_readln(int fnbr, char *buf, size_t buf_sz) {
