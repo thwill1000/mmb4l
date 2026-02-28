@@ -218,6 +218,7 @@ MmResult file_open(const char *path, const char *mode, int fnbr) {
 
     file_table[fnbr].type = fet_file;
     file_table[fnbr].file_ptr = f;
+    strcpy(file_table[fnbr].mode, mode);
 
     RETURN_RESULT(kOk);
 }
@@ -343,7 +344,7 @@ MmResult file_rename(const char *old_filename, const char *new_filename) {
     CHECK_PARAM(new_filename != NULL);
 
     errno = 0;
-    if SUCCEEDED(rename(old_filename, new_filename)) {
+    if (SUCCEEDED(rename(old_filename, new_filename))) {
         return kOk;
     } else {
         return errno;
