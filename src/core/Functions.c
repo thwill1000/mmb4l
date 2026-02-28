@@ -89,7 +89,7 @@ void fun_abs(void) {
     targ = T_INT;
     (void) evaluate(ep, &f, &i64, &s, &targ, false);                 // get the value and type of the argument
     if (targ & T_NBR) {
-        fret = fabsf(f);
+        fret = fabs(f);
     } else {
         iret = i64;
         if(iret < 0) iret = -iret;
@@ -115,7 +115,7 @@ void fun_asc(void) {
 
 // return the arctangent of a number in radians
 void fun_atn(void) {
-    fret = atanf(getnumber(ep)) * ANGLE_CONVERSION;
+    fret = atan(getnumber(ep)) * ANGLE_CONVERSION;
     targ = T_NBR;
 }
 
@@ -131,7 +131,7 @@ void fun_cint(void) {
 
 // return the cosine of a number in radians
 void fun_cos(void) {
-    fret = cosf(getnumber(ep) / ANGLE_CONVERSION);
+    fret = cos(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -147,7 +147,7 @@ void fun_deg(void) {
 
 // Returns the exponential value of a number.
 void fun_exp(void) {
-    fret = expf(getnumber(ep));
+    fret = exp(getnumber(ep));
     targ = T_NBR;
 }
 
@@ -155,7 +155,7 @@ void fun_exp(void) {
 
 // Truncate an expression to the next whole number less than or equal to the argument.
 void fun_int(void) {
-    iret = floorf(getnumber(ep));
+    iret = floor(getnumber(ep));
     targ = T_INT;
 }
 
@@ -186,7 +186,7 @@ void fun_log(void) {
     f = getnumber(ep);
     if(f == 0) error_throw_legacy("Divide by zero");
     if(f < 0) error_throw_legacy("Negative argument");
-    fret = logf(f);
+    fret = log(f);
     targ = T_NBR;
 }
 
@@ -238,7 +238,7 @@ void fun_sgn(void) {
 // Return the sine of the argument 'number' in radians.
 // n = SIN( number )
 void fun_sin(void) {
-    fret = sinf(getnumber(ep) / ANGLE_CONVERSION);
+    fret = sin(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -250,7 +250,7 @@ void fun_sqr(void) {
     MMFLOAT f;
     f = getnumber(ep);
     if(f < 0) error_throw_legacy("Negative argument");
-    fret = sqrtf(f);
+    fret = sqrt(f);
     targ = T_NBR;
 }
 
@@ -259,7 +259,7 @@ void fun_sqr(void) {
 // Return the tangent of the argument 'number' in radians.
 // n = TAN( number )
 void fun_tan(void) {
-    fret = tanf(getnumber(ep)/ ANGLE_CONVERSION);
+    fret = tan(getnumber(ep)/ ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -426,7 +426,7 @@ void fun_inkey(void){
 
 // used by ACos() and ASin() below
 MMFLOAT arcsinus(MMFLOAT x) {
-     return 2.0L * atanf(x / (1.0L + sqrtf(1.0L - x * x)));
+     return 2.0L * atan(x / (1.0L + sqrt(1.0L - x * x)));
 }
 
 
