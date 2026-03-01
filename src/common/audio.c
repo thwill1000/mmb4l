@@ -122,7 +122,7 @@ static float audio_phase_m[2][MAXSOUNDS] = {0};
 static int audio_sound_volume[2][MAXSOUNDS] = {0};
 static uint64_t audio_tone_duration;
 static char audio_track_list[MAX_TRACKS][STRINGSIZE];
-static unsigned audio_track_current = 0;
+static int audio_track_current = -1;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY FLAC, PLAY MOD, PLAY_MP3 and PLAY_WAV
