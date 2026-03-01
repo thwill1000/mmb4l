@@ -54,6 +54,7 @@ void fun_inputstr(void) {
 
     int nbr = getint(argv[0], 1, MAXSTRLEN);
     int fnbr = parse_file_number(argv[2], true);
+    if (fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
 
     targ = T_STR;
     sret = GetTempStrMemory();
