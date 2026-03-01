@@ -219,7 +219,7 @@ int streamio_lof(int fnbr) {
 }
 
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
-    LOG_FN_ENTRY("path=\"%s\", mode=\"%s\", fnbr=%d", path, mode, fnbr);
+    // LOG_FN_ENTRY("path=\"%s\", mode=\"%s\", fnbr=%d", path, mode, fnbr);
     RETURN_RESULT(file_open(path, mode, fnbr));
 }
 

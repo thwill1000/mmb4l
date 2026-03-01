@@ -356,7 +356,7 @@ MmResult termgfx_wrapline() {
 }
 
 MmResult termgfx_write(const char *buf, size_t *sz) {
-    LOG_DEBUG("graphics_current=%p, mmb_options.console=%d", graphics_current, mmb_options.console);
+    // LOG_DEBUG("graphics_current=%p, mmb_options.console=%d", graphics_current, mmb_options.console);
     ASSERT_GFX();
     for (size_t idx = 0; idx < *sz; ++idx) {
         ON_FAILURE_RETURN(termgfx_putc(buf[idx]));
