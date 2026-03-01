@@ -111,7 +111,7 @@ const struct s_tokentbl tokentbl[] = {
     { "Loc(",        T_FUN | T_INT,      0, fun_loc      },
     { "Lof(",        T_FUN | T_INT,      0, fun_lof      },
     { "Log(",        T_FUN | T_NBR,      0, fun_log      },
-    { "Math(",       T_FUN | T_NBR,      0, fun_math     },
+    { "Math(",       T_FUN | T_INT | T_NBR, 0, fun_math  },
     { "Max(",        T_FUN | T_NBR,      0, fun_max      },
     { "Mid$(",       T_FUN | T_STR,      0, fun_mid      },
     { "Min(",        T_FUN | T_NBR,      0, fun_min      },
