@@ -32,6 +32,10 @@ bool interrupt_check_key_press(char ch) { return false; }
 // Defined in "core/MMBasic.c"
 SDL_atomic_t MMAbort;
 
+static void handle_exit(void) {
+    ON_FAILURE_LOG(console_term());
+}
+
 int main(int argc, char **argv) {
     printf("Press Keys\n");
 
@@ -39,8 +43,7 @@ int main(int argc, char **argv) {
     SDL_AtomicSet(&mmb_options.break_key, 0); // So that it isn't caught.
     ON_FAILURE_EXIT(keybuf_init());
     ON_FAILURE_EXIT(console_init(false));
-    console_enable_raw_mode();
-    atexit(console_disable_raw_mode);
+    atexit(handle_exit);
 
     int ch = 0;
     char buf[10];
