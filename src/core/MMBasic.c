@@ -172,7 +172,7 @@ MmResult InitBasic(void) {
     tokentbl_init();
     vartbl_init();
     ON_FAILURE_RETURN(ClearRuntime());
-    ON_FAILURE_RETURN(streamio_init(&display_putc, &display_write));
+    ON_FAILURE_RETURN(streamio_init(&display_flush, &display_putc, &display_write));
     ON_FAILURE_RETURN(interrupt_init());
     ON_FAILURE_RETURN(mmtime_init());
     ON_FAILURE_RETURN(SwitchPlatform(mmb_state.default_simulate));
@@ -241,7 +241,8 @@ void ExecuteProgram(const char *p) {
                 strcat(inpbuf, "]");
                 display_puts(inpbuf);
 #endif
-                mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1000));  // TODO: Why?
+                ON_FAILURE_ERROR(display_flush());
+                mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1000)); // TODO: Why?
             }
             p++;                                                    // and step over the token
         }

@@ -267,8 +267,9 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
             xmodem_check(&xbuff[3], X_BLOCK_SIZE)) {
             if (xbuff[1] == packetno) {
                 for (i = 0; i < X_BLOCK_SIZE; i++) {
-                    streamio_putc(file_fnbr, xbuff[i + 3]);
+                    (void) streamio_putc(file_fnbr, xbuff[i + 3]);
                 }
+                ON_FAILURE_ERROR(streamio_flush(file_fnbr));
                 ++packetno;
                 retrans = MAXRETRANS + 1;
                 total += X_BLOCK_SIZE;

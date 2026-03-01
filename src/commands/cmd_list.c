@@ -84,6 +84,7 @@ static void ListProgram(const char *p, int all) {
                 if (x >= width) ListNewLine(&ListCnt, all);
                 (void) display_putc(*pp++);
             }
+            ON_FAILURE_ERROR(display_flush());
             ListNewLine(&ListCnt, all);
             if(p[0] == 0 && p[1] == 0) break;                       // end of the listing ?
         }
@@ -344,7 +345,9 @@ static MmResult cmd_list_default(const char *p) {
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) display_puts("\r\n");
 
-    return streamio_close(fnbr);
+    ON_FAILURE_LOG(streamio_close(fnbr));
+
+    return display_flush();
 }
 
 void cmd_list(void) {

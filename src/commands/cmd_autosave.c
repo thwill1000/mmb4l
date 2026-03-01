@@ -97,6 +97,7 @@ static int cmd_autosave_read(char *buf) {
             *p++ = ch;
             if (count++ > 240) ERROR_LINE_LENGTH;
             display_putc(ch);
+            display_flush();
         }
 
         previous = ch;

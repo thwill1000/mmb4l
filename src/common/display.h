@@ -152,20 +152,12 @@ MmResult display_get_size(bool pixel, int *width, int *height);
 MmResult display_inverse(bool inverse);
 
 /**
- * Writes a character to the display.
- *
- * @param[in]  c  the character to write.
- * @return        kOk on success.
- */
-MmResult display_putc(char c);
-
-/**
  * Writes a character to the display without flushing.
  *
  * @param[in]  c  the character to write.
  * @return        kOk on success.
  */
-MmResult display_putc_noflush(char c);
+MmResult display_putc(char c);
 
 /**
  * Writes a C-string to the display.
