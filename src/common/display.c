@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -143,6 +143,8 @@ MmResult display_colour_fg(MmGraphicsColour argb) {
 }
 
 MmResult display_cursor_left(int count, bool wrap) {
+    // LOG_FN_ENTRY("count=%d, wrap=%d", count, wrap);
+
     if (TTY_TERMINAL_ENABLED()) {
         ON_FAILURE_RETURN(console_cursor_left(count, wrap));
     }
@@ -151,7 +153,7 @@ MmResult display_cursor_left(int count, bool wrap) {
         ON_FAILURE_RETURN(termgfx_cursor_left(count, wrap));
     }
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult display_cursor_up(int count) {
@@ -238,20 +240,6 @@ MmResult display_putc(char c) {
     }
 
     RETURN_RESULT(kOk);
-}
-
-MmResult display_putc_noflush(char c) {
-    // LOG_FN_ENTRY("c=%c", c);
-
-    if (TTY_TERMINAL_ENABLED()) {
-        (void) console_putc_noflush(c);
-    }
-
-    if (GFX_TERMINAL_ENABLED()) {
-        ON_FAILURE_RETURN(termgfx_putc_noflush(c));
-    }
-
-    return kOk;
 }
 
 MmResult display_puts(const char *s) {

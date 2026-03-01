@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2025 Thomas Hugo Williams
+ * Copyright (c) 2025-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
 #include "../../streamio.h"
 
-MmResult streamio_init(MmResult (*putc_fn)(char),
+MmResult streamio_init(MmResult (*flush_fn)(),
+                       MmResult (*putc_fn)(char),
                        MmResult (*write_fn)(const char *, size_t *)) {
     return kOk;
 }
@@ -14,6 +15,7 @@ MmResult streamio_close(int fnbr) { return kOk; }
 MmResult streamio_close_all(void) { return kOk; }
 int streamio_eof(int fnbr) { return 0; }
 int streamio_find_free(void) { return 0; }
+MmResult streamio_flush(int fnbr) { return kOk; }
 int streamio_getc(int fnbr) { return 0; }
 bool streamio_is_file(int fnbr) { return false; }
 bool streamio_is_serial(int fnbr) { return false; }

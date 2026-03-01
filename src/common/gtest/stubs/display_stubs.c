@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Thomas Hugo Williams
+ * Copyright (c) 2025-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -26,7 +26,6 @@ MmResult display_get_cursor_pos(bool pixel, int *x, int *y) { return kOk; }
 MmResult display_get_size(bool pixel, int *width, int *height) { return kOk; }
 MmResult display_inverse(bool inverse) { return kOk; }
 MmResult display_putc(char c) { return kOk; }
-MmResult display_putc_noflush(char c) { return kOk; }
 
 MmResult display_puts(const char *s) {
     while (*s) ON_FAILURE_RETURN(display_putc(*s++));
