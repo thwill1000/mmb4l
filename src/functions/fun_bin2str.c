@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_bin2str.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -77,30 +77,30 @@ void fun_bin2str(void) {
             map.l = (int64_t)i64;
         } else if (checkstring(argv[0], "INT32")) {
             len = 4;
-            if (i64 > 2147483647 || i64 < -2147483648) ERROR_OVERFLOW;
+            if (i64 > INT32_MAX || i64 < INT32_MIN) ERROR_OVERFLOW;
             map.i = (int32_t)i64;
         } else if (checkstring(argv[0], "INT16")) {
             len = 2;
-            if (i64 > 32767 || i64 < -32768) ERROR_OVERFLOW;
+            if (i64 > INT16_MAX || i64 < INT16_MIN) ERROR_OVERFLOW;
             map.s = (int16_t)i64;
         } else if (checkstring(argv[0], "INT8")) {
             len = 1;
-            if (i64 > 127 || i64 < -128) ERROR_OVERFLOW;
+            if (i64 > INT8_MAX || i64 < INT8_MIN) ERROR_OVERFLOW;
             map.c[0] = (int8_t)i64;
         } else if (checkstring(argv[0], "UINT64")) {
             len = 8;
             map.ul = (uint64_t)i64;
         } else if (checkstring(argv[0], "UINT32")) {
             len = 4;
-            if (i64 > 4294967295 || i64 < 0) ERROR_OVERFLOW;
+            if (i64 > UINT32_MAX || i64 < 0) ERROR_OVERFLOW;
             map.ui = (uint32_t)i64;
         } else if (checkstring(argv[0], "UINT16")) {
             len = 2;
-            if (i64 > 65535 || i64 < 0) ERROR_OVERFLOW;
+            if (i64 > UINT16_MAX || i64 < 0) ERROR_OVERFLOW;
             map.us = (uint16_t)i64;
         } else if (checkstring(argv[0], "UINT8")) {
             len = 1;
-            if (i64 > 255 || i64 < 0) ERROR_OVERFLOW;
+            if (i64 > UINT8_MAX || i64 < 0) ERROR_OVERFLOW;
             map.uc[0] = (uint8_t)i64;
         } else
             ERROR_SYNTAX;
