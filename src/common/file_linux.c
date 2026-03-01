@@ -259,7 +259,7 @@ MmResult file_mkdir(const char *dirname) {
     }
 }
 
-MmResult file_mkfile(const char *filename) {
+MmResult file_mkfile(const char *filename, const char *contents) {
     CHECK_PARAM(filename != NULL);
 
     FileInfo info;
@@ -269,6 +269,9 @@ MmResult file_mkfile(const char *filename) {
     errno = 0;
     FILE* file = fopen(filename, "w");
     if (file) {
+        if (contents) {
+            fputs(contents, file);
+        }
         fclose(file);
         return kOk;
     } else {
