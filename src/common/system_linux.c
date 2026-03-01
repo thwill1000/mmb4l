@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-process.c
+system_linux.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,10 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdlib.h>
 #include <unistd.h>
 
-#include "process.h"
+#include "system.h"
 
-int process_getpid() {
+int system_getpid() {
    return (int) getpid();
+}
+
+int system_setenv(const char *name, const char *value, int overwrite) {
+    return setenv(name, value, overwrite);
 }

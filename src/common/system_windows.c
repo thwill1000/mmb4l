@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-process.h
+system_windows.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,9 +42,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_PROCESS)
-#define MMB4L_PROCESS
+#include <windows.h>
+#include <stdlib.h>
 
-int process_getpid();
+// Undefine HRESULT macros that conflict with MMB4L definitions
+#undef FAILED
+#undef SUCCEEDED
 
-#endif // #if !defined(MMB4L_PROCESS)
+#include "error.h"
+#include "system.h"
+
+int system_getpid() {
+    return (int) GetCurrentProcessId();
+}
+
+int system_setenv(const char *name, const char *value, int overwrite) {
+    if (!overwrite) {
+        char buf[256];
+        size_t len;
+        if (getenv_s(&len, buf, sizeof(buf), name) == 0 && len > 0) return 0;
+    }
+    return _putenv_s(name, value);
+}
