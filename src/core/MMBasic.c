@@ -2405,6 +2405,7 @@ void ClearVars(int level) {
     DimUsed = false;
 }
 
+extern void cmd_read_clear_cache(void);
 
 // clear all stack pointers (eg, FOR/NEXT stack, DO/LOOP stack, GOSUB stack, etc)
 // this is done at the command prompt or at any break
@@ -2416,13 +2417,8 @@ void ClearStack(void) {
     gosubindex = 0;
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
-#if defined(__mmb4l__)
-    extern void cmd_read_clear_cache(void);
     cmd_read_clear_cache();
     interrupt_clear();
-#else
-    InterruptReturn = NULL;
-#endif
 }
 
 
