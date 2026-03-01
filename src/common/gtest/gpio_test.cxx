@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Thomas Hugo Williams
+ * Copyright (c) 2024-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -163,7 +163,7 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 static uint16_t read_snes(uint8_t latch, uint8_t clock, uint8_t data) {
-    const float PULSE_DURATION = 0.012;  // 12uS
+    const float PULSE_DURATION = 0.012f;  // 12uS
     EXPECT_EQ(kOk, gpio_pulse_pin(latch, PULSE_DURATION));
     uint16_t bits = 0x0;
     for (size_t i = 0; i < 16; ++i) {

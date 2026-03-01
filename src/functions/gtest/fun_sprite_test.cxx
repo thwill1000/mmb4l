@@ -122,7 +122,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus2_Fails) {
     fun_sprite();
 
     EXPECT_EQ(0, iret);
-    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals256_Fails) {
@@ -133,7 +133,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals256_Fails) {
     fun_sprite();
 
     EXPECT_EQ(0, iret);
-    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingClassicMmBasic_Fails) {
@@ -147,7 +147,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingCla
     fun_sprite();
 
     EXPECT_EQ(0, iret);
-    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals65_AndSimulatingClassicMmBasic_Fails) {
@@ -160,7 +160,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals65_AndSimulatingClassic
     fun_sprite();
 
     EXPECT_EQ(0, iret);
-    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenNotASprite_ReturnsZero) {

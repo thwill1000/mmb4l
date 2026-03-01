@@ -42,11 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <complex.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
+#include "../common/complex_compat.h"
 #include "../common/display.h"
 #include "../common/mmb4l.h"
 #include "../common/mmtime.h"
@@ -116,8 +115,6 @@ typedef struct tagMTRand {
 } MTRand;
 
 MMFLOAT PI;
-typedef MMFLOAT complex cplx;
-typedef float complex fcplx;
 void cmd_FFT(const char *pp);
 const MMFLOAT chitable[51][15]={
 		{0.995,0.99,0.975,0.95,0.9,0.5,0.2,0.1,0.05,0.025,0.02,0.01,0.005,0.002,0.001},
@@ -1868,19 +1865,19 @@ void fun_math(void){
 				targ=T_NBR;
 			} else if((tp=checkstring(&ep[2], "ADD"))){
 				getargs(&tp,3, DELIM_COMMA);
-				fcplx x=getComplex(argv[0])+getComplex(argv[2]);
+				fcplx x = caddf(getComplex(argv[0]), getComplex(argv[2]));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "MUL"))){
 				getargs(&tp,3, DELIM_COMMA);
-				fcplx x=getComplex(argv[0])*getComplex(argv[2]);
+				fcplx x = cmulf(getComplex(argv[0]), getComplex(argv[2]));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "SUB"))){
 				getargs(&tp,3, DELIM_COMMA);
-				fcplx x=getComplex(argv[0])-getComplex(argv[2]);
+				fcplx x = csubf(getComplex(argv[0]), getComplex(argv[2]));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "DIV"))){
 				getargs(&tp,3, DELIM_COMMA);
-				fcplx x=getComplex(argv[0])/getComplex(argv[2]);
+				fcplx x = cdivf(getComplex(argv[0]), getComplex(argv[2]));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "POW"))){
 				getargs(&tp,3, DELIM_COMMA);
@@ -1932,7 +1929,8 @@ void fun_math(void){
 				fcplx x=clogf(getComplex(tp));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "ABS"))){
-				fcplx x=cabsf(getComplex(tp));
+				float mag = cabsf(getComplex(tp));
+				fcplx x = FCOMPLEX(mag, 0.0f);
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "SQRT"))){
 				fcplx x=csqrtf(getComplex(tp));
@@ -1942,7 +1940,7 @@ void fun_math(void){
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "CPLX"))){
 				getargs(&tp,3, DELIM_COMMA);
-				fcplx x=(float)(getnumber(argv[0]))+(float)(getnumber(argv[2]))*I;
+				fcplx x = FCOMPLEX(getnumber(argv[0]), getnumber(argv[2]));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "POLAR"))){
 				getargs(&tp,3, DELIM_COMMA);
@@ -1950,7 +1948,7 @@ void fun_math(void){
 				MMFLOAT theta=getnumber(argv[2])/ANGLE_CONVERSION;
 				MMFLOAT stheta=sin(theta)*r;
 				MMFLOAT ctheta=cos(theta)*r;
-				fcplx x=(float)(ctheta)+(float)(stheta)*I;
+				fcplx x = FCOMPLEX(ctheta, stheta);
 				retComplex(x);
 			} else ERROR_SYNTAX;
 			return;
@@ -2611,7 +2609,7 @@ static size_t reverse_bits(size_t val, int width) {
 	return result;
 }
 
-bool Fft_transformRadix2(double complex vec[], size_t n, bool inverse) {
+bool Fft_transformRadix2(cplx vec[], size_t n, bool inverse) {
 	// Length variables
 	int levels = 0;  // Compute levels = floor(log2(n))
 	for (size_t temp = n; temp > 1U; temp >>= 1)
@@ -2620,19 +2618,21 @@ bool Fft_transformRadix2(double complex vec[], size_t n, bool inverse) {
 		return false;  // n is not a power of 2
 
 	// Trigonometric tables
-	if (SIZE_MAX / sizeof(double complex) < n / 2)
+	if (SIZE_MAX / sizeof(cplx) < n / 2)
 		return false;
-	double complex *exptable = GetMemory((n / 2) * sizeof(double complex));
+	cplx *exptable = GetMemory((n / 2) * sizeof(cplx));
 	if (exptable == NULL)
 		return false;
-	for (size_t i = 0; i < n / 2; i++)
-		exptable[i] = cexp((inverse ? 2 : -2) * M_PI * i / n * I);
+	for (size_t i = 0; i < n / 2; i++) {
+		double angle = (inverse ? 2 : -2) * M_PI * i / n;
+		exptable[i] = cexp(DCOMPLEX(0.0, angle));
+	}
 
 	// Bit-reversed addressing permutation
 	for (size_t i = 0; i < n; i++) {
 		size_t j = reverse_bits(i, levels);
 		if (j > i) {
-			double complex temp = vec[i];
+			cplx temp = vec[i];
 			vec[i] = vec[j];
 			vec[j] = temp;
 		}
@@ -2645,9 +2645,9 @@ bool Fft_transformRadix2(double complex vec[], size_t n, bool inverse) {
 		for (size_t i = 0; i < n; i += size) {
 			for (size_t j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
 				size_t l = j + halfsize;
-				double complex temp = vec[l] * exptable[k];
-				vec[l] = vec[j] - temp;
-				vec[j] += temp;
+				cplx temp = cmul(vec[l], exptable[k]);
+				vec[l] = csub(vec[j], temp);
+				vec[j] = cadd(vec[j], temp);
 			}
 		}
 		if (size == n)  // Prevent overflow in 'size *= 2'
@@ -2709,19 +2709,18 @@ void cmd_FFT(const char *pp){
 		int size=dims[1] - mmb_options.base +1;
 		a1cplx=(cplx *)a4float;
 		card2=parsefloatrarray(argv[2],&a3float,2,1,dims, true);
-	    if(card2 !=size)error_throw_legacy("Array size mismatch");
-	    for(i=1;i<65536;i*=2){
-	    	if(card2==i)powerof2=1;
-	    }
-	    if(!powerof2)error_throw_legacy("array size must be a power of 2");
-        a2cplx=(cplx *)GetTempMemory((card2)*16);
-	    memcpy(a2cplx,a1cplx,card2*16);
-	    for(i=0;i<card2;i++)a2cplx[i]=conj(a2cplx[i]);
-        Fft_transformRadix2(a2cplx, card2, 0);
-//	    fft((MMFLOAT *)a2cplx,size+1);
-	    for(i=0;i<card2;i++)a2cplx[i]=conj(a2cplx[i])/(cplx)(card2);
-	    for(i=0;i<card2;i++)a3float[i]=creal(a2cplx[i]);
-	    return;
+		if(card2 !=size)error_throw_legacy("Array size mismatch");
+		for(i=1;i<65536;i*=2){
+			if(card2==i)powerof2=1;
+		}
+		if(!powerof2)error_throw_legacy("array size must be a power of 2");
+		a2cplx=(cplx *)GetTempMemory((card2)*16);
+		memcpy(a2cplx,a1cplx,card2*16);
+		for(i=0;i<card2;i++)a2cplx[i]=conj(a2cplx[i]);
+		Fft_transformRadix2(a2cplx, card2, 0);
+		for(i=0;i<card2;i++)a2cplx[i]=cdivr(conj(a2cplx[i]), (double)card2);
+		for(i=0;i<card2;i++)a3float[i]=creal(a2cplx[i]);
+		return;
 	}
 	getargs(&pp,3, DELIM_COMMA);
 	card1=parsefloatrarray(argv[0],&a3float,1,1,dims, false);

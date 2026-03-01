@@ -333,7 +333,11 @@ void streamio_seek(int fnbr, int idx) {
 
     errno = 0;
     if (FAILED(fflush(f))) THROW_ERROR_VOID(errno);
+#if defined(_MSC_VER)
+    if (FAILED(file_fsync(_fileno(f)))) THROW_ERROR_VOID(errno);
+#else
     if (FAILED(file_fsync(fileno(f)))) THROW_ERROR_VOID(errno);
+#endif
     if (FAILED(fseek(f, idx - 1, SEEK_SET))) THROW_ERROR_VOID(errno); // MMBasic indexes from 1, not 0.
 }
 

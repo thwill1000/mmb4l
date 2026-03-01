@@ -54,6 +54,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/system.h"
 #include "../core/tokentbl.h"
 
+#if defined(_WIN32)
+#define popen _popen
+#define pclose _pclose
+#define WEXITSTATUS(status) status
+#endif
+
 /**
  * @brief  Reads value of an environment variable into a buffer.
  *
@@ -294,7 +300,12 @@ static void cmd_system_execute(const char *p) {
             // Set size of LONGSTRING variable.
             *((int64_t *) output_var_ptr) = buf_sz;
         }
+#if !defined(_WIN32)
+        // On Unix-like platforms, if the command is not found then the shell
+        // typically returns an exit status of 127. On Windows there is no
+        // reliable equivalent exit code so we skip this check entirely.
         if (*exit_status_ptr == 127) error_throw(kUnknownSystemCommand);
+#endif
     } else {
         error_throw(result);
     }

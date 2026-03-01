@@ -45,7 +45,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
-#include <linux/limits.h> // For PATH_MAX
+#ifdef _WIN32
+#include <limits.h>
+#ifndef PATH_MAX
+#define PATH_MAX 260
+#define NAME_MAX 255
+#endif
+#else
+#include <linux/limits.h>
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -256,6 +265,16 @@ MmResult file_chdir(const char *dirname);
 MmResult file_closedir(DirStream *stream);
 
 /**
+ * Compares two file paths for equality, accounting for platform-specific
+ * case sensitivity and path normalization.
+ *
+ * @param[in]  path1  First file path to compare
+ * @param[in]  path2  Second file path to compare
+ * @return            true if the paths refer to the same location, false otherwise
+ */
+bool file_compare_path(const char *path1, const char *path2);
+
+/**
  * Deletes a file from the filesystem.
  *
  * @param[in]  filename  Path to the file to delete
@@ -396,6 +415,28 @@ MmResult file_mkdir(const char *dirname);
  * @return               kOk on success, error code on failure
  */
 MmResult file_mkfile(const char *filename, const char *contents);
+
+/**
+ * Creates a new symbolic link
+ *
+ * @param[in]  target  Path to the target of the symbolic link
+ * @param[in]  link    Path to the symbolic link to create
+ * @return             kOk on success, error code on failure
+ */
+MmResult file_mksymlink(const char *target, const char *link);
+
+/**
+ * Normalizes path separators in a path string to the UNIX path separator.
+ *
+ * This function takes an input path string and replaces all occurrences of
+ * both '/' and '\' with the UNIX path separator.
+ *
+ * @param[in]  path      Input path string to normalize
+ * @param[out] buf       Buffer to store the normalized path
+ * @param[in]  buf_sz    Size of the output buffer in bytes
+ * @return               kOk on success, error code on failure
+ */
+MmResult file_normalize_separators(const char *path, char *buf, size_t buf_sz);
 
 /**
  * Opens a file for reading or writing.

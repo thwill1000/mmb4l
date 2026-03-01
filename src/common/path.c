@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,7 +124,7 @@ typedef enum {
  * @return  pointer to the first '/' encountered or to \p new_path if there
  *          were none.
  */
-/*static*/ char *path_unwind(char *new_path, char *pdst) {
+char *path_unwind(char *new_path, char *pdst) {
     if (pdst == new_path
             || ((pdst == new_path + 2) && memcmp(pdst - 2, "..", 2) == 0)
             || (memcmp(pdst - 3, "/..", 3) == 0)) {
@@ -143,17 +144,18 @@ typedef enum {
 }
 
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
-    // LOG_FN_ENTRY("original_path=\"%s\", new_path=\"%s\", sz=%d", original_path, new_path, sz);
+    // LOG_FN_ENTRY("original_path=\"%s\", new_path=0x%" PRIxPTR ", sz=%d", original_path, (uintptr_t) new_path, sz);
 
     const char *psrc = original_path;
     bool absolute = file_is_separator(psrc[0]);
 
-    // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
-    size_t len = strlen(psrc);
-    if (len >= 2 && isalpha(psrc[0]) && psrc[1] == ':') {
-        psrc += 2;
-        len -= 2;
+    // Handle Windows drive letter paths, e.g. "C:\path\to\file" or "C:/path/to/file"
+    if (isalpha(psrc[0]) && psrc[1] == ':' && file_is_separator(psrc[2])) {
         absolute = true;
+#if !defined(_WIN32)
+        // On Linux ignore the leading drive letter and colon
+        psrc += 2;
+#endif
     }
 
     memset(new_path, 0, sz);
@@ -165,13 +167,22 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
 
             case '\0':
                 switch (state) {
+                    case kPathStateStartDot:
+                        safe_buffer_write(&safe_dst, ".", 1);
+                        break;
                     case kPathStateStartDotDot:
                         safe_buffer_write(&safe_dst, "..", 2);
+                        break;
+                    case kPathStateSlash:
+                    case kPathStateSlashDot:
+                        safe_buffer_write(&safe_dst, "/", 1);
                         break;
                     case kPathStateSlashDotDot: {
                         char *p = path_unwind(new_path, safe_dst.pos);
                         if (p == safe_dst.pos) {
                             safe_buffer_write(&safe_dst, "/..", absolute ? 1 : 3);
+                        } else if (file_is_separator(*p)) {
+                            safe_buffer_set_pos(&safe_dst, p + 1);
                         } else {
                             safe_buffer_set_pos(&safe_dst, p);
                         }
@@ -285,13 +296,29 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
 
     } while (*psrc++ && !safe_dst.overrun);
 
-    if (!*new_path) {
-        // Empty absolute path is '/' whereas empty relative path is '.'
-        new_path[0] = absolute ? '/' : '.';
+    // Strip trailing slash unless it is a root path, i.e. if it is not '/' or 'C:/'
+    if (*(safe_dst.end - 2) == '/') {
+        if (safe_dst.end - safe_dst.base == 2) {
+            // Linux root path '/' should remain unchanged
+        } else if (safe_dst.end - safe_dst.base == 4
+            && isalpha(safe_dst.base[0])
+            && safe_dst.base[1] == ':'
+            && safe_dst.base[2] == '/') {
+            // Windows root path 'C:/' should remain unchanged
+        } else {
+            // Strip trailing slash
+            *(safe_dst.end - 2) = '\0';
+            safe_dst.end--;
+        }
+    }
+
+    if (*new_path == '\0') {
+        new_path[0] = '.';
         new_path[1] = '\0';
     }
 
     MmResult result = (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
+    new_path[sz - 1] = '\0'; // Ensure null termination.
     RETURN_RESULT_EX(result, "new_path=\"%s\"", new_path);
 }
 
@@ -369,12 +396,12 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
         path++; // Skip the '~'.
 
     } else if (isalpha(path[0]) && path[1] == ':') {
-
+#if !defined(_WIN32)
         // Replace DOS drive prefix with root dir;
         // Any repeated '/' will be dealt with by the later call to path_munge().
         if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
         path += 2; // Skip the drive prefix.
-
+#endif
     } else if (!file_is_absolute(path)) {
 
         // If the 'path' is not absolute then copy the current working directory

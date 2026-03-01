@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-keybuf_windows.c
+mmtime_windows.c
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed on the keybuf at startup (additional copyright messages may
+   be displayed  on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,47 +42,59 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdbool.h>
+#include <assert.h>
+#include <stdint.h>
 #include <windows.h>
 
-// Undefine HRESULT macros that conflict with MMB4L definitions
+// Undefine HRESULT macros to avoid conflicts with our own definitions
 #undef FAILED
 #undef SUCCEEDED
 
-#include "keybuf.h"
+#include "logger.h"
+#include "mmtime.h"
 
-bool keybuf_isatty(void) {
-    return true;
+int64_t mmtime_now_ns() {
+    FILETIME ft;
+    GetSystemTimePreciseAsFileTime(&ft);
+    // Combine high and low parts into a single 64-bit value (in 100-nanosecond intervals)
+    int64_t intervals = ((int64_t) ft.dwHighDateTime << 32) | (uint64_t) ft.dwLowDateTime;
+    // Convert from Windows epoch (1601-01-01) to Unix epoch (1970-01-01)
+    intervals -= 116444736000000000LL;
+    // Convert from 100-nanosecond intervals to nanoseconds
+    return intervals * 100;
 }
 
-/**
- * Blocks until a character is available on STDIN then returns it.
- * Since we have enabled ENABLE_VIRTUAL_TERMINAL_INPUT, cursor keys and
- * function keys arrive as VT100 escape sequences just like on Linux,
- * so we only need to handle regular character input here.
- * Returns -1 on error.
- */
-int keybuf_read_char(void) {
-    static HANDLE hStdin = INVALID_HANDLE_VALUE;
-    if (hStdin == INVALID_HANDLE_VALUE) {
-        hStdin = GetStdHandle(STD_INPUT_HANDLE);
-        if (hStdin == INVALID_HANDLE_VALUE) return -1;
+void mmtime_sleep_ns(int64_t duration_ns) {
+    assert(duration_ns >= 0);
+
+    // Create a waitable timer for sub-millisecond precision
+    HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
+    if (timer) {
+        // Timer uses 100-nanosecond intervals, negative value means relative time
+        LARGE_INTEGER due_time;
+        due_time.QuadPart = -(duration_ns / 100);
+        SetWaitableTimer(timer, &due_time, 0, NULL, NULL, FALSE);
+        WaitForSingleObject(timer, INFINITE);
+        CloseHandle(timer);
+    } else {
+        LOG_DEBUG("failed to create waitable timer, falling back to Sleep() with millisecond precision");
+        Sleep((DWORD)(duration_ns / 1000000));
     }
+}
 
-    for (;;) {
-        // ReadConsoleInput blocks until at least one event is available.
-        INPUT_RECORD record;
-        DWORD read_count = 0;
-        if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) {
-            return -1;
-        }
+int64_t mmtime_get_cputime_ns(void) {
+    FILETIME creation_time, exit_time, kernel_time, user_time;
+    GetProcessTimes(GetCurrentProcess(), &creation_time, &exit_time, &kernel_time, &user_time);
+    // Combine kernel and user time (both in 100-nanosecond intervals)
+    ULARGE_INTEGER k, u;
+    k.LowPart  = kernel_time.dwLowDateTime;
+    k.HighPart = kernel_time.dwHighDateTime;
+    u.LowPart  = user_time.dwLowDateTime;
+    u.HighPart = user_time.dwHighDateTime;
+    // Convert from 100-nanosecond intervals to nanoseconds
+    return (int64_t)(k.QuadPart + u.QuadPart) * 100;
+}
 
-        // Only process key down events that produce a character.
-        if (record.EventType != KEY_EVENT) continue;
-        if (!record.Event.KeyEvent.bKeyDown) continue;
-        char ch = record.Event.KeyEvent.uChar.AsciiChar;
-        if (ch == 0) continue;  // Non-character key (e.g. shift, ctrl alone)
-
-        return (unsigned char) ch;
-    }
+time_t mmtime_timegm(struct tm *t) {
+    return _mkgmtime(t);
 }

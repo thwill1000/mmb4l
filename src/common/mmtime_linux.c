@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-Version.h
+mmtime_linux.c
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed on the console at startup (additional copyright messages may
+   be displayed  on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,61 +42,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_VERSION_H)
-#define MMB4L_VERSION_H
+#include <assert.h>
+#include <stdint.h>
 
-#if defined(__linux__)
-    #define __mmb4l__
-    #if defined(__ANDROID__)
-        #define MM_ARCH  "Android"
-        // #define MM_ARCH  "Android aarch64"
-        #define ENV64BIT
-    #elif defined(__x86_64)
-        #define MM_ARCH  "Linux x86_64"
-        #define ENV64BIT
-    #elif defined(__aarch64__)
-        #define MM_ARCH  "Linux aarch64"
-        #define ENV64BIT
-    #elif defined(__arm__)
-        #define MM_ARCH  "Linux armv6l"
-        #define ENV32BIT
-    #elif defined(__i686__)
-        #define MM_ARCH  "Linux i686"
-        #define ENV32BIT
-    #else
-        #error This architecture is not supported
-    #endif
-#elif defined(__riscos__)
-    #define __mmb4l__
-    #define MM_ARCH "RISC OS"
-    #define ENV32BIT
-#elif defined(_WIN32)
-    #define __mmb4l__
-    #define MM_ARCH "Windows x86_64"
-    #define ENV64BIT
-#else
-    #error This device is not supported
-#endif
+#include "mmtime.h"
 
-#if defined(__mmb4l__)
-    #define MM_DEVICE     "MMB4L"
-#if defined(__ANDROID__)
-    #define MM_MAJOR      1
-    #define MM_MINOR      0
-    #define MM_MICRO      1
-    #define BUILD_NUMBER  0  // Currently always 0.
-#else
-    #define MM_MAJOR      0
-    #define MM_MINOR      8
-    #define MM_MICRO      1
-    #define BUILD_NUMBER  0  // Currently always 0.
-#endif
-    #define MM_VERSION    (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
-    #define COPYRIGHT     "Copyright 2011-2026 Geoff Graham\r\n" \
-                          "Copyright 2016-2026 Peter Mather\r\n" \
-                          "Copyright 2021-2026 Thomas Hugo Williams"
-#else
-    #error __mmb4l__ is not defined
-#endif
+int64_t mmtime_now_ns() {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
+}
 
-#endif // #if !defined(MMB4L_VERSION_H)
+void mmtime_sleep_ns(int64_t duration_ns) {
+    assert(duration_ns >= 0);
+    struct timespec t = { duration_ns / 1000000000, duration_ns % 1000000000 };
+    nanosleep(&t, NULL);
+}
+
+int64_t mmtime_get_cputime_ns(void) {
+    struct timespec now;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now);
+    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
+}
+
+time_t mmtime_timegm(struct tm *t) {
+    return timegm(t);
+}
