@@ -292,7 +292,7 @@ static MmResult keyboard_update_last_ps2_scancode(const SDL_Keysym* keysym, bool
 }
 
 MmResult keyboard_key_down(const SDL_Keysym* keysym) {
-    LOG_FN_ENTRY("keysym->sym=0x%x", keysym->sym);
+    // LOG_FN_ENTRY("keysym->sym=0x%x", keysym->sym);
     assert(keyboard_initialised);
     char ch = keyboard_convert(keysym);
     if (ch) {

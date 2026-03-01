@@ -161,7 +161,7 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 MmResult InitBasic(void) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     SDL_AtomicSet(&MMAbort, false);
     srand(0);  // seed the random generator with zero
@@ -188,7 +188,7 @@ MmResult InitBasic(void) {
 // We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
 DIAGNOSTIC_IGNORE_CLOBBERED
 void ExecuteProgram(const char *p) {
-    LOG_FN_ENTRY("p=%p", p);
+    // LOG_FN_ENTRY("p=%p", p);
 
     int i;
     int SaveLocalIndex = 0;
@@ -436,7 +436,7 @@ static MmResult PrepareFontTable() {
 }
 
 MmResult PrepareProgram(bool abort_on_error) {
-    LOG_FN_ENTRY("abort_on_error=%d", abort_on_error);
+    // LOG_FN_ENTRY("abort_on_error=%d", abort_on_error);
     ON_FAILURE_RETURN(PrepareFunctionTable(abort_on_error));
     ON_FAILURE_RETURN(PrepareFontTable());
     RETURN_RESULT(kOk);
@@ -2428,7 +2428,7 @@ void ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 MmResult ClearRuntime(void) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     // Facilitate unit-tests that have not initialised the state.
     if (mmb_state.default_simulate == kSimulateUnspecified) {
@@ -2447,7 +2447,7 @@ MmResult ClearRuntime(void) {
     mmb_options.simulate = kSimulatePicocalc;
 #endif
     ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
-    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+    // LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
 #if defined(__ANDROID__)
     (void) graphics_set_mode(1, 32, RGB_BLACK);
 #endif
@@ -2462,7 +2462,7 @@ MmResult ClearRuntime(void) {
     ON_FAILURE_RETURN(funtbl_clear());
     TraceOn = false;
 
-    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+    // LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
     RETURN_RESULT(kOk);
 }
 

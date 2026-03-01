@@ -218,7 +218,7 @@ MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *file
 }
 
 void cmd_run(void) {
-    LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
+    // LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
 
 #if defined(__ANDROID__)
     OptionsSimulate simulate = kSimulatePicocalc;

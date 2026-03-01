@@ -136,7 +136,7 @@ static MmResult get_banner(char *buf, size_t buf_sz) {
 }
 
 static void init_mmbasic_config_dir() {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     char config_dir[PATH_MAX] = { '\0' };
     MmResult result = file_get_config_dir(config_dir, PATH_MAX);
@@ -176,7 +176,7 @@ static void init_options_cb(const char *msg) {
 }
 
 static void init_options() {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     char filename[PATH_MAX] = { '\0' };
     MmResult result = file_get_config_dir(filename, sizeof(filename));
@@ -364,7 +364,7 @@ int main(int argc, char *argv[]) {
     ON_FAILURE_EXIT(logger_init("mmb4l.log"));
 #endif
 
-    LOG_FN_ENTRY("argc=%d, argv=%p", argc, argv);
+    // LOG_FN_ENTRY("argc=%d, argv=%p", argc, argv);
     {
         char banner[1024];
         ON_FAILURE_EXIT(get_name_and_version(banner, sizeof(banner)));

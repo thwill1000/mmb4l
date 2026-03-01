@@ -483,7 +483,7 @@ static MmResult program_process_line(char *line) {
 }
 
 static MmResult program_open_file(const char *filename) {
-    LOG_FN_ENTRY("filename=\"%s\"", filename);
+    // LOG_FN_ENTRY("filename=\"%s\"", filename);
 
     char full_path[STRINGSIZE];
     MmResult result = program_file_stack->size == 0
@@ -679,7 +679,7 @@ static bool program_path_exists(const char *root, const char *stem, const char *
 }
 
 MmResult program_get_bas_file(const char *filename, char *out) {
-    LOG_FN_ENTRY("filename=\"%s\", out=%p", filename, out);
+    // LOG_FN_ENTRY("filename=\"%s\", out=%p", filename, out);
 
     char path[STRINGSIZE];
     MmResult result = path_munge(filename, path, STRINGSIZE);
@@ -972,7 +972,7 @@ void program_list_csubs(int all) {
 }
 
 MmResult program_load_file(const char *filename) {
-    LOG_FN_ENTRY("filename=\"%s\"", filename);
+    // LOG_FN_ENTRY("filename=\"%s\"", filename);
 
     // Store the current token buffer incase we are at the command prompt.
     char tmp[TKNBUF_SIZE];
