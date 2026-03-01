@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_epoch.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -84,5 +84,5 @@ void fun_epoch(void) {
     tmbuf.tm_min = min;
     tmbuf.tm_sec = s;
     targ = T_INT;
-    iret = timegm(&tmbuf);
+    iret = mmtime_timegm(&tmbuf);
 }

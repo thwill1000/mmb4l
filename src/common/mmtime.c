@@ -110,3 +110,7 @@ int64_t mmtime_get_cputime_ns(void) {
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now);
     return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
 }
+
+time_t mmtime_timegm(struct tm *t) {
+    return timegm(t);
+}
