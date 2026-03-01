@@ -198,7 +198,7 @@ static Features features_picomite_vga_usb = {
 };
 
 MmResult features_init(Features *features, OptionsSimulate simulate) {
-    LOG_FN_ENTRY("features=%p, simulate=%d", features, simulate);
+    // LOG_FN_ENTRY("features=%p, simulate=%d", features, simulate);
 
     Features *new_features = NULL;
 

@@ -395,7 +395,7 @@ MmResult interrupt_resume_tick(int irq) {
 }
 
 bool interrupt_check_key_press(char ch) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     if (ch == SDL_AtomicGet(&interrupt_specific_key) && interrupt_specific_key_addr) {
         SDL_AtomicSet(&interrupt_specific_key_pressed, true);

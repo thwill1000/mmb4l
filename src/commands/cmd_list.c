@@ -307,7 +307,7 @@ static MmResult cmd_list_variables(const char *p) {
 
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
-    LOG_FN_ENTRY("p=%s", p);
+    // LOG_FN_ENTRY("p=%s", p);
 
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));

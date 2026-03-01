@@ -285,7 +285,7 @@ static int compare_by_extension(const void *a, const void *b) {
  * Helper function to extract directory and pattern from file specification
  */
 MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
-    LOG_FN_ENTRY("fspec=%s", fspec);
+    // LOG_FN_ENTRY("fspec=%s", fspec);
 
     CHECK_PARAM(fspec != NULL);
     CHECK_PARAM(dirname != NULL);
@@ -349,7 +349,7 @@ MmResult file_append_path(char *parent, const char *element, size_t size) {
 }
 
 MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
-    LOG_FN_ENTRY("fspec=%s, sort=%d, list=%p", fspec, sort, list);
+    // LOG_FN_ENTRY("fspec=%s, sort=%d, list=%p", fspec, sort, list);
     CHECK_PARAM(fspec != NULL);
     CHECK_PARAM(list != NULL);
 
@@ -474,7 +474,7 @@ bool file_exists_regular(const char *path) {
 }
 
 bool file_exists_dir(const char *path) {
-    LOG_FN_ENTRY("path=%s", path);
+    // LOG_FN_ENTRY("path=%s", path);
 
     if (!path) return false;
 
@@ -526,7 +526,7 @@ int file_eof(int fnbr) {
 }
 
 MmResult file_size(const char *path, off_t *size) {
-    LOG_FN_ENTRY("path=%s, size=%p", path, size);
+    // LOG_FN_ENTRY("path=%s, size=%p", path, size);
 
     FileInfo info;
     ON_FAILURE_RETURN(file_info(path, &info));
