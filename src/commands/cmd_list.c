@@ -262,7 +262,7 @@ static MmResult cmd_list_variables(const char *p) {
         if (var->type & T_IMPLIED) {
             cstring_cat(name, "*", MAXVARLEN + 2);
         } else {
-            if (var->type & T_INT) cstring_cat(name, "\%", MAXVARLEN + 2);
+            if (var->type & T_INT) cstring_cat(name, "%", MAXVARLEN + 2);
             if (var->type & T_STR) cstring_cat(name, "$", MAXVARLEN + 2);
             if (var->type & T_NBR) cstring_cat(name, "!", MAXVARLEN + 2);
         }

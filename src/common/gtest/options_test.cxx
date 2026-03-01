@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2021-2025 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
+#include <filesystem>
 #include <gtest/gtest.h>
-
-#include "test_config.h"
 
 extern "C" {
 
@@ -22,30 +21,36 @@ MmResult prompt_getc(int *ch) {
 
 }
 
-#define OPTIONS_TEST_DIR  TMP_DIR "/OptionsTest"
-
 class OptionsTest : public ::testing::Test {
 
 protected:
 
-    std::string m_home;
+    std::string home;
+    std::filesystem::path test_dir;
 
     void SetUp() override {
-        struct stat st = { 0 };
-        if (stat(OPTIONS_TEST_DIR, &st) == -1) {
-            mkdir(OPTIONS_TEST_DIR, 0775);
+        // Create a temporary test directory structure
+        test_dir = std::filesystem::temp_directory_path() / "options_test";
+
+        // Clean up any existing test directory
+        if (std::filesystem::exists(test_dir)) {
+            std::filesystem::remove_all(test_dir);
         }
 
-        char *home = getenv("HOME");
-        if (home) {
-            m_home = home;
-        } else {
-            FAIL() << "getenv(\"HOME\") failed.";
-        }
+        // Create test directory structure
+        std::filesystem::create_directories(test_dir);
+
+        // Store user's home directory
+        char home_[PATH_MAX];
+        ASSERT_EQ(kOk, file_get_home(home_, sizeof(home_)));
+        home = home_;
     }
 
     void TearDown() override {
-        SYSTEM_CALL("rm -rf " OPTIONS_TEST_DIR);
+        // Clean up test directory
+        if (std::filesystem::exists(test_dir)) {
+            std::filesystem::remove_all(test_dir);
+        }
     }
 
 };
@@ -145,11 +150,11 @@ TEST_F(OptionsTest, Save_GivenAllOptionsAtDefaults) {
     Options options;
     options_init(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/save_give_all_options_at_defaults";
-    EXPECT_EQ(kOk, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "save_give_all_options_at_defaults";
+    EXPECT_EQ(kOk, options_save(&options, filename.string().c_str()));
 
     // Expect an empty file.
-    FILE *f = fopen(filename, "r");
+    FILE *f = fopen(filename.string().c_str(), "r");
     char line[256];
     EXPECT_TRUE(f);
     EXPECT_STREQ(NULL, fgets(line, 256, f));
@@ -179,9 +184,9 @@ TEST_F(OptionsTest, Save_GivenNonDefaultOptions) {
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/save_given_non_default_options";
-    EXPECT_EQ(options_save(&options, filename), 0);
-    expect_saved_content_for_non_default_options(filename);
+    std::filesystem::path filename = test_dir / "save_given_non_default_options";
+    EXPECT_EQ(kOk, options_save(&options, filename.string().c_str()));
+    expect_saved_content_for_non_default_options(filename.string().c_str());
 }
 
 TEST_F(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
@@ -189,18 +194,18 @@ TEST_F(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/save_given_dir/myfile.options";
-    EXPECT_EQ(kFileNotFound, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "save_given_dir" / "myfile.options";
+    EXPECT_EQ(kFileNotFound, options_save(&options, filename.string().c_str()));
 }
 
 TEST_F(OptionsTest, Save_GivenPathIsDirectory) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
-    (void)! system("mkdir " OPTIONS_TEST_DIR "/save_given_path_is_directory");
 
-    const char *filename = OPTIONS_TEST_DIR "/save_given_path_is_directory";
-    EXPECT_EQ(kIsADirectory, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "save_given_path_is_directory";
+    std::filesystem::create_directory(filename);
+    EXPECT_EQ(kIsADirectory, options_save(&options, filename.string().c_str()));
 }
 
 TEST_F(OptionsTest, Save_GivenInvalidPath) {
@@ -208,28 +213,32 @@ TEST_F(OptionsTest, Save_GivenInvalidPath) {
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/subdir/save_given_path_is_directory";
-    EXPECT_EQ(kFileNotFound, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "subdir" / "save_given_path_is_directory";
+    EXPECT_EQ(kFileNotFound, options_save(&options, filename.string().c_str()));
 }
-
-#define SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE  OPTIONS_TEST_DIR "/save_given_path_is_existing_read_only_file"
 
 TEST_F(OptionsTest, Save_GivenPathIsExistingReadOnlyFile) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
-    (void)! system("touch " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
-    (void)! system("chmod 444 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
 
-    const char *filename = SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE;
-    EXPECT_EQ(kPermissionDenied, options_save(&options, filename));
+    // Create the file
+    std::filesystem::path filename = test_dir / "save_given_path_is_existing_read_only_file";
+    ASSERT_EQ(kOk, file_mkfile(filename.string().c_str(), ""));
 
-    (void)! system("chmod 644 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+    // Make the file readonly
+    std::filesystem::permissions(filename, std::filesystem::perms::owner_read,
+                                 std::filesystem::perm_options::replace);
+
+    EXPECT_EQ(kPermissionDenied, options_save(&options, filename.string().c_str()));
+
+    // Delete the file so it doesn't affect other tests
+    std::filesystem::remove(filename);
 }
 
 TEST_F(OptionsTest, Load) {
-    const char *filename = OPTIONS_TEST_DIR "/load";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "case = Upper\n");
     fprintf(f, "editor = Vi\n");
     fprintf(f, "tab = 8\n");
@@ -241,7 +250,7 @@ TEST_F(OptionsTest, Load) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_load(&options, filename, NULL));
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_STREQ(options.editor, "Vi");
     EXPECT_EQ(kUpper, options.list_case);
     EXPECT_EQ(8, options.tab);
@@ -251,8 +260,8 @@ TEST_F(OptionsTest, Load) {
 }
 
 TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_additional_whitespace";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_additional_whitespace";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "tab = 8  \n");                           // Trailing whitespace
     fprintf(f, "  zboolean = true\n");                   // Leading whitespace
     fprintf(f, "zfloat   =   3.142    \n");              // Whitespace around equals
@@ -262,7 +271,7 @@ TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.zboolean, true);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -270,8 +279,8 @@ TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
 }
 
 TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_empty_and_whitespace_only_lines";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_empty_and_whitespace_only_lines";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "\n");
     fprintf(f, "zboolean = true\n");
     fprintf(f, "    \n");
@@ -285,7 +294,7 @@ TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -293,8 +302,8 @@ TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
 }
 
 TEST_F(OptionsTest, Load_GivenHashComments) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_hash_comments";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_hash_comments";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "  # Hello World\n");
     fprintf(f, "zboolean = true # Trailing comment\n");
     fprintf(f, "# Leading comment zboolean = false\n");
@@ -306,7 +315,7 @@ TEST_F(OptionsTest, Load_GivenHashComments) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -314,8 +323,8 @@ TEST_F(OptionsTest, Load_GivenHashComments) {
 }
 
 TEST_F(OptionsTest, Load_GivenSemicolonComments) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_semicolon_comments";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_semicolon_comments";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "  ; Hello World\n");
     fprintf(f, "zboolean = true ; Trailing comment\n");
     fprintf(f, "; Leading comment zboolean = false\n");
@@ -327,7 +336,7 @@ TEST_F(OptionsTest, Load_GivenSemicolonComments) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -335,8 +344,8 @@ TEST_F(OptionsTest, Load_GivenSemicolonComments) {
 }
 
 TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_warnings_and_callback_provided";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_warnings_and_callback_provided";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f,
             "foo = true\n"
             "zboolean = 42\n"
@@ -352,7 +361,7 @@ TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ(
             "line 1: Unknown option 'foo'.\n"
             "line 2: Invalid value for option 'zboolean'.\n"
@@ -364,8 +373,8 @@ TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
 }
 
 TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_warnings_and_callback_not_provided";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_warnings_and_callback_not_provided";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f,
             "foo = true\n"
             "zboolean = 42\n"
@@ -381,42 +390,42 @@ TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kUnknownOption, options_load(&options, filename, NULL));
+    EXPECT_EQ(kUnknownOption, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_STREQ("", options_test_buf);
 }
 
 TEST_F(OptionsTest, LoadSaveRoundtrip) {
-    const char *filename = OPTIONS_TEST_DIR "/load_save_roundtrip";
+    std::filesystem::path filename = test_dir / "load_save_roundtrip";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_save(&options, filename));
-    EXPECT_EQ(kOk, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kOk, options_save(&options, filename.string().c_str()));
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ("", options_test_buf);
 
     expect_options_have_defaults(&options);
 }
 
 TEST_F(OptionsTest, Load_GivenFileDoesNotExist) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_file_does_not_exist";
+    std::filesystem::path filename = test_dir / "load_given_file_does_not_exist";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kFileNotFound, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kFileNotFound, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ("", options_test_buf);
 
     expect_options_have_defaults(&options);
 }
 
 TEST_F(OptionsTest, Load_GivenDirectory) {
-    const char *filename = "/etc";
+    std::filesystem::path filename = test_dir;
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kIsADirectory, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kIsADirectory, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ("", options_test_buf);
 
     expect_options_have_defaults(&options);
@@ -1114,9 +1123,9 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("", svalue);
 
-    strcpy(options.search_path, (m_home + "/foo").c_str());
+    strcpy(options.search_path, (home + "/foo").c_str());
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
-    EXPECT_STREQ((m_home + "/foo").c_str(), svalue);
+    EXPECT_STREQ((home + "/foo").c_str(), svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForSimulate) {
@@ -1624,18 +1633,23 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     // Path to a directory that exists.
     // Note: this will set the SEARCH PATH property to the canonical path
     // corresponding to the value supplied.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/etc"));
-    EXPECT_STREQ("/etc", options.search_path);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, test_dir.string().c_str()));
+    char expected[PATH_MAX] = { '\0' };
+    ASSERT_EQ(kOk, file_normalize_separators(test_dir.string().c_str(), expected, sizeof(expected)));
+    EXPECT_STREQ(expected, options.search_path);
 
     // Path to a file that exists.
+    std::filesystem::path existing_file = test_dir / "file.txt";
+    ASSERT_EQ(kOk, file_mkfile(existing_file.string().c_str(), ""));
     EXPECT_EQ(
             kNotADirectory,
-            options_set_string_value(&options, kOptionSearchPath, "/etc/passwd"));
+            options_set_string_value(&options, kOptionSearchPath, existing_file.string().c_str()));
 
     // Path that does not exist.
+    std::filesystem::path non_existing_file = test_dir / "does_not_exist";
     EXPECT_EQ(
             kFileNotFound,
-            options_set_string_value(&options, kOptionSearchPath, "/does/not/exist"));
+            options_set_string_value(&options, kOptionSearchPath, non_existing_file.string().c_str()));
 
     // Path that is too long.
     char svalue[STRINGSIZE + 1] = { 0 };

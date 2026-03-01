@@ -60,7 +60,7 @@ freely, subject to the following restrictions:
 #define upng_chunk_length(chunk) MAKE_DWORD_PTR(chunk)
 #define upng_chunk_type(chunk) MAKE_DWORD_PTR((chunk) + 4)
 #define upng_chunk_critical(chunk) (((chunk)[4] & 32) == 0)
-upng_t upng_static;
+
 typedef enum upng_state {
     UPNG_ERROR        = -1,
     UPNG_DECODED    = 0,
@@ -98,6 +98,8 @@ struct upng_t {
     upng_state        state;
     upng_source        source;
 };
+
+upng_t upng_static;
 
 typedef struct huffman_tree {
     unsigned* tree2d;

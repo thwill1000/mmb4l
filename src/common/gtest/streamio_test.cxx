@@ -11,6 +11,7 @@
 extern "C" {
 
 #include "../streamio.h"
+#include "../file.h"
 #include "../file_private.h"
 #include "../error.h"
 
@@ -30,7 +31,10 @@ protected:
         test_file_path = ::testing::TempDir() + "streamio_test_" +
                         std::to_string(reinterpret_cast<uintptr_t>(this)) + ".txt";
         // Clean up any leftover test file
-        unlink(test_file_path.c_str());
+        MmResult result = file_delete(test_file_path.c_str());
+        if (FAILED(result) && result != kFileNotFound) {
+            ON_FAILURE_EXIT(result);
+        }
         // Initialize file table
         for (int i = 0; i <= MAXOPENFILES; i++) {
             file_table[i].type = fet_closed;
@@ -42,7 +46,10 @@ protected:
         if (fnbr > 0) {
             streamio_close(fnbr);
         }
-        unlink(test_file_path.c_str());
+        MmResult result = file_delete(test_file_path.c_str());
+        if (FAILED(result) && result != kFileNotFound) {
+            ON_FAILURE_EXIT(result);
+        }
     }
 
     /**

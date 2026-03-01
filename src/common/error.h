@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 #include "../Configuration.h" // for STRINGSIZE
+#include "exit_codes.h"
 #include "logger.h"
 #include "mmresult.h"
 #include "utility.h"
@@ -207,11 +208,10 @@ void error_clear_callback();
 #define ERROR_ENV_VAR_TOO_LONG            error_throw_ex(kStringTooLong, "Environment variable value too long")
 #define ERROR_INTEGER_ARRAY_TOO_SMALL     error_throw_ex(kError, "Integer array too small")
 #define ERROR_INVALID(s)                  error_throw_ex(kError, "Invalid $", s)
-#define ERROR_INVALID_ADDRESS             ERROR_INVALID("address")
 #define ERROR_INVALID_ARGUMENT            ERROR_INVALID("argument")
 #define ERROR_INVALID_CHARACTER           ERROR_INVALID("character")
 #define ERROR_INVALID_IN_PROGRAM          ERROR_INVALID("in a program")
-#define ERROR_INVALID_INTEGER_RANGE(i,j,k)  error_throw_ex(kError, "\% is invalid (valid is \% to \%)")
+#define ERROR_INVALID_INTEGER_RANGE(i,j,k)  mmresult_ex(kError, "%d is invalid (valid is %d to %d)", i, j, k)
 #define ERROR_INVALID_OPTION_VALUE        ERROR_INVALID("value for option")
 #define ERROR_INVALID_VARIABLE            ERROR_INVALID("variable")
 #define ERROR_LINE_LENGTH                 error_throw_ex(kStringTooLong, "Line length")
