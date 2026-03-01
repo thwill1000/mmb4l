@@ -109,11 +109,11 @@ MmResult file_getcwd(char *buf, size_t buf_sz) {
     CHECK_PARAM(buf != NULL);
 
     errno = 0;
-    if (getcwd(buf, buf_sz)) {
-        return kOk;
-    } else {
-        return errno;
+    if (!getcwd(buf, buf_sz)) {
+        RETURN_RESULT(errno ? errno : mmresult_ex(kError, "Failed to get current working directory"));
     }
+
+    RETURN_RESULT(file_strip_trailing_separator(buf));
 }
 
 MmResult file_get_free_space(const char *path, uint64_t *free_space) {
@@ -137,11 +137,12 @@ MmResult file_get_home(char *buf, size_t buf_sz) {
 
     errno = 0;
     const char *home = getenv("HOME");
-    if (!home) return errno; // Probably never happens.
-    if (FAILED(cstring_cpy(buf, home, buf_sz))) {
-        return kFilenameTooLong;
+    if (!home) {
+        RETURN_RESULT(errno ? errno : mmresult_ex(kError, "Failed to get home directory"));
     }
-    return kOk;
+
+    if (FAILED(cstring_cpy(buf, home, buf_sz))) RETURN_RESULT(kFilenameTooLong);
+    RETURN_RESULT(file_strip_trailing_separator(buf));
 }
 
 bool file_is_absolute(const char *path) {
