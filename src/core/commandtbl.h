@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -70,7 +70,7 @@ struct s_tokentbl {      // structure of the command and token tables.
 
 void cmd_arc(void);
 void cmd_autosave(void);
-void cmd_blit();
+void cmd_blit(void);
 void cmd_box(void);
 void cmd_call(void);
 void cmd_case(void);
