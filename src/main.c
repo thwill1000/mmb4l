@@ -359,6 +359,11 @@ int android_main(int argc, char* argv[]) {
     return 0;
 }
 
+static void handle_exit(void) {
+    LOG_INFO("goodbye!");
+    ON_FAILURE_LOG(console_term());
+}
+
 int main(int argc, char *argv[]) {
 #if !defined(__ANDROID__) && !defined(NDEBUG)
     ON_FAILURE_EXIT(logger_init("mmb4l.log"));
@@ -398,8 +403,7 @@ int main(int argc, char *argv[]) {
 #else
     // Initialise the tty console.
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
-    console_enable_raw_mode();
-    atexit(console_disable_raw_mode);
+    atexit(handle_exit);
     ON_FAILURE_EXIT(keybuf_init());
     ON_FAILURE_EXIT(console_sync());
 #endif

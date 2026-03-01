@@ -67,14 +67,6 @@ void console_putc_raw_n(const char *p, int count) {
     LOG_WARN("UNIMPLEMENTED");
 }
 
-void console_disable_raw_mode(void) {
-    LOG_WARN("UNIMPLEMENTED");
-}
-
-void console_enable_raw_mode(void) {
-    LOG_WARN("UNIMPLEMENTED");
-}
-
 MmResult console_sync_cursor_pos(int timeout_ms) {
     (void) timeout_ms;  // Unused by Windows implementation
     LOG_WARN("UNIMPLEMENTED");

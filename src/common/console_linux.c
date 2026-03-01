@@ -67,15 +67,46 @@ enum ReadCursorPositionState {
 static struct termios orig_termios;
 static ConsoleState *self;
 
-static MmResult console_install_winch_signal_handler(void);
+static void handle_winch(int sig) {
+    self->requires_sync = true;
+}
 
 MmResult console_init_platform(ConsoleState *_self) {
     self = _self;
-    return console_install_winch_signal_handler();
+
+    // Save the original terminal settings so they can be restored on exit,
+    // then configure the terminal in "raw" mode:
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+    //               |       |        |
+    //               |       |        +-- Disable signal generation (SIGINT, SIGQUIT etc.)
+    //               |       |            so Ctrl-C, Ctrl-\ etc. are passed as raw bytes.
+    //               |       +----------- Disable canonical mode so input is available
+    //               |                    immediately without waiting for a newline.
+    //               +------------------- Disable echo so typed characters are not
+    //                                    automatically printed to the terminal.
+    raw.c_cc[VMIN] = 1;   // Block until at least 1 character is available.
+    raw.c_cc[VTIME] = 0;  // No timeout - wait indefinitely for input.
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    //                       |
+    //                       +-- Flush any pending input before applying new settings.
+
+    // Install a signal handler for SIGWINCH which is sent by the OS whenever
+    // the terminal window is resized, so we can update the console dimensions.
+    struct sigaction sa;
+    sa.sa_handler = handle_winch;  // Our handler to update width/height.
+    errno = 0;
+    if (FAILED(sigemptyset(&sa.sa_mask))) RETURN_RESULT(errno);  // No signals blocked during handler.
+    sa.sa_flags = 0;
+    if (FAILED(sigaction(SIGWINCH, &sa, NULL))) RETURN_RESULT(errno);
+
+    RETURN_RESULT(kOk);
 }
 
 MmResult console_term_platform(void) {
-    return kOk;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+    RETURN_RESULT(kOk);
 }
 
 void console_putc_raw(char c) {
@@ -86,37 +117,6 @@ void console_putc_raw_n(const char *p, int count) {
     for (int i = 0; i < count; ++i) {
         (void) putc(p[i], stdout);
     }
-}
-
-void console_disable_raw_mode(void) {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
-}
-
-void console_enable_raw_mode(void) {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    // atexit(console_disable_raw_mode); - done in main.c
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    raw.c_cc[VMIN] = 1;   // Block until at least 1 character is available
-    raw.c_cc[VTIME] = 0;  // No timeout
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-
-    //fcntl(STDIN_FILENO, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
-}
-
-static void handle_winch(int sig) {
-    self->requires_sync = true;
-}
-
-static MmResult console_install_winch_signal_handler(void) {
-    // Install signal handler for window size changes.
-    struct sigaction sa;
-    sa.sa_handler = handle_winch;
-    ON_FAILURE_RETURN(sigemptyset(&sa.sa_mask));
-    sa.sa_flags = 0;
-    ON_FAILURE_RETURN(sigaction(SIGWINCH, &sa, NULL));
-
-    return kOk;
 }
 
 MmResult console_sync_cursor_pos(int timeout_ms) {
