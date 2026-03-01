@@ -51,6 +51,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+#if defined(_MSC_VER) && _MSC_VER < 1900
+typedef struct timespec {
+    time_t tv_sec;
+    long   tv_nsec;
+} timespec;
+#endif
+
 #define MICROSECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000L)
 #define NANOSECONDS_TO_MICROSECONDS(x)  ((int64_t) x / 1000L)
 #define MILLISECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000000L)

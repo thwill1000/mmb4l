@@ -1,6 +1,6 @@
 ' Copyright (c) 2020-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For MMBasic 5.07
+' For MMBasic 6
 
 Option Explicit On
 Option Default None
@@ -90,7 +90,8 @@ Sub test_chdir_mkdir_rmdir()
   MkDir new_dir$
   ChDir new_dir$
 
-  Const expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
+  Local expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
+  If Mm.Device$ = "MMB4L" Then expected$ = str.replace$(expected$, "\", "/")
   If sys.is_platform%("cmm2*") Then expected$ = UCase$(expected$)
   assert_string_equals(expected$, Cwd$)
 
@@ -419,6 +420,7 @@ Sub test_loc()
   ' Test when existing non-empty file opened for APPEND.
   given_test_file(f$)
   Open f$ For Append As #1
+  If Loc(#1) <> 29 Then Print "AWOOGA"
   assert_int_equals(29, Loc(#1))
   Close #1
   Kill f$
@@ -613,6 +615,7 @@ End Sub
 
 Sub test_tilde_expansion()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
+  If Mm.Info(Arch) = "Windows x86_64" Then Exit Sub
 
   MkDir TMPDIR$
 

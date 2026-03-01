@@ -11,6 +11,8 @@ extern "C" {
 
 } // extern "C"
 
+#define EXPECT_EMPTY_STACK()  EXPECT_EQ(0, stack_size(&stack))
+
 #define EXPECTED_ELEMENTS(element_type, expected_elements, expected_num) \
     { \
         element_type element_out; \
@@ -160,8 +162,7 @@ TEST_F(UInt8StackTest, Remove_Succeeds_GivenOnlyElement) {
     const uint8_t element_remove = element_in;
     EXPECT_EQ(kOk, stack_remove(&stack, element_remove));
 
-    uint8_t expected[] = { };
-    EXPECTED_ELEMENTS(uint8_t, expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 TEST_F(UInt8StackTest, Remove_Fails_GivenElementNotFound) {
@@ -241,8 +242,7 @@ TEST_F(UInt8StackTest, Replace_Fails_GivenEmptyStack) {
     const uint8_t element_replace = 42;
     EXPECT_EQ(kStackElementNotFound, stack_replace(&stack, element_find, element_replace));
 
-    uint8_t expected[] = { };
-    EXPECTED_ELEMENTS(uint8_t, expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 class Int32StackTest : public ::testing::Test {
@@ -390,8 +390,7 @@ TEST_F(Int32StackTest, Remove_Succeeds_GivenOnlyElement) {
     const int32_t element_remove = element_in;
     EXPECT_EQ(kOk, stack_remove(&stack, element_remove));
 
-    int32_t expected[] = { };
-    EXPECTED_ELEMENTS(int32_t, expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 TEST_F(Int32StackTest, Remove_Fails_GivenElementNotFound) {
@@ -472,8 +471,7 @@ TEST_F(Int32StackTest, Replace_Fails_GivenEmptyStack) {
     const int element_replace = 42;
     EXPECT_EQ(kStackElementNotFound, stack_replace(&stack, element_find, element_replace));
 
-    int32_t expected[] = { };
-    EXPECTED_ELEMENTS(int32_t, expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 class PointerStackTest : public ::testing::Test {
@@ -660,8 +658,7 @@ TEST_F(PointerStackTest, Remove_Succeeds_GivenOnlyElement) {
     const uint64_t *element_remove = element_in;
     EXPECT_EQ(kOk, stack_remove(&stack, element_remove));
 
-    uint64_t *expected[] = { };
-    EXPECTED_ELEMENTS(uint64_t *, expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 TEST_F(PointerStackTest, Remove_Fails_GivenElementNotFound) {
@@ -807,8 +804,7 @@ TEST_F(PointerStackTest, Replace_Fails_GivenEmptyStack) {
     const uint64_t *element_replace = (uint64_t *) &stack + 42;
     EXPECT_EQ(kStackElementNotFound, stack_replace(&stack, element_find, element_replace));
 
-    uint64_t *expected[] = { };
-    EXPECTED_ELEMENTS(uint64_t *, expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 typedef struct {
@@ -1017,8 +1013,7 @@ TEST_F(StructStackTest, Remove_Succeeds_GivenOnlyElement) {
     const MyStruct element_remove = element_in;
     EXPECT_EQ(kOk, stack_remove(&stack, element_remove));
 
-    MyStruct expected[] = { };
-    EXPECTED_MY_STRUCT_ELEMENTS(expected, 0);
+    EXPECT_EMPTY_STACK();
 }
 
 TEST_F(StructStackTest, Remove_Fails_GivenElementNotFound) {
@@ -1163,6 +1158,5 @@ TEST_F(StructStackTest, Replace_Fails_GivenEmptyStack) {
     const MyStruct element_replace = MY_STRUCT_VALUE(42);
     EXPECT_EQ(kStackElementNotFound, stack_replace(&stack, element_find, element_replace));
 
-    MyStruct expected[] = { };
-    EXPECTED_MY_STRUCT_ELEMENTS(expected, 0);
+    EXPECT_EMPTY_STACK();
 }

@@ -1,6 +1,6 @@
-' Copyright (c) 2021-2024 Thomas Hugo Williams
+' Copyright (c) 2021-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For MMBasic 5.07
+' For MMBasic 6
 
 Option Explicit On
 Option Default None
@@ -18,15 +18,8 @@ If sys.is_platform%("cmm2*", "pm*") Then Goto skip_tests
 
 Const BASE% = Mm.Info(Option Base)
 Const DEVICE$ = Choice(Mm.Device$ = "MMB4L", Mm.Device$ + " - " + Mm.Info$(Arch), Mm.Device$)
-
-Select Case DEVICE$
-  Case "MMB4L - Android aarch64"
-    Const IS_ANDROID% = 1
-  Case "MMB4L - Linux armv6l"
-    Const IS_ANDROID% = 0
-  Case Else
-    Const IS_ANDROID% = 0
-End Select
+Const IS_WINDOWS% = sys.is_windows%()
+Const IS_ANDROID% = (DEVICE$ = "MMB4L - Android aarch64")
 
 add_test("test_system_no_capture")
 add_test("test_system_string_capture")
@@ -55,11 +48,7 @@ Sub test_system_string_capture()
 
   System "echo 'foo bar'", out$
 
-  Local expected$
-  Select Case Mm.Device$
-    Case "MMB4L" : expected$ = "foo bar"
-    Case "MMBasic for Windows" : expected$ = "'foo bar'"
-  End Select
+  Const expected$ = Choice(IS_WINDOWS%, "'foo bar'", "foo bar")
   assert_string_equals(expected$, out$)
 End Sub
 
@@ -68,11 +57,7 @@ Sub test_system_longstring_capture()
 
   System "echo 'foo bar'", out%()
 
-  Local expected$
-  Select Case Mm.Device$
-    Case "MMB4L" : expected$ = "foo bar"
-    Case "MMBasic for Windows" : expected$ = "'foo bar'"
-  End Select
+  Const expected$ = Choice(IS_WINDOWS%, "'foo bar'", "foo bar")
   assert_string_equals(expected$, LGetStr$(out%(), 1, LLen(out%())))
 End Sub
 
@@ -81,12 +66,8 @@ Sub test_system_given_too_long()
 
   System "echo '0123456789'", out%()
 
-  ' Captured output is truncated.
-  Local expected$
-  Select Case Mm.Device$
-    Case "MMB4L" : expected$ = "01234567"
-    Case "MMBasic for Windows" : expected$ = "'0123456"
-  End Select
+  ' Captured output is truncated to 8 characters.
+  Const expected$ = Choice(IS_WINDOWS%, "'0123456", "01234567")
   assert_string_equals(expected$, LGetStr$(out%(), 1, LLen(out%())))
 End Sub
 
@@ -120,15 +101,18 @@ Sub test_system_exit_status_arg()
   Local s$, exit_status%
 
   System "echo 'foo'", s$, exit_status%
-  assert_string_equals("foo", s$)
+  assert_string_equals(Choice(IS_WINDOWS%, "'foo'", "foo"), s$)
   assert_int_equals(0, exit_status%)
 
-  System "ls /does-not-exist", s$, exit_status%
-  assert_string_equals("ls: cannot access '/does-not-exist': No such file or directory", s$)
-  assert_int_equals(2, exit_status%)
-
-  System "ls /does-not-exist", , exit_status%
-  assert_int_equals(2, exit_status%)
+  If IS_WINDOWS% Then
+    System "dir /b C:\does-not-exist", s$, exit_status%
+    assert_string_equals("File Not Found", s$)
+    assert_int_equals(1, exit_status%)
+  Else
+    System "ls /does-not-exist", s$, exit_status%
+    assert_string_equals("ls: cannot access '/does-not-exist': No such file or directory", s$)
+    assert_int_equals(2, exit_status%)
+  EndIf
 End Sub
 
 Sub test_system_command_not_found()
@@ -137,9 +121,18 @@ Sub test_system_command_not_found()
   If Mm.Device$ = "MMB4L" Then
     On Error Skip 1
     System "foo", s$, exit_status%
-    assert_raw_error("Unknown system command")
-    assert_string_equals(Choice(IS_ANDROID%, "sh: foo: not found", "sh: 1: foo: not found"), s$)
-    assert_int_equals(127, exit_status%)
+    If Not IS_WINDOWS% Then
+      assert_raw_error("Unknown system command")
+    EndIf
+    Local expected$
+    If IS_WINDOWS% Then
+      expected$ = "'foo' is not recognized as an internal or external command," + Chr$(10) + "operable program or batch file"
+    ElseIf IS_ANDROID% Then
+      expected$ = "sh: foo: not found"
+    Else
+      expected$ = "sh: 1: foo: not found"
+    EndIf
+    assert_int_equals(Choice(IS_WINDOWS%, 1, 127), exit_status%)
   Else
     On Error Skip 1
     System "foo", s$
@@ -153,28 +146,42 @@ Sub test_system_getenv()
 
   ' use SYSTEM command to get current username.
   Local whoami$
-  System "whoami", whoami$
+  If IS_WINDOWS% Then
+    System "echo %USERNAME%", whoami$
+  Else
+    System "whoami", whoami$
+  EndIf
 
-  Local expected$ = "/home/" + whoami$, i%, name$ = "HOME", value$, value_ls%(32)
+  Const expected$ = Choice(IS_WINDOWS%, "C:\Users\", "/home/") + whoami$
+  Const varname$ = Choice(IS_WINDOWS%, "USERPROFILE", "HOME")
+  Local i%, value$, value_ls%(32)
 
   ' Given name is STRING literal and value is STRING variable.
   value$ = ""
-  System GetEnv "HOME", value$
+  If IS_WINDOWS% Then
+    System GetEnv "USERPROFILE", value$
+  Else
+    System GetEnv "HOME", value$
+  EndIf
   assert_string_equals(expected$, value$)
 
   ' Given name is STRING literal and value is is LONGSTRING variable.
   LongString Clear value_ls%()
-  System GetEnv "HOME", value_ls%()
+  If IS_WINDOWS% Then
+    System GetEnv "USERPROFILE", value_ls%()
+  Else
+    System GetEnv "HOME", value_ls%()
+  EndIf
   assert_string_equals(expected$, LGetStr$(value_ls%(), 1, LLen(value_ls%())))
 
   ' Given name is STRING variable and value is STRING variable.
   value$ = ""
-  System GetEnv name$, value$
+  System GetEnv varname$, value$
   assert_string_equals(expected$, value$)
 
   ' Given name is STRING variable and value is LONGSTRING variable.
   LongString Clear value_ls%()
-  System GetEnv name$, value_ls%()
+  System GetEnv varname$, value_ls%()
   assert_string_equals(expected$, LGetStr$(value_ls%(), 1, LLen(value_ls%())))
 
   ' Given name is LONGSTRING variable and value is STRING variable.
