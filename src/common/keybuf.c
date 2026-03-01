@@ -62,6 +62,7 @@ static RxBuf keybuf_buf;
 static SDL_mutex *keybuf_mutex = NULL;
 static SDL_Thread *keybuf_thread = NULL;
 static SDL_atomic_t keybuf_stop;
+static SDL_atomic_t keybuf_thread_exited;
 
 /**
  * Platform-specific function to read a single character from the terminal.
@@ -73,16 +74,35 @@ int keybuf_read_char(void);
 
 static int keybuf_thread_fn(void *data) {
     (void) data;
+    const bool is_tty = keybuf_isatty();
+
     while (!SDL_AtomicGet(&keybuf_stop)) {
         int ch = keybuf_read_char();
-        if (ch == -1) {
+        if (ch == 0) {
+            break;
+        } else if (ch == -1) {
             if (!SDL_AtomicGet(&keybuf_stop)) {
-                fprintf(stderr, "keybuf: error reading from terminal\n");
+                LOG_ERROR("error reading from terminal");
             }
             break;
         }
+
+        if (!is_tty) {
+            // For piped input, wait until there is space in the buffer
+            // rather than discarding characters on overflow.
+            for (;;) {
+                SDL_LockMutex(keybuf_mutex);
+                bool full = (rx_buf_size(&keybuf_buf) >= KEYBUF_SIZE - 1);
+                SDL_UnlockMutex(keybuf_mutex);
+                if (!full) break;
+                SDL_Delay(1);
+            }
+        }
+
         keybuf_put((char) ch);
     }
+
+    SDL_AtomicSet(&keybuf_thread_exited, 1);
     return 0;
 }
 
@@ -321,4 +341,12 @@ void keybuf_key_to_string(int ch, char *buf) {
         p += KEY_TO_STRING_MAP_ENTRY_LEN;
     }
     sprintf(buf, "'%c'", ch);
+}
+
+bool keybuf_exhausted() {
+    if (!SDL_AtomicGet(&keybuf_thread_exited)) return false;
+    SDL_LockMutex(keybuf_mutex);
+    bool result = (rx_buf_size(&keybuf_buf) == 0);
+    SDL_UnlockMutex(keybuf_mutex);
+    return result;
 }

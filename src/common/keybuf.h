@@ -49,37 +49,61 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
-/** Initialises the keyboard buffer and starts the background input thread. */
+/**
+ * Initialises the keyboard buffer and starts the background input thread.
+ * Must be called before any other keybuf functions.
+ */
 MmResult keybuf_init(void);
 
 /**
- * Terminates the background input thread and cleans up the keyboard buffer.
- * Note: this does not wait for the thread to stop - it sets a flag and
- * returns immediately, relying on the OS to clean up on process exit.
+ * Signals the background input thread to stop and cleans up resources.
+ * Does not wait for the thread to exit - relies on the OS to clean up
+ * any blocked read on process exit.
  */
 void keybuf_term(void);
 
-/** Clears the content of the keyboard buffer. */
+/**
+ * Discards all characters currently waiting in the keyboard buffer.
+ */
 void keybuf_clear(void);
 
-/** Gets the number of characters waiting in the keyboard buffer. */
+/**
+ * Gets the number of characters waiting in the keyboard buffer.
+ *
+ * @return  Number of characters available.
+ */
 int keybuf_count(void);
 
 /**
  * Gets a character from the keyboard buffer without blocking.
  *
- * @return  -1 if no character.
+ * @return  The next character, or -1 if no character is available.
  */
 int keybuf_get(void);
 
 /**
  * Is the keyboard buffer connected to a terminal (tty) ?
  *
- * @return  true if it is, or false if it isn't (e.g. connected to a piped file)
+ * @return  true if stdin is a terminal, false if it is a pipe or redirected file.
  */
 bool keybuf_isatty(void);
 
-/** Adds a character to the keyboard buffer. */
+/**
+ * Adds a character to the keyboard buffer.
+ * If the buffer is full the oldest character is discarded to make room,
+ * except when reading from a pipe where the thread will block instead.
+ *
+ * @param  ch  The character to add.
+ */
 void keybuf_put(char ch);
+
+/**
+ * Has all piped or redirected input been read and consumed ?
+ * Always returns false when stdin is a terminal.
+ *
+ * @return  true if the background thread has exited due to EOF on stdin
+ *          and the keyboard buffer has been fully consumed.
+ */
+bool keybuf_exhausted(void);
 
 #endif // MMB4L_KEYBUF_H

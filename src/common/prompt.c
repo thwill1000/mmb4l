@@ -67,7 +67,7 @@ char prompt_history[sizeof(prompt_history)];
 static const char NO_ITEM[] = "";
 
 MmResult prompt_getc(int *ch) {
-    // LOG_FN_ENTRY("ch=%p", ch);
+    LOG_FN_ENTRY("ch=%p", ch);
 
     static char prevchar = 0;
     ON_FAILURE_RETURN(display_show_cursor(true));
@@ -79,23 +79,14 @@ MmResult prompt_getc(int *ch) {
         ON_FAILURE_GOTO(result, cleanup);
         *ch = keybuf_get();
         if (*ch == -1) {
-            if (!keybuf_isatty()) {
-                // For non-TTY input (pipes, files), check if it's actually EOF
-                if (feof(stdin)) {
-                    result = kStdinExhausted;
-                    goto cleanup;
-                }
-                // If not EOF, it might just be a blocking read that returned -1
-                // Check errno to see if it's a real error
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
-                    continue;
-                }
-                // Some other error occurred
-                result = kStdinExhausted;
-                goto cleanup;
+            if (keybuf_exhausted()) {
+                // Piped or redirected input exhausted so insert a newline
+                *ch = '\n';
+                break;
+            } else {
+                mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
+                continue;
             }
-            mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
         } else if (*ch == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {
@@ -532,6 +523,12 @@ MmResult prompt_get_input(void) {
 
     if (strlen(inpbuf) > PROMPT_MAX_LEN) {
         RETURN_RESULT(mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT));
+    }
+
+    if (keybuf_exhausted()) {
+        // Piped or redirected input exhausted so insert a QUIT command
+        strcpy(inpbuf, "Quit\r");
+        RETURN_RESULT(display_puts("Quit\r\n"));
     }
 
     while (1) {
