@@ -65,7 +65,7 @@ MmResult streamio_init(MmResult (*flush_fn)(), MmResult (*putc_fn)(char), MmResu
 }
 
 MmResult streamio_close(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
 
     switch (file_table[fnbr].type) {
         case fet_closed:
@@ -86,13 +86,13 @@ MmResult streamio_close_all(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type != fet_closed) (void) streamio_close(fnbr);
     }
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 int streamio_eof(int fnbr) {
     static const int error_result = 1; // To match other MMBasic platforms
     if (fnbr == 0) {
-        return error_result;
+        RETURN_INT(error_result);
     } else {
         ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), error_result);
     }
@@ -114,10 +114,9 @@ int streamio_eof(int fnbr) {
 
 int streamio_find_free(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
-        if (file_table[fnbr].type == fet_closed) return fnbr;
+        if (file_table[fnbr].type == fet_closed) RETURN_INT(fnbr);
     }
-    ON_FAILURE_ERROR_EX(kTooManyOpenFiles, -1);
-    return -1;
+    THROW_ERROR(kTooManyOpenFiles, -1);
 }
 
 MmResult streamio_flush(int fnbr) {
@@ -144,14 +143,12 @@ MmResult streamio_flush(int fnbr) {
 }
 
 int streamio_getc(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        THROW_ERROR(kFileInvalidFileNumber, -1);
-    }
-
     if (fnbr == 0) {
         int ch = -1;
         ON_FAILURE_ERROR_EX(prompt_getc(&ch), -1);
         RETURN_INT(ch);
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
     }
 
     switch (file_table[fnbr].type) {
@@ -170,77 +167,61 @@ int streamio_getc(int fnbr) {
 }
 
 bool streamio_is_file(int fnbr) {
-    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
-    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
-        return file_table[fnbr].type == fet_file;
-    } else {
-        return false;
-    }
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), false);
+    return file_table[fnbr].type == fet_file;
 }
 
 bool streamio_is_serial(int fnbr) {
-    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
-    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
-        return file_table[fnbr].type == fet_serial;
-    } else {
-        return false;
-    }
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), false);
+    return file_table[fnbr].type == fet_serial;
 }
 
 int streamio_loc(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
-    }
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            break;
+            THROW_ERROR(kFileNotOpen, -1);
 
         case fet_file:
             errno = 0;
             long int result = ftell(file_table[fnbr].file_ptr);
-            if (result == -1L) error_throw(errno);
-            return (int) (result + 1);
-            break;
+            if (result == -1L) THROW_ERROR(errno, -1);
+            RETURN_INT((int) (result + 1));
 
         case fet_serial:
-            return serial_rx_queue_size(fnbr);
-            break;
-    }
+            RETURN_INT(serial_rx_queue_size(fnbr));
 
-    return -1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
 int streamio_lof(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
-    }
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            break;
+            THROW_ERROR(kFileNotOpen, -1);
 
         case fet_file: {
             errno = 0;
             FILE *f = file_table[fnbr].file_ptr;
             long int current = ftell(f);
-            if (current == -1L) error_throw(errno);
-            if (FAILED(fseek(f, 0L, SEEK_END))) error_throw(errno);
+            if (current == -1L) THROW_ERROR(errno, -1);
+            if (FAILED(fseek(f, 0L, SEEK_END))) THROW_ERROR(errno, -1);
             long int result = ftell(f);
-            if (result == -1L) error_throw(errno);
-            if (FAILED(fseek(f, current, SEEK_SET))) error_throw(errno);
-            return result;
-            break;
+            if (result == -1L) THROW_ERROR(errno, -1);
+            if (FAILED(fseek(f, current, SEEK_SET))) THROW_ERROR(errno, -1);
+            RETURN_INT((int) result);
         }
 
         case fet_serial:
-            return 0; // Serial I/O ports are unbuffered.
-            break;
-    }
+            RETURN_INT(0); // Serial I/O ports are unbuffered.
 
-    return -1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
@@ -249,14 +230,12 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr) {
 }
 
 int streamio_putc(int fnbr, int ch) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        THROW_ERROR(kFileInvalidFileNumber, -1);
-    }
-
     if (fnbr == 0) {
         assert(streamio_0_putc_fn);
         ON_FAILURE_ERROR_EX(streamio_0_putc_fn(ch), -1);
         RETURN_INT(ch);
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
     }
 
     switch (file_table[fnbr].type) {
@@ -275,22 +254,19 @@ int streamio_putc(int fnbr, int ch) {
 }
 
 size_t streamio_read(int fnbr, char *buf, size_t buf_sz) {
-    CHECK_PARAM(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
-    }
+    CHECK_PARAM(fnbr != 0); // if (fnbr == 0) RETURN_INT(console_write(buf, sz));
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), 0);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
             THROW_ERROR(kFileNotOpen, 0);
-            break;
 
         case fet_file:
             RETURN_INT(file_read(fnbr, buf, buf_sz));
 
         case fet_serial:
             THROW_ERROR(INTERNAL_FAULT_EX("streamio_read() not implemented for serial ports"), 0);
-            // return serial_read(fnbr, buf, sz);
+            // RETURN_RESULT(serial_read(fnbr, buf, sz));
 
         default:
             THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), 0);
@@ -301,10 +277,8 @@ MmResult streamio_readln(int fnbr, char *buf, size_t buf_sz) {
     CHECK_PARAM(buf != NULL);
     CHECK_PARAM(buf_sz > 0);
 
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        return kFileInvalidFileNumber;
-    }
-    if (file_table[fnbr].type == fet_closed) return kFileNotOpen;
+    if (fnbr != 0) ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+    if (file_table[fnbr].type == fet_closed) RETURN_RESULT(kFileNotOpen);
 
     size_t pos = 0;
     int ch;
@@ -317,9 +291,9 @@ MmResult streamio_readln(int fnbr, char *buf, size_t buf_sz) {
             if (pos > 0) break;
             if (streamio_eof(fnbr)) {
                 buf[0] = '\0';
-                return kOk;
+                RETURN_RESULT(kOk);
             }
-            return INTERNAL_FAULT_EX("streamio_getc() failed: %d", ch);
+            RETURN_RESULT(INTERNAL_FAULT_EX("streamio_getc() failed: %d", ch));
         }
 
         if (ch == '\n') {
@@ -339,62 +313,59 @@ MmResult streamio_readln(int fnbr, char *buf, size_t buf_sz) {
             // Buffer full and this isn't a terminator
             (void) streamio_ungetc(fnbr, ch);  // Put it back!
             buf[pos] = '\0';
-            return kStringTooLong;
+            RETURN_RESULT(kStringTooLong);
         }
     }
 
     buf[pos] = '\0';
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 void streamio_seek(int fnbr, int idx) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR(kFileInvalidFileNumber);
-    }
-    if (idx < 1) {
-        ON_FAILURE_ERROR(kFileInvalidSeekPosition);
-    }
+    ON_FAILURE_ERROR(file_validate_fnbr(fnbr));
+    if (idx < 1) THROW_ERROR_VOID(INTERNAL_FAULT_EX("invalid seek offset < 1: %d", idx));
 
     if (file_table[fnbr].type == fet_closed) {
-        ON_FAILURE_ERROR(kFileNotOpen);
+        THROW_ERROR_VOID(kFileNotOpen);
     }
 
     FILE *f = file_table[fnbr].file_ptr;
 
     errno = 0;
-    if (FAILED(fflush(f))) error_throw(errno);
-    if (FAILED(file_fsync(fileno(f)))) error_throw(errno);
-    if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
+    if (FAILED(fflush(f))) THROW_ERROR_VOID(errno);
+    if (FAILED(file_fsync(fileno(f)))) THROW_ERROR_VOID(errno);
+    if (FAILED(fseek(f, idx - 1, SEEK_SET))) THROW_ERROR_VOID(errno); // MMBasic indexes from 1, not 0.
 }
 
 MmResult streamio_ungetc(int fnbr, int ch) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        return kFileInvalidFileNumber;
-    }
-
-    // Can't unget to console
     if (fnbr == 0) {
+        // Can't unget to console
         return kFileInvalidOperation;
+    } else {
+        ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
     }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            return kFileNotOpen;
+            RETURN_RESULT(kFileNotOpen);
 
         case fet_file:
             errno = 0;
             if (ungetc(ch, file_table[fnbr].file_ptr) == EOF) {
-                if (errno) return errno;
-                return INTERNAL_FAULT_EX("ungetc() failed");
+                if (errno){
+                    RETURN_RESULT(errno);
+                } else {
+                    RETURN_RESULT(INTERNAL_FAULT_EX("ungetc() failed"));
+                }
             }
-            return kOk;
+            RETURN_RESULT(kOk);
 
         case fet_serial:
             // Serial ports typically don't support ungetc
-            return kFileInvalidOperation;
+            RETURN_RESULT(kFileInvalidOperation);
 
         default:
-            return INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type);
+            RETURN_RESULT(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type));
     }
 }
 
@@ -405,8 +376,8 @@ size_t streamio_write(int fnbr, const char *buf, size_t buf_sz) {
         assert(streamio_0_write_fn);
         ON_FAILURE_ERROR_EX(streamio_0_write_fn(buf, &buf_sz), 0);
         return buf_sz;
-    } else if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        THROW_ERROR(kFileInvalidFileNumber, 0);
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), 0);
     }
 
     switch (file_table[fnbr].type) {
