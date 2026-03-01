@@ -341,6 +341,14 @@ bool file_exists_symlink(const char *path);
 int file_fsync(int fd);
 
 /**
+ * Checks if a path is absolute.
+ *
+ * @param[in]  path  Path to check
+ * @return           true if the path is absolute, false otherwise
+ */
+bool file_is_absolute(const char *path);
+
+/**
  * Checks if a character is a path separator either '/' or '\'.
  *
  * @param[in]  c   Character to check
