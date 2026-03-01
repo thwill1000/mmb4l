@@ -108,7 +108,7 @@ MmResult console_sync_size(int timeout_ms) {
         do {
             // Alternatively consider: ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)
             if (SUCCEEDED(ioctl(fd, TIOCGWINSZ, &ws)) && ws.ws_col > 0) break;
-            nanosleep(&ONE_MICROSECOND, NULL);
+            mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
         } while (mmtime_now_ns() < timeout_ns);
         close(fd);
     }
