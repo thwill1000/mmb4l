@@ -384,9 +384,10 @@ MmResult file_mkdir(const char *dirname);
  * Creates a new empty file
  *
  * @param[in]  filename  Path to the file to create
+ * @param[in]  contents  Initial contents of the file (can be NULL for empty file)
  * @return               kOk on success, error code on failure
  */
-MmResult file_mkfile(const char *filename);
+MmResult file_mkfile(const char *filename, const char *contents);
 
 /**
  * Opens a file for reading or writing.
