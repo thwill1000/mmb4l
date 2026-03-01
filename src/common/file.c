@@ -67,10 +67,6 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size);
 // Pointers to functions we want to override in unit-tests
 MmResult (*file_get_config_dir)(char *, size_t) = file_get_config_dir_impl;
 
-static bool file_is_separator(char c) {
-    return c == '/' || c == '\\';
-}
-
 MmResult file_basename(const char *path, char *buf, size_t buf_sz) {
     CHECK_PARAM(path != NULL);
     CHECK_PARAM(buf != NULL);
@@ -326,16 +322,17 @@ MmResult file_append_path(char *parent, const char *element, size_t size) {
     }
 
     // Append a separator if necessary
-    const char last_char = parent_len > 0 ? parent[parent_len - 1] : '\0';
-    if (last_char != PATH_SEPARATOR && last_char != '/' && last_char != '\\') {
-        if (FAILED(cstring_cat(parent, PATH_SEPARATOR_STR, size))) {
-            return kFilenameTooLong;
+    if (parent_len > 0) {
+        const char last_char = parent[parent_len - 1];
+        if (!file_is_separator(last_char)) {
+            if (FAILED(cstring_cat(parent, PATH_SEPARATOR_STR, size))) {
+                return kFilenameTooLong;
+            }
         }
     }
 
-    // Skip leading separator in element if present
-    const char first_char = element[0];
-    if (first_char == PATH_SEPARATOR || first_char == '/' || first_char == '\\') {
+    // Skip leading separator in element if parent ends with a separator
+    if (parent_len > 0 && file_is_separator(parent[parent_len - 1]) && file_is_separator(element[0])) {
         element++;
         element_len--;
     }
