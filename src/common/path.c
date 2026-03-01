@@ -146,7 +146,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
     // LOG_FN_ENTRY("original_path=\"%s\", new_path=\"%s\", sz=%d", original_path, new_path, sz);
 
     const char *psrc = original_path;
-    bool absolute = original_path[0] == '\\' || original_path[0] == '/';
+    bool absolute = file_is_separator(psrc[0]);
 
     // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
     size_t len = strlen(psrc);
@@ -242,7 +242,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             case '~':
                 if (state == kPathStateStart) {
                     psrc++;
-                    if (*psrc == '\0' || *psrc == '\\' || *psrc == '/' ) {
+                    if (*psrc == '\0' || file_is_separator(*psrc)) {
                         if (safe_dst.pos != safe_dst.base) RETURN_RESULT(INTERNAL_FAULT);
                         ON_FAILURE_RETURN(file_get_home(safe_dst.base, safe_dst.limit - safe_dst.base));
                         safe_dst.end = safe_dst.base + strlen(safe_dst.base);  // Don't include trailing '\0'.
@@ -252,11 +252,6 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                     }
                     psrc--;
                     state = kPathStateDefault;
-                    // if (*(safe_dst.pos - 1) == '/') {
-                    //     // TODO: comment
-                    //     safe_buffer_inc_pos(&safe_dst, -1);
-                    //     state = kPathStateSlash;
-                    // }
                     break;
                 } else {
                     CASE_FALLTHROUGH;
@@ -393,12 +388,10 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
 
     // Munge 'tmp_path' into 'canonical_path' to deal with any
     // repeated slashes, slash-dots, slash-dot-dots, or back-slashes.
-    MmResult result = path_munge(tmp_path, canonical_path, sz);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(tmp_path, canonical_path, sz));
 
     // Resolve symbolic links into 'tmp_path'.
-    result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX));
     if (strlen(tmp_path) >= sz) return kFilenameTooLong;
     strcpy(canonical_path, tmp_path);
 

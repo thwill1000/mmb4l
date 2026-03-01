@@ -341,6 +341,16 @@ bool file_exists_symlink(const char *path);
 int file_fsync(int fd);
 
 /**
+ * Checks if a character is a path separator either '/' or '\'.
+ *
+ * @param[in]  c   Character to check
+ * @return         true if the character is a path separator, false otherwise
+ */
+static inline bool file_is_separator(char c) {
+    return c == '/' || c == '\\';
+}
+
+/**
  * Gets sorted list of files matching a specification.
  *
  * @param[in]  fspec  File/path specification, e.g.
