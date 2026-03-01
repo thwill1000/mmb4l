@@ -58,17 +58,22 @@ bool keybuf_isatty(void) {
 
 /**
  * Blocks until a character is available on STDIN then returns it.
- * Returns -1 on error.
+ * Returns the character, or 0 on EOF or -1 on error.
  */
 int keybuf_read_char(void) {
     char ch;
-    ssize_t result = read(STDIN_FILENO, &ch, 1);
+    ssize_t result;
+    do {
+        result = read(STDIN_FILENO, &ch, 1);
+    } while (result == -1 && errno == EINTR);
+
     switch (result) {
         case -1:
+            // A genuine error, not just an interrupted syscall.
             return -1;
         case 0:
-            // EOF on stdin - return -1 to signal the thread to stop.
-            return -1;
+            // EOF on stdin - pipe or redirected file exhausted.
+            return 0;
         case 1:
             return (unsigned char) ch;
         default:

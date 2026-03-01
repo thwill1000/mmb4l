@@ -78,19 +78,21 @@ MmResult console_init_platform(ConsoleState *_self) {
     // then configure the terminal in "raw" mode:
     tcgetattr(STDIN_FILENO, &orig_termios);
     struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    //               |       |        |
-    //               |       |        +-- Disable signal generation (SIGINT, SIGQUIT etc.)
-    //               |       |            so Ctrl-C, Ctrl-\ etc. are passed as raw bytes.
-    //               |       +----------- Disable canonical mode so input is available
-    //               |                    immediately without waiting for a newline.
-    //               +------------------- Disable echo so typed characters are not
-    //                                    automatically printed to the terminal.
-    raw.c_cc[VMIN] = 1;   // Block until at least 1 character is available.
-    raw.c_cc[VTIME] = 0;  // No timeout - wait indefinitely for input.
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-    //                       |
-    //                       +-- Flush any pending input before applying new settings.
+    if (isatty(STDIN_FILENO)) { // We don't enable raw mode for piped input
+        raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+        //               |       |        |
+        //               |       |        +-- Disable signal generation (SIGINT, SIGQUIT etc.)
+        //               |       |            so Ctrl-C, Ctrl-\ etc. are passed as raw bytes.
+        //               |       +----------- Disable canonical mode so input is available
+        //               |                    immediately without waiting for a newline.
+        //               +------------------- Disable echo so typed characters are not
+        //                                    automatically printed to the terminal.
+        raw.c_cc[VMIN] = 1;   // Block until at least 1 character is available.
+        raw.c_cc[VTIME] = 0;  // No timeout - wait indefinitely for input.
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+        //                       |
+        //                       +-- Flush any pending input before applying new settings.
+    }
 
     // Install a signal handler for SIGWINCH which is sent by the OS whenever
     // the terminal window is resized, so we can update the console dimensions.
@@ -120,6 +122,11 @@ void console_putc_raw_n(const char *p, int count) {
 }
 
 MmResult console_sync_cursor_pos(int timeout_ms) {
+    if (!isatty(STDIN_FILENO)) {
+        LOG_WARN("cannot read cursor position from non-TTY");
+        RETURN_RESULT(kOk);
+    }
+
     // Send escape code to report cursor position.
     keybuf_clear();
     printf("\033[6n");
