@@ -78,6 +78,16 @@ MmResult console_term_platform(void) {
     return kOk;
 }
 
+void console_putc_raw(char c) {
+    (void) putc(c, stdout);
+}
+
+void console_putc_raw_n(const char *p, int count) {
+    for (int i = 0; i < count; ++i) {
+        (void) putc(p[i], stdout);
+    }
+}
+
 void console_disable_raw_mode(void) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 }

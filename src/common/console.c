@@ -124,19 +124,19 @@ MmResult console_cursor_up(int count) {
     RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
 }
 
-char console_putc_noflush(char c) {
+char console_putc(char c) {
     // LOG_FN_ENTRY("c='%c'", c);
     bool printable = false; // Is 'c' a printable character?
 
     if (mmb_options.codepage && c > 127) {
         const char *ptr = mmb_options.codepage + 4 * (c - 128);
-        putc(*ptr++, stdout);            // 1st byte.
-        if (*ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
-        if (*ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
-        if (*ptr) putc(*ptr++, stdout);  // Optional 4th byte.
+        // Count how many bytes to write (up to 4, stopping at '\0')
+        int count = 0;
+        while (count < 4 && ptr[count]) count++;
+        if (count > 0) console_putc_raw_n(ptr, count);
         printable = true;
     } else {
-        putc(c, stdout);
+        console_putc_raw(c);
         if (isprint(c)) {
             printable = true;
         } else {
@@ -176,17 +176,9 @@ char console_putc_noflush(char c) {
     return c;
 }
 
-char console_putc(char c) {
-    // LOG_DEBUG("STDOUT: %c", c);
-    char rval = console_putc_noflush(c);
-    fflush(stdout);
-    return rval;
-}
-
 void console_puts(const char *s) {
-    // LOG_DEBUG("STDOUT: %s", s);
-    while (*s) (void) console_putc_noflush(*s++);
-    fflush(stdout);
+    // LOG_FN_ENTRY("s=\"%s\"", s);
+    while (*s) (void) console_putc(*s++);
 }
 
 void console_set_title(const char *title, bool command) {
@@ -384,6 +376,7 @@ MmResult console_underline(bool underline) {
 
 MmResult console_wrapline() {
     // LOG_FN_ENTRY();
+    // LOG_DEBUG("self.requires_sync=%d, self.x=%d, self.y=%d, self.width=%d, self.height=%d", self.requires_sync, self.x, self.y, self.width, self.height);
     if (self.requires_sync) {
         ON_FAILURE_RETURN(console_sync());
     }
@@ -395,8 +388,7 @@ MmResult console_wrapline() {
 
 size_t console_write(const char *buf, size_t sz) {
     for (size_t idx = 0; idx < sz; ++idx) {
-        console_putc_noflush(buf[idx]);
+        (void) console_putc(buf[idx]);
     }
-    fflush(stdout);
     return sz;
 }

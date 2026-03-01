@@ -397,6 +397,13 @@ int serial_eof(int fnbr) {
     // return count ? 0 : 1;
 }
 
+MmResult serial_flush(int fnbr) {
+    ON_FAILURE_RETURN(serial_validate_fnbr(fnbr));
+    errno = 0;
+    int result = tcflush(file_table[fnbr].serial_fd, TCIOFLUSH);
+    RETURN_RESULT(SUCCEEDED(result) ? kOk : errno);
+}
+
 int serial_getc(int fnbr) {
     ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
 

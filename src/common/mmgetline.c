@@ -92,12 +92,16 @@ void MMgetline(int fnbr, char *p) {
                 *p++ = ' ';
                 if (fnbr == 0) display_putc(' ');
             } while (nbrchars % mmb_options.tab);
+            if (fnbr == 0) ON_FAILURE_ERROR(display_flush());
             continue;
         }
 
         if (c == '\b') {  // handle the backspace
             if (nbrchars) {
-                if (fnbr == 0) display_puts("\b \b");
+                if (fnbr == 0) {
+                    ON_FAILURE_ERROR(display_puts("\b \b"));
+                    ON_FAILURE_ERROR(display_flush());
+                }
                 nbrchars--;
                 p--;
             }
@@ -110,7 +114,7 @@ void MMgetline(int fnbr, char *p) {
 
         if (c == '\r') {
             if (fnbr == 0) {
-                display_puts("\r\n");
+                ON_FAILURE_ERROR(display_puts("\r\n"));
                 break;  // on the console this means the end of the line
                         // - stop collecting
             } else {
@@ -120,7 +124,8 @@ void MMgetline(int fnbr, char *p) {
         }
 
         if (isprint(c) && (fnbr == 0)) {
-            display_putc(c);  // The console requires that chars be echoed
+            ON_FAILURE_ERROR(display_putc(c));  // The console requires that chars be echoed
+            ON_FAILURE_ERROR(display_flush());
         }
 
         if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);  // stop collecting if maximum length

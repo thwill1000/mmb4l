@@ -45,8 +45,7 @@ MmResult console_get_size(int *width, int *height) {
 
 void console_home_cursor(void) { }
 MmResult console_inverse(bool inverse) { return kOk; }
-char console_putc(char c) { return -1; }
-char console_putc_noflush(char c) { return -1; }
+char console_putc(char c) { return 0; }
 void console_puts(const char *s) { }
 MmResult console_reset(void) { return kOk; }
 MmResult console_scroll_down() { return kOk; }

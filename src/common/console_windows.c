@@ -47,9 +47,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static ConsoleState *self;
 
-MmResult console_private_init(ConsoleState *_self) {
+MmResult console_init_platform(ConsoleState *_self) {
     self = _self;
     return kOk;
+}
+
+MmResult console_term_platform(void) {
+    return kOk;
+}
+
+void console_putc_raw(char c) {
+    (void) c;
+    LOG_WARN("UNIMPLEMENTED");
+}
+
+void console_putc_raw_n(const char *p, int count) {
+    (void) p;
+    (void) count;
+    LOG_WARN("UNIMPLEMENTED");
 }
 
 void console_disable_raw_mode(void) {
@@ -60,7 +75,13 @@ void console_enable_raw_mode(void) {
     LOG_WARN("UNIMPLEMENTED");
 }
 
+MmResult console_sync_cursor_pos(int timeout_ms) {
+    (void) timeout_ms;  // Unused by Windows implementation
+    LOG_WARN("UNIMPLEMENTED");
+}
+
 MmResult console_sync_size(int timeout_ms) {
+    (void) timeout_ms;  // Unused by Windows implementation
     LOG_WARN("UNIMPLEMENTED");
     RETURN_RESULT(kOk);
 }
