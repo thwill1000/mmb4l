@@ -561,7 +561,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     // copy the sub/fun name from the definition into temp storage and terminate
     // p is left pointing to the end of the name (ie, start of the argument list in the definition)
     CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
-    char fun_name[MAXVARLEN + 1];
+    char fun_name[MAXVARLEN + 2];  // Include extra byte for optional type suffix
     {
         char *tp = fun_name;
         *tp++ = *p++; while(isnamechar(*p)) *tp++ = *p++;
