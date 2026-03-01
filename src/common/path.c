@@ -65,28 +65,28 @@ static MmResult path_complete_impl(const char *path, char *out, size_t sz);
 MmResult (*path_complete)(const char *, char *, size_t) = path_complete_impl;
 
 bool path_exists(const char *path) {
-    LOG_FN_ENTRY("path=\"%s\"", path);
+    // LOG_FN_ENTRY("path=\"%s\"", path);
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     RETURN_BOOL(info.exists);
 }
 
 bool path_is_directory(const char *path) {
-    LOG_FN_ENTRY("path=\"%s\"", path);
+    // LOG_FN_ENTRY("path=\"%s\"", path);
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     RETURN_BOOL(info.exists && (info.type == kFileTypeDirectory));
 }
 
 bool path_is_empty(const char *path) {
-    LOG_FN_ENTRY("path=\"%s\"", path);
+    // LOG_FN_ENTRY("path=\"%s\"", path);
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     RETURN_BOOL(info.exists && (info.size == 0));
 }
 
 bool path_is_regular(const char *path) {
-    LOG_FN_ENTRY("path=\"%s\"", path);
+    // LOG_FN_ENTRY("path=\"%s\"", path);
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     RETURN_BOOL(info.exists && (info.type == kFileTypeRegularFile));
@@ -143,7 +143,7 @@ typedef enum {
 }
 
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
-    LOG_FN_ENTRY("original_path=\"%s\", new_path=\"%s\", sz=%d", original_path, new_path, sz);
+    // LOG_FN_ENTRY("original_path=\"%s\", new_path=\"%s\", sz=%d", original_path, new_path, sz);
 
     const char *psrc = original_path;
     bool absolute = original_path[0] == '\\' || original_path[0] == '/';
@@ -429,7 +429,7 @@ const char *path_get_extension(const char *path) {
 }
 
 static MmResult path_mkdir_internal(const char *path) {
-    LOG_FN_ENTRY("path=\"%s\"", path);
+    // LOG_FN_ENTRY("path=\"%s\"", path);
 
     MmResult result = kError;
     if (path[0] == '\0') {
@@ -444,7 +444,7 @@ static MmResult path_mkdir_internal(const char *path) {
 }
 
 MmResult path_mkdir(const char *path) {
-    LOG_FN_ENTRY("path=\"%s\"", path);
+    // LOG_FN_ENTRY("path=\"%s\"", path);
 
     char tmp_path[PATH_MAX];
     ON_FAILURE_RETURN(path_munge(path, tmp_path, PATH_MAX));

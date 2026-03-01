@@ -67,7 +67,7 @@ char prompt_history[sizeof(prompt_history)];
 static const char NO_ITEM[] = "";
 
 MmResult prompt_getc(int *ch) {
-    LOG_FN_ENTRY("ch=%p", ch);
+    // LOG_FN_ENTRY("ch=%p", ch);
 
     static char prevchar = 0;
     ON_FAILURE_RETURN(display_show_cursor(true));
@@ -514,7 +514,7 @@ static MmResult handle_up(PromptState *pstate) {
 }
 
 MmResult prompt_get_input(void) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf);
@@ -533,7 +533,7 @@ MmResult prompt_get_input(void) {
         int ch = -1;
         ON_FAILURE_RETURN(prompt_getc(&ch));
         assert(ch != -1);
-        LOG_DEBUG("ch='%c'", ch);
+        // LOG_DEBUG("ch='%c'", ch);
         state.buf[0] = (char) ch;
         state.buf[1] = '\0';
 

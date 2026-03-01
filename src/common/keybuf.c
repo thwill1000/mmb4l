@@ -87,7 +87,7 @@ static int keybuf_thread_fn(void *data) {
 }
 
 MmResult keybuf_init(void) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     rx_buf_init(&keybuf_buf, keybuf_data, sizeof(keybuf_data));
 
@@ -241,7 +241,7 @@ int keybuf_get(void) {
 }
 
 void keybuf_put(char ch) {
-    LOG_FN_ENTRY("ch='%c'", ch);
+    // LOG_FN_ENTRY("ch='%c'", ch);
 
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.

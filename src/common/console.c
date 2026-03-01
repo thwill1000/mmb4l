@@ -63,7 +63,7 @@ static ConsoleState self;
 int ListCnt = 0;
 
 MmResult console_init(bool no_title) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     self.no_title = no_title;
     self.requires_sync = true;
@@ -72,7 +72,7 @@ MmResult console_init(bool no_title) {
 }
 
 MmResult console_term(void) {
-    LOG_FN_ENTRY();
+    // LOG_FN_ENTRY();
 
     RETURN_RESULT(console_term_platform());
 }

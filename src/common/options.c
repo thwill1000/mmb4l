@@ -308,7 +308,7 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 }
 
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
-    LOG_FN_ENTRY("options=%p, filename=\"%s\", warning_cb=%p", options, filename, warning_cb);
+    // LOG_FN_ENTRY("options=%p, filename=\"%s\", warning_cb=%p", options, filename, warning_cb);
 
     char path[STRINGSIZE];
     ON_FAILURE_RETURN(path_munge(filename, path, STRINGSIZE));
@@ -893,7 +893,7 @@ static MmResult options_set_list_case(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
-    LOG_FN_ENTRY("options=%p, svalue=\"%s\"", options, svalue);
+    // LOG_FN_ENTRY("options=%p, svalue=\"%s\"", options, svalue);
 
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
