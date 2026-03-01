@@ -365,7 +365,7 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
 
         // Replace '~' prefix with the user's HOME directory.
         ON_FAILURE_RETURN(file_get_home(tmp_path, PATH_MAX));
-        if (tmp_path[0] != '\\' && tmp_path[0] != '/') return INTERNAL_FAULT;
+        if (!file_is_absolute(tmp_path)) return INTERNAL_FAULT;
         path++; // Skip the '~'.
 
     } else if (isalpha(path[0]) && path[1] == ':') {
@@ -375,7 +375,7 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
         if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
         path += 2; // Skip the drive prefix.
 
-    } else if (!path_is_absolute(path)) {
+    } else if (!file_is_absolute(path)) {
 
         // If the 'path' is not absolute then copy the current working directory
         // into 'tmp_path'.
@@ -398,12 +398,8 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
     return kOk;
 }
 
-bool path_is_absolute(const char *path) {
-    return path[0] == '\\' || path[0] == '/';
-}
-
 MmResult path_get_parent(const char *path, char *parent_path, size_t sz) {
-    bool absolute = path_is_absolute(path);
+    bool absolute = file_is_absolute(path);
     MmResult result = path_munge(path, parent_path, sz);
     if (FAILED(result)) return result;
     char *p = strrchr(parent_path, '/');

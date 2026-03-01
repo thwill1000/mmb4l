@@ -144,6 +144,10 @@ MmResult file_get_home(char *buf, size_t buf_sz) {
     return kOk;
 }
 
+bool file_is_absolute(const char *path) {
+    return path != NULL && file_is_separator(path[0]);
+}
+
 MmResult file_info(const char *filename, FileInfo *info) {
     CHECK_PARAM(filename != NULL);
     CHECK_PARAM(info != NULL);
