@@ -665,6 +665,11 @@ MmResult program_process_file() {
         mmb_error_state_ptr->override_line = false;
     }
 
+    // Close any open files
+    while (program_file_stack->size > 0) {
+        ON_FAILURE_LOG(program_close_file());
+    }
+
     return result;
 }
 
