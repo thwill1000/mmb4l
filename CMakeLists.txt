@@ -71,13 +71,43 @@ if (MMB4L_COVERAGE)
     set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
     set(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
     set(GCOV_LINK_LIBRARY          gcov)
+else()
+    set(GCOV_LINK_LIBRARY          "")  # Empty on Windows/when coverage disabled
 endif()
 
-add_compile_options(
-    "-Wwrite-strings;-Wall;-Wextra;-Wno-unused-parameter;-Wno-missing-field-initializers;-Wno-unused-function;-Wno-unused-result;-Werror"
-    ${GCC_COVERAGE_COMPILE_FLAGS}
-    -funsigned-char
-)
+# Platform-specific compiler flags
+if (MSVC)
+    # Visual Studio compiler flags
+    add_compile_options(
+        /W4          # Warning level 4
+        /WX          # Treat warnings as errors
+        /wd4100      # Unreferenced formal parameter
+        /wd4127      # Conditional expression is constant
+        /wd4201      # Nonstandard extension used
+        /wd4244      # Conversion warnings
+        /wd4267      # Size_t conversion warnings
+        /wd4456      # Declaration of '...' hides previous local declaration
+        /wd4457      # Declaration of '...' hides function parameter
+        /wd4459      # Declaration of '...' hides global declaration
+        /wd4505      # Unreferenced local function has been removed
+        /utf-8       # Set source and execution character sets to UTF-8
+        /J           # Make char type unsigned (equivalent to -funsigned-char)
+    )
+
+    # Add Windows-specific definitions
+    add_compile_definitions(
+        _CRT_SECURE_NO_WARNINGS  # Disable warnings about "unsafe" C functions
+        NOMINMAX                 # Prevent Windows.h from defining min/max macros
+        WIN32_LEAN_AND_MEAN      # Exclude rarely-used stuff from Windows headers
+    )
+else()
+    # GCC/Clang compiler flags (Linux/macOS)
+    add_compile_options(
+        "-Wwrite-strings;-Wall;-Wextra;-Wno-unused-parameter;-Wno-missing-field-initializers;-Wno-unused-function;-Wno-unused-result;-Werror"
+        ${GCC_COVERAGE_COMPILE_FLAGS}
+        -funsigned-char
+    )
+endif()
 
 add_compile_definitions(
     _FILE_OFFSET_BITS=64
@@ -297,6 +327,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
@@ -328,6 +359,7 @@ set(MMB4L_COMMON_TEST_FILES
     src/common/logger.c
     src/common/mmresult.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/utility.c
     src/common/gtest/stubs/error_stubs.c
 )
@@ -345,12 +377,14 @@ add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
 configure_sdl2(mmbasic TRUE)
 
-target_link_libraries(
-    mmbasic
-    m
-    ${GCOV_LINK_LIBRARY}
-    SDL2
-)
+if(NOT WIN32)
+    target_link_libraries(
+        mmbasic
+        m
+        ${GCOV_LINK_LIBRARY}
+        SDL2
+    )
+endif()
 
 ################################################################################
 # test_keybuf_get
@@ -367,6 +401,7 @@ add_executable(test_console_getc
     src/common/keybuf.c
     src/common/keybuf_${PLATFORM}.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/path.c
     src/common/gtest/stubs/display_stubs.c
@@ -697,6 +732,7 @@ add_executable(test_gpio
     src/common/features.c
     src/common/gpio.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/gtest/gpio_test.cxx
 )
 
@@ -871,6 +907,7 @@ add_executable(test_parse
     src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
@@ -948,6 +985,7 @@ add_executable(test_program
     src/common/memory.c
     src/common/mmgetline.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/path.c
     src/common/parse.c
@@ -1147,6 +1185,7 @@ add_executable(test_mmbasic_core
     src/common/streamio.c
     src/common/memory.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c

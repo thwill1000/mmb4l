@@ -348,7 +348,7 @@ protected:
     } while (0)
 
 #define EXPECT_PRINT_FUNC_KEYS_NOT_CALLED() \
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 0}))
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 0}))
 
 #define EXPECT_PRINT_LINES_CALLED(expected) \
     do { \
@@ -387,7 +387,7 @@ protected:
     } while (0)
 
 #define EXPECT_PRINT_MSG_NOT_CALLED() \
-    EXPECT_PRINT_MSG_CALLED(((PrintMsgCapture) {.calls = 0}))
+    EXPECT_PRINT_MSG_CALLED((PrintMsgCapture{/*calls*/ 0}))
 
 #define EXPECT_TXTP_EQ(expected_offset) \
     do { \
@@ -400,7 +400,7 @@ protected:
     } while (0)
 
 #define EXPECT_PRINT_STATUS_NOT_CALLED() \
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 0}))
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 0}))
 
 #define EXPECT_TXTP_CONSISTENT() \
     do { \
@@ -730,7 +730,11 @@ TEST_F(EditorAdjustViewportTest, BoundaryJustAboveSoftMarginWithPx) {
 // Test that buffer contents are not modified
 TEST_F(EditorAdjustViewportTest, DoesNotModifyBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
+#if defined(_MSC_VER)
+    const char *original_buf = _strdup(self->buf);
+#else
     const char *original_buf = strdup(self->buf);
+#endif
     self->width = 80;
     self->cx = 80;
     self->px = 0;
@@ -11595,7 +11599,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenNumLinesChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = LAST_LINE, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ LAST_LINE, /*cy*/ 0}));
 }
 
 TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
@@ -11608,8 +11612,8 @@ TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = LAST_LINE, .cy = 0}));
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ LAST_LINE, /*cy*/ 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
 }
 
 // Test screen redrawn when viewport moves down by two or more (py increases)
@@ -11622,7 +11626,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenPyIncreasesByTwo) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 2, .end = LAST_LINE, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 2, /*end*/ LAST_LINE, /*cy*/ 0}));
 }
 
 // Test screen redrawn when viewport moves down by two or more (py decreases)
@@ -11636,7 +11640,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenPyDecreasesByTwo) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = LAST_LINE, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ LAST_LINE, /*cy*/  0}));
 }
 
 // Test screen redrawn when viewport moves down by one
@@ -11652,9 +11656,9 @@ TEST_F(EditorUpdateDisplayTest, ScrollsScreenDownWhenPyIncreasesByOne) {
 
     // Can't easily test that the screen has been scrolled
     // but can test that the last line of viewport and the status line have been redrawn
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .end = 23, .cy = 22}));
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 23, /*end*/ 23, /*cy*/ 22}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test screen redrawn when viewport moves up by one
@@ -11671,9 +11675,9 @@ TEST_F(EditorUpdateDisplayTest, ScrollsScreenUpWhenPyDecreasesByOne) {
 
     // Can't easily test that the screen has been scrolled
     // but can test that the first line of viewport and the status line have been redrawn
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 0, .cy = 0}));
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 0, /*cy*/ 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 TEST_F(EditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) {
@@ -11688,7 +11692,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 1, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 1, /*cy*/ 0}));
 }
 
 TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenInsertModeChanges) {
@@ -11701,7 +11705,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenInsertModeChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenCursorPositionChanges) {
@@ -11714,7 +11718,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenCursorPositionChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 TEST_F(EditorUpdateDisplayTest, RedrawsFuncKeysWhenModeChanges) {
@@ -11728,7 +11732,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsFuncKeysWhenModeChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
 }
 
 TEST_F(EditorUpdateDisplayTest, PrintsMessageWhenSet) {
@@ -11740,7 +11744,7 @@ TEST_F(EditorUpdateDisplayTest, PrintsMessageWhenSet) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_MSG_CALLED(((PrintMsgCapture) {.calls = 1, .msg = "My message"}));
+    EXPECT_PRINT_MSG_CALLED((PrintMsgCapture{/*calls*/ 1, /*msg*/ "My message"}));
     EXPECT_PRINT_FUNC_KEYS_NOT_CALLED();
     EXPECT_PRINT_STATUS_NOT_CALLED();
 }
@@ -11754,8 +11758,8 @@ TEST_F(EditorUpdateDisplayTest, RedrawsFuncKeysAndStatusWhenMessageCleared) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_MSG_NOT_CALLED();
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test that change_start and change_end are reset after update
@@ -11784,7 +11788,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsLinesWhenChangeTrackingSet) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 3, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 3, /*cy*/ 0}));
 }
 
 // Test that fast path is used when syntax highlighting is off, not in mark mode,
@@ -11801,7 +11805,7 @@ TEST_F(EditorUpdateDisplayTest, UsesFastPathForSingleLineEdit) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINE_FAST_CALLED(((PrintLineFastCapture) {.calls = 1, .p = self->buf + 8}));
+    EXPECT_PRINT_LINE_FAST_CALLED((PrintLineFastCapture{/*calls*/ 1, /*p*/ self->buf + 8}));
 }
 
 // Test that message takes precedence over func keys and status
@@ -11818,7 +11822,7 @@ TEST_F(EditorUpdateDisplayTest, MessageTakesPrecedenceOverFuncKeysAndStatus) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_MSG_CALLED(((PrintMsgCapture) {.calls = 1, .msg = "Error message"}));
+    EXPECT_PRINT_MSG_CALLED((PrintMsgCapture{/*calls*/ 1, /*msg*/ "Error message"}));
     EXPECT_PRINT_FUNC_KEYS_NOT_CALLED();
     EXPECT_PRINT_STATUS_NOT_CALLED();
 }
@@ -11833,7 +11837,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenCxChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test status updates when cy changes
@@ -11846,7 +11850,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenCyChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test status updates when px changes
@@ -11859,7 +11863,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenPxChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test status updates when py changes
@@ -11872,7 +11876,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenPyChanges) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test selection redraw when mark mode and txtp moves backward
@@ -11889,7 +11893,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsSelectionWhenTxtpMovesBackward) {
 
     EXPECT_EQ(kOk, result);
     // Should redraw lines containing the old and new selection bounds
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 1, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 1, /*cy*/ 0}));
 }
 
 // Test no selection redraw when mark mode but txtp unchanged
@@ -11921,9 +11925,9 @@ TEST_F(EditorUpdateDisplayTest, ScrollDownWithPendingChanges) {
 
     EXPECT_EQ(kOk, result);
     // Should handle both scroll and pending changes
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 2, .end = 23, .cy = 0}));
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 2, /*end*/ 23, /*cy*/ 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 // Test that both num_lines and mode changes trigger full redraw
@@ -11938,8 +11942,8 @@ TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenBothNumLinesAndModeChange) {
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = LAST_LINE, .cy = 0}));
-    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ LAST_LINE, /*cy*/ 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
 }
 
 // Test edge case: change_start equals NO_CHANGE (no lines to redraw)
@@ -11956,7 +11960,7 @@ TEST_F(EditorUpdateDisplayTest, NoRedrawWhenChangeStartIsNoChange) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_NO_LINES_PRINTED();
-    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
 
 TEST_F(EditorUpdateDisplayTest, HandlesViewportBeyondBufferEnd) {
@@ -11985,7 +11989,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsWhenPxChanges) {
 
     EXPECT_EQ(kOk, result);
     // Should redraw the line when horizontal scroll changes
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 0, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 0, /*cy*/ 0}));
 }
 
 TEST_F(EditorUpdateDisplayTest, RedrawsCurrentLineWhenPxChangesAndPyAlsoChanges) {
@@ -12000,7 +12004,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsCurrentLineWhenPxChangesAndPyAlsoChanges)
     MmResult result = editor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 23, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 23, /*cy*/ 0}));
 }
 
 // Test that slow path is used when syntax highlighting is on
@@ -12017,7 +12021,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenSyntaxHighlightingOn) {
 
     EXPECT_EQ(kOk, result);
     // Slow path is taken - call to editor_print_lines
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 1, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 1, /*cy*/ 1}));
 }
 
 // Test that slow path is used when in mark mode
@@ -12034,7 +12038,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenInMarkMode) {
 
     EXPECT_EQ(kOk, result);
     // Slow path is taken due to mark mode
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 1, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 1, /*cy*/ 1}));
 }
 
 // Test that slow path is used when change is not on current line
@@ -12051,7 +12055,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenChangeNotOnCurrentLine) {
 
     EXPECT_EQ(kOk, result);
     // Slow path is taken - change not on current line
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 0, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 0, /*cy*/ 1}));
 }
 
 // Test that fast path is used even with viewport offset
@@ -12069,7 +12073,7 @@ TEST_F(EditorUpdateDisplayTest, UsesFastPathWithViewportOffset) {
 
     EXPECT_EQ(kOk, result);
     // Fast path should still be used
-    EXPECT_PRINT_LINE_FAST_CALLED(((PrintLineFastCapture) {.calls = 1, .p = self->buf + 12}));
+    EXPECT_PRINT_LINE_FAST_CALLED((PrintLineFastCapture{/*calls*/ 1, /*p*/ self->buf + 12}));
 }
 
 // Test that slow path is used for multi-line changes
@@ -12086,7 +12090,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathForMultiLineChange) {
 
     EXPECT_EQ(kOk, result);
     // Slow path is taken - multiple lines
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 2, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 2, /*cy*/ 1}));
 }
 
 // Test fast path with horizontal scrolling (px != 0)
@@ -12104,7 +12108,7 @@ TEST_F(EditorUpdateDisplayTest, UsesFastPathWithHorizontalScroll) {
 
     EXPECT_EQ(kOk, result);
     // Fast path should still work with horizontal scrolling
-    EXPECT_PRINT_LINE_FAST_CALLED(((PrintLineFastCapture) {.calls = 1, .p = self->buf + 50}));
+    EXPECT_PRINT_LINE_FAST_CALLED((PrintLineFastCapture{/*calls*/ 1, /*p*/ self->buf + 50}));
 }
 
 // Test slow path when change spans across viewport boundary
@@ -12123,7 +12127,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathForChangeCrossingViewport) {
 
     EXPECT_EQ(kOk, result);
     // Slow path due to multi-line change
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 2, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 2, /*cy*/ 1}));
 }
 
 // Test fast path boundary: change_start == change_end == current line
@@ -12142,7 +12146,7 @@ TEST_F(EditorUpdateDisplayTest, FastPathBoundaryCheckExactMatch) {
 
     EXPECT_EQ(kOk, result);
     // Fast path should be taken
-    EXPECT_PRINT_LINE_FAST_CALLED(((PrintLineFastCapture) {.calls = 1, .p = self->buf + 8}));
+    EXPECT_PRINT_LINE_FAST_CALLED((PrintLineFastCapture{/*calls*/ 1, /*p*/ self->buf + 8}));
 }
 
 // Test that slow path is used when cy + py != change_start
@@ -12162,7 +12166,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenAbsoluteLineMismatch) {
 
     EXPECT_EQ(kOk, result);
     // Slow path - change is on different absolute line
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 1, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 1, /*cy*/ 1}));
 }
 
 // Test fast path is NOT used when all conditions met EXCEPT change_end != change_start
@@ -12179,5 +12183,5 @@ TEST_F(EditorUpdateDisplayTest, NoFastPathWhenChangeEndDiffersFromStart) {
 
     EXPECT_EQ(kOk, result);
     // Slow path - change spans multiple lines
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 2, .cy = 1}));
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 1, /*end*/ 2, /*cy*/ 1}));
 }

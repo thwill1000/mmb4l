@@ -1,4 +1,4 @@
-' Copyright (c) 2024 Thomas Hugo Williams
+' Copyright (c) 2024-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMB4L 0.7.0
 
@@ -32,13 +32,20 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
+Function get_env_var_using_echo$(varname$)
+  If sys.is_windows%() Then
+    System "echo %" + varname$ + "%", get_env_var_using_echo$
+  Else
+    System "echo $" + varname$, get_env_var_using_echo$
+  EndIf
+End Function
+
 Sub test_setenv()
   SetEnv "FOO", "bar"
 
   assert_string_equals("bar", Mm.Info$(EnvVar "FOO"))
 
-  Local out$
-  System "echo $FOO", out$
+  Local out$ = get_env_var_using_echo$("FOO")
   assert_string_equals("bar", out$)
 End Sub
 
@@ -47,8 +54,7 @@ Sub test_setenv_given_equals()
 
   assert_string_equals("bar2", Mm.Info$(EnvVar "FOO2"))
 
-  Local out$
-  System "echo $FOO2", out$
+  Local out$ = get_env_var_using_echo$("FOO2")
   assert_string_equals("bar2", out$)
 End Sub
 
@@ -63,8 +69,7 @@ Sub test_setenv_given_space_in_value()
 
   assert_string_equals("foo bar", Mm.Info$(EnvVar "FOO3"))
 
-  Local out$
-  System "echo $FOO3", out$
+  Local out$ = get_env_var_using_echo$("FOO3")
   assert_string_equals("foo bar", out$)
 End Sub
 

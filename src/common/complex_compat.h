@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-Version.h
+complex_compat.h
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,61 +42,66 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_VERSION_H)
-#define MMB4L_VERSION_H
+#ifndef COMPLEX_COMPAT_H
+#define COMPLEX_COMPAT_H
 
-#if defined(__linux__)
-    #define __mmb4l__
-    #if defined(__ANDROID__)
-        #define MM_ARCH  "Android"
-        // #define MM_ARCH  "Android aarch64"
-        #define ENV64BIT
-    #elif defined(__x86_64)
-        #define MM_ARCH  "Linux x86_64"
-        #define ENV64BIT
-    #elif defined(__aarch64__)
-        #define MM_ARCH  "Linux aarch64"
-        #define ENV64BIT
-    #elif defined(__arm__)
-        #define MM_ARCH  "Linux armv6l"
-        #define ENV32BIT
-    #elif defined(__i686__)
-        #define MM_ARCH  "Linux i686"
-        #define ENV32BIT
-    #else
-        #error This architecture is not supported
-    #endif
-#elif defined(__riscos__)
-    #define __mmb4l__
-    #define MM_ARCH "RISC OS"
-    #define ENV32BIT
-#elif defined(_WIN32)
-    #define __mmb4l__
-    #define MM_ARCH "Windows x86_64"
-    #define ENV64BIT
-#else
-    #error This device is not supported
-#endif
+#if defined(_MSC_VER)
 
-#if defined(__mmb4l__)
-    #define MM_DEVICE     "MMB4L"
-#if defined(__ANDROID__)
-    #define MM_MAJOR      1
-    #define MM_MINOR      0
-    #define MM_MICRO      1
-    #define BUILD_NUMBER  0  // Currently always 0.
-#else
-    #define MM_MAJOR      0
-    #define MM_MINOR      8
-    #define MM_MICRO      1
-    #define BUILD_NUMBER  0  // Currently always 0.
-#endif
-    #define MM_VERSION    (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
-    #define COPYRIGHT     "Copyright 2011-2026 Geoff Graham\r\n" \
-                          "Copyright 2016-2026 Peter Mather\r\n" \
-                          "Copyright 2021-2026 Thomas Hugo Williams"
-#else
-    #error __mmb4l__ is not defined
-#endif
+#define _CRT_USE_C_COMPLEX_H
+#include <complex.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
-#endif // #if !defined(MMB4L_VERSION_H)
+typedef _Dcomplex cplx;  // double_complex
+typedef _Fcomplex fcplx; // float_complex
+
+/* MSVC does not support C99 complex arithmetic operators.
+ * These macros provide equivalents for +, -, *, / on complex types. */
+
+/* Double precision */
+#define cadd(a, b)    _Cbuild(creal(a) + creal(b), cimag(a) + cimag(b))
+#define csub(a, b)    _Cbuild(creal(a) - creal(b), cimag(a) - cimag(b))
+#define cmul(a, b)    _Cmulcc(a, b)
+#define cdiv(a, b)    _Cdivcc(a, b)
+#define cdivr(a, r)   _Cbuild(creal(a) / (r), cimag(a) / (r))  /* divide by real scalar */
+
+/* Single precision */
+#define caddf(a, b)   _FCbuild(crealf(a) + crealf(b), cimagf(a) + cimagf(b))
+#define csubf(a, b)   _FCbuild(crealf(a) - crealf(b), cimagf(a) - cimagf(b))
+#define cmulf(a, b)   _FCmulcc(a, b)
+#define cdivf(a, b)   _FCbuild( \
+    (crealf(a) * crealf(b) + cimagf(a) * cimagf(b)) / (crealf(b) * crealf(b) + cimagf(b) * cimagf(b)), \
+    (cimagf(a) * crealf(b) - crealf(a) * cimagf(b)) / (crealf(b) * crealf(b) + cimagf(b) * cimagf(b)))
+#define cdivrf(a, r)  _FCbuild(crealf(a) / (r), cimagf(a) / (r))  /* divide by real scalar */
+
+#define FCOMPLEX(r, i)  _FCbuild((float)(r), (float)(i))
+#define DCOMPLEX(r, i)  _Cbuild((double)(r), (double)(i))
+
+#else
+
+#include <complex.h>
+#include <math.h>
+
+#include "../Configuration.h"  // for MMFLOAT definition
+
+typedef MMFLOAT complex cplx;
+typedef float complex fcplx;
+
+/* On GCC/Clang, operators work natively so these macros just use them directly. */
+#define cadd(a, b)    ((a) + (b))
+#define csub(a, b)    ((a) - (b))
+#define cmul(a, b)    ((a) * (b))
+#define cdiv(a, b)    ((a) / (b))
+#define cdivr(a, r)   ((a) / (r))
+
+#define caddf(a, b)   ((a) + (b))
+#define csubf(a, b)   ((a) - (b))
+#define cmulf(a, b)   ((a) * (b))
+#define cdivf(a, b)   ((a) / (b))
+#define cdivrf(a, r)  ((a) / (r))
+
+#define FCOMPLEX(r, i)  ((float)(r) + (float)(i) * I)
+#define DCOMPLEX(r, i)  ((double)(r) + (double)(i) * I)
+
+#endif /* _MSC_VER */
+#endif /* COMPLEX_COMPAT_H */
