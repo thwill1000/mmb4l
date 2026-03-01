@@ -386,13 +386,14 @@ bool options_has_default_value(const Options *options, OptionsId id) {
 
 MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
-    MmResult result = path_munge(filename, path, STRINGSIZE);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(filename, path, STRINGSIZE));
+    if (path_is_directory(path)) RETURN_RESULT(kIsADirectory);
 
     errno = 0;
     FILE *f = fopen(path, "w");
-    if (!f) return errno;
+    if (!f) RETURN_RESULT(errno);
 
+    MmResult result = kOk;
     char tmp[STRINGSIZE];
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;
@@ -406,7 +407,7 @@ MmResult options_save(const Options *options, const char *filename) {
 
     fclose(f);
 
-    return result;
+    RETURN_RESULT(result);
 }
 
 MmResult options_decode_string(const char *encoded, char *decoded) {
