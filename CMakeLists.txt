@@ -301,7 +301,6 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/parse.c
     src/common/path.c
     src/common/editor.c
-    src/common/process_${PLATFORM}.c
     src/common/program.c
     src/common/prompt.c
     src/common/rx_buf.c
@@ -309,6 +308,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/sprite.c
     src/common/stack.c
     src/common/streamio.c
+    src/common/system_${PLATFORM}.c
     src/common/termgfx.c
     src/common/utility.c
     src/common/xmodem.c
