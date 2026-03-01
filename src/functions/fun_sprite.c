@@ -111,7 +111,7 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
         MmSurface *sprite = (surface_id == 0) ? NULL : &graphics_surfaces[surface_id];
 
         if (m == -1) { // Number of collisions.
-            uint32_t count = -1;
+            uint32_t count = 0;
             if (sprite) { // Collision with a specific sprite
                 result = sprite_get_num_collisions(sprite, &count);
             } else { // Collision after a SCROLL.
