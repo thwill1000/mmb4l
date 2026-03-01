@@ -575,6 +575,7 @@ static MmResult editor_get_input(Editor *self, const char *prompt) {
                     *p = '\0';  // Always keep inpbuf '\0' terminated
                     self->cx--;
                     ON_FAILURE_RETURN(display_puts("\b \b"));  // Erase on screen
+                    ON_FAILURE_RETURN(display_flush());
                 } else {
                     ON_FAILURE_RETURN(display_bell());
                 }
@@ -593,6 +594,7 @@ static MmResult editor_get_input(Editor *self, const char *prompt) {
                 *p = '\0';  // Keep inpbuf '\0' terminated
                 self->cx++;
                 ON_FAILURE_RETURN(display_putc(ch));
+                ON_FAILURE_RETURN(display_flush());
                 break;
         }
     }
@@ -1355,7 +1357,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
     };
 
     // We redraw the whole line, so move to the LHS of the display
-    ON_FAILURE_RETURN(display_putc_noflush('\r'));
+    ON_FAILURE_RETURN(display_putc('\r'));
 
     // Display the line from here to the end of the line or the screen width
     for (int x = 0; x < self->width + offset && *p && *p != '\n'; x++) {
@@ -1390,7 +1392,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
             ch = '>';
         }
 
-        ON_FAILURE_RETURN(display_putc_noflush(ch));
+        ON_FAILURE_RETURN(display_putc(ch));
     }
 
     // Reset syntax highlighting and clear display to end of line
@@ -1430,7 +1432,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
 MmResult editor_print_line_fast_impl(Editor *self, char *p) {
     char *start = editor_start_of_line(self, p);
     for (int x = p - start; x < self->width && *p && *p != '\n'; x++, p++) {
-        ON_FAILURE_RETURN(display_putc_noflush(*p));
+        ON_FAILURE_RETURN(display_putc(*p));
     }
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     return editor_set_cursor_pos(self, self->cx, self->cy);

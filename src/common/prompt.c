@@ -336,6 +336,7 @@ static MmResult prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
 
     // Display the new contents of the input buffer.
     ON_FAILURE_RETURN(display_puts(inpbuf));
+    ON_FAILURE_RETURN(display_flush());
 
     // Handle the new input buffer being too long.
     if (strlen(inpbuf) > PROMPT_MAX_LEN) {
@@ -366,8 +367,7 @@ static MmResult handle_end(PromptState *pstate) {
     while (pstate->char_index < strlen(inpbuf)) {
         ON_FAILURE_RETURN(display_putc(inpbuf[pstate->char_index++]));
     }
-
-    return kOk;
+    RETURN_RESULT(display_flush());
 }
 
 static MmResult handle_function_key(PromptState *pstate) {
@@ -428,11 +428,13 @@ static MmResult handle_newline(PromptState *pstate) {
 }
 
 static MmResult handle_other(PromptState *pstate) {
-    if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return kOk;
+    // LOG_FN_ENTRY("char='%c'", pstate->buf[0]);
+
+    if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) RETURN_RESULT(kOk);
 
     if (pstate->insert) {
         if (strlen(inpbuf) >= PROMPT_MAX_LEN) {
-            return display_bell();
+            RETURN_RESULT(display_bell());
         }
 
         // Shuffle all characters past the insertion point in the inpbuf up one
@@ -452,25 +454,27 @@ static MmResult handle_other(PromptState *pstate) {
         ON_FAILURE_RETURN(display_cursor_left(strlen(inpbuf) - pstate->char_index, true));
     } else {
         if (pstate->char_index == PROMPT_MAX_LEN) {
-            return display_bell();
+            RETURN_RESULT(display_bell());
         }
 
         inpbuf[strlen(inpbuf) + 1] = '\0';  // incase we are adding to the end
                                             // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];    // overwrite the char
         ON_FAILURE_RETURN(display_putc(pstate->buf[0]));  // display it
+        ON_FAILURE_RETURN(display_flush());
     }
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 static MmResult handle_right(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return kOk;
+    if (pstate->char_index >= strlen(inpbuf)) RETURN_RESULT(kOk);
 
     ON_FAILURE_RETURN(display_putc(inpbuf[pstate->char_index]));
+    ON_FAILURE_RETURN(display_flush());
     pstate->char_index++;
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult prompt_handle_tab(PromptState *pstate) {
@@ -522,6 +526,7 @@ MmResult prompt_get_input(void) {
 
     // Display the contents of the input buffer (if any)
     ON_FAILURE_RETURN(display_puts(inpbuf));
+    ON_FAILURE_RETURN(display_flush());
     // LOG_DEBUG("[%s]", inpbuf);
     // LOG_DEBUG("max chars = %d", state.max_chars);
 

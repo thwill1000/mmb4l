@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 streamio.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -54,11 +54,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Initialises the 'streamio' module.
  * Sets up function pointers for console I/O operations.
  *
+ * @param[in]  flush_fn  Function pointer for flushing console output
  * @param[in]  putc_fn   Function pointer for outputting a single character to console
  * @param[in]  write_fn  Function pointer for writing a buffer of characters to console
  * @return               kOk on success, error code on failure
  */
-MmResult streamio_init(MmResult (*putc_fn)(char),
+MmResult streamio_init(MmResult (*flush_fn)(),
+                       MmResult (*putc_fn)(char),
                        MmResult (*write_fn)(const char *, size_t *));
 
 /**
@@ -90,6 +92,14 @@ int streamio_eof(int fnbr);
  * @return  Available file number (1-MAXOPENFILES), or -1 if none available
  */
 int streamio_find_free(void);
+
+/**
+ * Flushes the output buffer of an I/O stream.
+ *
+ * @param[in]  fnbr  File number to flush
+ * @return           kOk on success, error code on failure
+ */
+MmResult streamio_flush(int fnbr);
 
 /**
  * Reads a single character from an I/O stream.

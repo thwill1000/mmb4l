@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult serial_open(const char *comspec, int fnbr);
 MmResult serial_close(int fnbr);
 int serial_eof(int fnbr);
+MmResult serial_flush(int fnbr);
 int serial_getc(int fnbr);
 void serial_pump_input(int fnbr);
 int serial_putc(int fnbr, int ch);

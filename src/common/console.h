@@ -183,20 +183,12 @@ void console_home_cursor(void);
 MmResult console_inverse(bool inverse);
 
 /**
- * Writes a character to the ANSI/tty terminal.
- *
- * @param[in]  c  the character to write.
- * @return        kOk on success.
- */
-char console_putc(char c);
-
-/**
  * Writes a character to the ANSI/tty terminal without flushing.
  *
  * @param[in]  c  the character to write.
  * @return        kOk on success.
  */
-char console_putc_noflush(char c);
+char console_putc(char c);
 
 /** Write a NULL terminated string to the console. */
 void console_puts(const char *s);

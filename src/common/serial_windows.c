@@ -67,6 +67,12 @@ int serial_eof(int fnbr) {
     RETURN_INT(0);
 }
 
+MmResult serial_flush(int fnbr) {
+    ON_FAILURE_RETURN(serial_validate_fnbr(fnbr));
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_RESULT(kUnimplemented);
+}
+
 int serial_getc(int fnbr) {
     ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
     LOG_WARN("UNIMPLEMENTED");
