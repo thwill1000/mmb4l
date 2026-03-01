@@ -1296,7 +1296,7 @@ char *editor_find_line_ex(Editor *self, int line, int *comment_level) {
  * @note For a zero-length selection (mark == txtp), start and end will be equal.
  * @note The length is always non-negative since end >= start by construction.
  */
-inline size_t editor_get_selection(Editor *self, char **start, char **end) {
+size_t editor_get_selection(Editor *self, char **start, char **end) {
     if (self->txtp > self->mark) {
         // If txtp > mark then selection includes mark but not txtp
         *start = self->mark;
