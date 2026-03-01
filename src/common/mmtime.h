@@ -102,4 +102,7 @@ void mmtime_sleep_ns(int64_t duration_ns);
 /** Gets the CPU time consumed by the MMBasic process in nanoseconds. */
 int64_t mmtime_get_cputime_ns(void) ;
 
+/** Portable equivalent of timegm() - converts UTC struct tm to time_t. */
+time_t mmtime_timegm(struct tm *t);
+
 #endif
