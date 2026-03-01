@@ -106,7 +106,7 @@ MmResult file_mkdir(const char *dirname) {
     RETURN_RESULT(kUnimplemented);
 }
 
-MmResult file_mkfile(const char *filename) {
+MmResult file_mkfile(const char *filename, const char *contents) {
     CHECK_PARAM(filename != NULL);
     RETURN_RESULT(kUnimplemented);
 }
