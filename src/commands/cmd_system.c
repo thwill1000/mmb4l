@@ -187,22 +187,31 @@ void cmd_system_setenv(const char *p) {
  * @param[out]      exit_status  On exit the exit status of the executed system command.
  */
 MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
-
     FILE *f = popen(cmd, "r");
     if (!f) return errno;
 
+    bool start = true;
     if (buf) {
         int64_t i;
-        for (i = 0; i < (int64_t) *sz; ++i) {
+        for (i = 0; i < (int64_t) *sz;) {
             int ch = fgetc(f);
             if (ch == EOF) break;
-            buf[i] = (char) ch;
+            if (start) {
+                // Do not include leading whitespace in the captured output.
+                if (isspace(ch)) {
+                    continue;
+                } else {
+                    start = false;
+                }
+            }
+            buf[i++] = (char) ch;
         }
-
-        // Trim any trailing CRLF.
         i--;
-        if (i > -1 && buf[i] == '\n') i--;
-        if (i > -1 && buf[i] == '\r') i--;
+
+        // Trim trailing whitespace from the captured output.
+        for (; i > -1; i--) {
+            if (!isspace(buf[i])) break;
+        }
         *sz = i + 1;
     } else {
         for (;;) {
@@ -211,6 +220,7 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
             if (ch == '\n') (void) display_putc('\r');
             (void) display_putc(ch);
         }
+        (void) display_flush();
     }
 
     *exit_status = pclose(f);
