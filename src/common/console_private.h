@@ -60,6 +60,7 @@ typedef struct {
 
 MmResult console_init_platform(ConsoleState *_self);
 MmResult console_term_platform(void);
+MmResult console_sync_cursor_pos(int timeout_ms);
 MmResult console_sync_size(int timeout_ms);
 
 #endif // #if !defined(MMB4L_CONSOLE_PRIVATE)

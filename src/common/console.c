@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
-#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -362,71 +361,6 @@ MmResult console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);
     return kOk;
-}
-
-enum ReadCursorPositionState {
-    EXPECTING_ESCAPE,
-    EXPECTING_SQUARE_BRACKET,
-    EXPECTING_ROWS,
-    EXPECTING_COLS,
-    EXPECTING_FINISHED
-};
-
-MmResult console_sync_cursor_pos(int timeout_ms) {
-    // Send escape code to report cursor position.
-    keybuf_clear();
-    printf("\033[6n");
-    fflush(stdout);
-
-    // Read characters one at a time to match the expected pattern ESC[n;mR
-    // - fails if the pattern has not been matched within the timeout.
-    // - will sleep briefly if there is nothing to read.
-    int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
-    enum ReadCursorPositionState state = EXPECTING_ESCAPE;
-    char buf[32] = { 0 };
-    char *p = NULL;
-    while (mmtime_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
-        if (state == EXPECTING_ESCAPE) p = buf;
-        int ch = keybuf_get(); // TODO: should probably be reading directly from STDIN
-        if (ch == -1) {
-            mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
-            continue;
-        }
-        *(p++) = (char) ch;
-
-        switch (state) {
-            case EXPECTING_ESCAPE:
-                state = (ch == 0x1B ? EXPECTING_SQUARE_BRACKET : EXPECTING_ESCAPE);
-                break;
-            case EXPECTING_SQUARE_BRACKET:
-                state = (ch == '[' ? EXPECTING_ROWS : EXPECTING_ESCAPE);
-                break;
-            case EXPECTING_ROWS:
-                state = (ch == ';'
-                        ? EXPECTING_COLS
-                        : (isdigit(ch) ? EXPECTING_ROWS : EXPECTING_ESCAPE));
-                break;
-            case EXPECTING_COLS:
-                state = (ch == 'R'
-                        ? EXPECTING_FINISHED
-                        : (isdigit(ch) ? EXPECTING_COLS : EXPECTING_ESCAPE));
-                break;
-            case EXPECTING_FINISHED:
-                assert(0);  // Loop should have already exited.
-                break;
-        }
-    }
-
-    if (state == EXPECTING_FINISHED) {
-        // Parse output, rows (y) then columns (x).
-        *p++ = '\0';
-        sscanf(buf, "\033[%d;%dR", &self.y, &self.x);
-        self.x--; // adjust to account for VT100 origin being (1,1) not (0,0).
-        self.y--;
-        return kOk; // Success
-    } else {
-        return mmresult_ex(kError, "Failed to read TTY cursor position");
-    }
 }
 
 MmResult console_sync() {
