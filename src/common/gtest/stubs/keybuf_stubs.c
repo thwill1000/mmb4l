@@ -11,3 +11,4 @@ int keybuf_get(void) { return -1; }
 bool keybuf_isatty(void) { return true; }
 void keybuf_pump_tty(void) { }
 void keybuf_put(char ch) { }
+bool keybuf_exhausted() { return false; }
