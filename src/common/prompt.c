@@ -88,14 +88,14 @@ MmResult prompt_getc(int *ch) {
                 // If not EOF, it might just be a blocking read that returned -1
                 // Check errno to see if it's a real error
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    nanosleep(&ONE_MILLISECOND, NULL);
+                    mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
                     continue;
                 }
                 // Some other error occurred
                 result = kStdinExhausted;
                 goto cleanup;
             }
-            nanosleep(&ONE_MILLISECOND, NULL);
+            mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
         } else if (*ch == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {
