@@ -1,8 +1,110 @@
 ChangeLog
 ---------
 
-Version 0.8.0 - ??-???-2025:
-  - ...
+Version 0.8.0 alpha 1 - ??-???-2026:
+  - Added Windows port (WIP).
+  - Added internal editor ported/rewritten from PicoMite:
+      - The internal editor is now the default on Windows and Android.
+      - The EDIT command can now optionally specify an editor to use.
+  - Added graphical console.
+  - Added simulation of additional platforms:
+      - PicoMiteHDMI
+      - PicoMiteVGAUSB
+      - PicoCalc
+  - Added SPRITE LOADARRAY command.
+  - Added SETTICK PAUSE and SETTICK RESUME commands.
+  - Added SAVE IMAGE command.
+  - Added MKFILE command.
+  - Added LIST VARS command.
+  - Added PIXEL() function.
+  - Added BYVAL and BYREF keywords.
+  - Added ATAN2() function.
+  - Added dummy IN and OUT commands:
+      - On the PicoMite these are used with the PIO.
+      - Having them in MMB4L, even if they don't do anything, prevents IN and
+        OUT being used as variable names in programs intended to also run on
+        the PicoMite.
+  - Added FILES command reimplemented PicoMite-alike:
+      - No longer delegates to 'ls'.
+  - Added support for OPTION KEYBOARD command (accepted and ignored).
+  - Added support for ANSI default terminal colour.
+  - Added support for reading stdin from pipe or redirected input.
+  - Added support for multibyte function tokens:
+      - Removes the previous limit of 127/128 function tokens.
+  - Added support for specifying a platform to simulate on the command line:
+      RUN [filename$] [, cmdargs$] [AS {<device> | device$}]
+      - e.g. RUN "foo.bas", "wombat" AS CMM2
+      - Also via the * command, e.g. *CMM2 foo --wom --bat
+      - If a platform is supplied at the command line then it is used as the
+        default returned to by the NEW and RUN commands.
+  - Added GAMEPAD INTERRUPT, GAMEPAD LED and GAMEPAD RUMBLE TRIGGERS commands.
+      - LED and RUMBLE TRIGGERS are currently untested as compatible hardware
+        is not available.
+      - Note: GAMEPAD VIBRATE has been renamed to GAMEPAD RUMBLE.
+  - Added MM.INFO(FONT), MM.INFO(BCOLOUR), MM.INFO(FCOLOUR) functions.
+  - Added character coordinate variants of HPOS, VPOS, HRES, VRES and PRINT @:
+        MM.INFO(HPOS C), MM.INFO(VPOS C), MM.INFO(HRES C), MM.INFO(VRES C)
+        PRINT @C(x, y) "Hello World"
+  - Added SETENV name$ = value$ as synonym for SYSTEM SETENV.
+  - Added prompt history saved and restored to/from file.
+  - Added ability to log name and version on startup.
+  - Changed FILES command to be reimplemented PicoMite-alike instead of
+    delegating to 'ls'.
+  - Changed MEMORY report to show used vs. available function and variable
+    slots, and renamed "General RAM" to "Heap".
+  - Changed termgfx cursor to use cell inversion instead of a flashing
+    underline for improved visibility.
+  - Changed platform switching: NEW and RUN no longer destroy graphics
+    surfaces unless the platform is actually switched.
+  - Changed EOF() behaviour to match PicoMite.
+  - Changed CMM2 simulation: colour depth of 8 or 16 now treated as 32 in
+    MODE command.
+  - Changed MM.INFO(HRES|VRES) to be disallowed for simulated platforms.
+  - Changed SDL event polling to occur every 5ms rather than continuously:
+      - Excessive polling was a major performance bottleneck.
+  - Changed STDIN reading to use a worker thread:
+      - The principal reason for this is that on Windows reading from STDIN
+        is very slow.
+  - Fixed bug in single-line IF <expr> THEN <stmt1> ELSE <stmt2>:
+      - Was broken if <stmt1> began with a command whose command token id was
+        equal to ELSE's function token id.
+  - Fixed bug where DefinedSubFun did not restore state when throwing an error.
+  - Fixed bug where BLIT had edge condition errors with horizontal and vertical
+    flip.
+  - Fixed bug where block drawing characters in FONT 4 were incorrect.
+  - Fixed bug where INC/CAT did not respect string array element length.
+  - Fixed bug where 'Variable type not specified' error was reported for
+    missing BYREF/BYVAL args.
+  - Fixed bug where SDL_Quit() was called on non-Android builds.
+  - Fixed bug where SDL was not properly cleaned up on exit.
+  - Fixed bug where display was not updated until the first button press on
+    the R36S (dirty flag not set on SDL_WINDOWEVENT_SHOWN).
+  - Fixed bug where gamepad struct id was 0 after gamepad_close().
+  - Fixed bug with Windows GAMEPAD simulation introduced when adding support
+    for PicoMiteVGAUSB.
+  - Fixed bug where Mstrcpy() would segfault when src == NULL.
+  - Fixed bug where MATH function complex number support used incorrect return
+    type (test suite contributed by Peter Mather).
+  - Fixed bug where INPUT$ returned no error given an invalid file number.
+  - Fixed bug where temporary buffers were not released during SELECT/CASE
+    processing.
+  - Fixed bug where all files were not closed when program_process_file()
+    exited.
+  - Fixed bug where saving options to a directory instead of a file did not
+    return an error.
+  - Fixed bug where trailing separator was not stripped in file_getcwd() and
+    file_get_home().
+  - Fixed bug where audio track current used unsigned type with -1 sentinel.
+  - Fixed bug where popen() output was not trimmed of leading/trailing
+    whitespace.
+  - Fixed bug where --version command-line option did not work correctly.
+  - Fixed bug where console carriage-return was not handled correctly.
+  - Fixed bug where backspace in the first column would move the cursor up
+    in termgfx.
+  - Fixed bug with [Delete] key behaviour in termgfx.
+  - Fixed bug where show/hide cursor was not correct in MMgetchar().
+  - Fixed various uninitialised local variables reported by MSVC.
+  - Fixed codepage pointer dereferencing for output.
 
 Version 0.7 alpha 1 - 19-Jan-2025:
   - Added support for hi-res graphics:
