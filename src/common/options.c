@@ -63,7 +63,7 @@ OptionsEditor options_editors[] = {
     { "Gedit",   "gedit ${file} +${line} &",         false },
     { "Leafpad", "leafpad --jump=${line} ${file} &", false },
     { "Nano",    "nano +${line} ${file}",            true  },
-    { "PicoMite", "internal pmedit ${file} ${line}", true  },
+    { "Internal", "*unused placeholder*",            true  },
     { "Sublime", "subl ${file}:${line}",             false },
     { "Vi",      "vi +${line} ${file}",              true  },
     { "Vim",     "vim +${line} ${file}",             true  },
@@ -96,18 +96,19 @@ static const NameOrdinalPair options_default_type_map[] = {
 
 // Note that at the moment the ordinal is unused in this map.
 static const NameOrdinalPair options_editor_map[] = {
-    { "Atom",    0 },
-    { "Code",    0 },
-    { "Default", 0 },
-    { "Geany",   0 },
-    { "Gedit",   0 },
-    { "Leafpad", 0 },
-    { "Nano",    0 },
-    { "Sublime", 0 },
-    { "Vi",      0 },
-    { "Vim",     0 },
-    { "VSCode",  0 },
-    { "Xed",     0 },
+    { "Atom",     0 },
+    { "Code",     0 },
+    { "Default",  0 },
+    { "Geany",    0 },
+    { "Gedit",    0 },
+    { "Internal", 0 },
+    { "Leafpad",  0 },
+    { "Nano",     0 },
+    { "Sublime",  0 },
+    { "Vi",       0 },
+    { "Vim",      0 },
+    { "VSCode",   0 },
+    { "Xed",      0 },
     { NULL,      -1 }
 };
 
@@ -144,7 +145,11 @@ OptionsDefinition options_definitions[] = {
     { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    codepage_name_to_ordinal_map },
     { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
     { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
+#if defined(__ANDROID__) || defined(_WIN32)
+    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Internal",                options_editor_map },
+#else
     { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Nano",                    options_editor_map },
+#endif
     { "Explicit",    kOptionExplicitType, kOptionTypeString,  false, "Off",                     NULL },
     { "F1",          kOptionF1,           kOptionTypeString,  true,  "FILES\r\n",               NULL },
     { "F2",          kOptionF2,           kOptionTypeString,  true,  "RUN\r\n",                 NULL },
@@ -854,7 +859,11 @@ static MmResult options_set_editor(Options *options, const char *svalue) {
     if (cstring_casecmp(svalue, "code") == 0) {
         strcpy(options->editor, "VSCode");
     } else if (cstring_casecmp(svalue, "default") == 0) {
+#if defined(__ANDROID__) || defined(_WIN32)
+        strcpy(options->editor, "Internal");
+#else
         strcpy(options->editor, "Nano");
+#endif
     } else {
         // Convert to standard capitalisation for standard editor names.
         options->editor[0] = '\0';
