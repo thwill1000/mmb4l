@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/cstring.h"
 #include "../common/editor.h"
 #include "../common/file.h"
+#include "../common/keybuf.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -95,6 +96,7 @@ static MmResult get_editor_command(const char *editor, const char *file_path, in
 
     if (!*command) {
         // Manually specified editor.
+        // TODO: is it blocking or not?
         strcpy(command, editor);
     }
 
@@ -195,8 +197,12 @@ void cmd_edit(void) {
         char command[CMD_SIZE] = { 0 };
         ON_FAILURE_ERROR(
                 get_editor_command(editor, file_path, line > 1 ? line : 1, command, &blocking));
+        LOG_DEBUG("starting editor with command: %s", command);
+        if (blocking) keybuf_pause();
         errno = 0;
-        if (FAILED(system(command))) ERROR_EDITOR_FAILED;
+        const int system_result = system(command);
+        if (blocking) keybuf_resume();
+        if (FAILED(system_result)) ERROR_EDITOR_FAILED;
     }
 
     // If we created a new file and it is still empty after editing with an

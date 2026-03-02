@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-keybuf_linux.c
+keybuf_private.h
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed on the keybuf at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,40 +42,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <errno.h>
-#include <poll.h>
-#include <stdbool.h>
-#include <unistd.h>
+#if !defined(MMB4L_KEYBUF_PRIVATE_H)
+#define MMB4L_KEYBUF_PRIVATE_H
 
-#include "keybuf.h"
-#include "keybuf_private.h"
+#include <SDL_atomic.h>
 
-bool keybuf_isatty(void) {
-#if defined(__ANDROID__)
-    return true;
-#else
-    return isatty(STDIN_FILENO);
-#endif
-}
+typedef enum {
+    KEYBUF_RUNNING,         ///< Thread is actively reading input
+    KEYBUF_PAUSE_REQUESTED, ///< Thread has been asked to pause
+    KEYBUF_PAUSED,          ///< Thread is paused, not reading input
+    KEYBUF_STOP_REQUESTED,  ///< Thread has been asked to stop
+    KEYBUF_STOPPED,         ///< Thread has exited (or not been started)
+} KeybufState;
+
+extern SDL_atomic_t keybuf_state;
 
 /**
- * Blocks until a character is available on STDIN then returns it.
- * Returns the character, or 0 on EOF or -1 on error.
+ * Reads a single character from STDIN, using poll() to allow periodic
+ * checking of the thread state rather than blocking indefinitely.
+ *
+ * @return the character read, or 0 on EOF, or -1 on error or if the
+ *         thread state is no longer KEYBUF_RUNNING (e.g. pause or stop
+ *         requested).
  */
-int keybuf_read_char(void) {
-    while (SDL_AtomicGet(&keybuf_state) == KEYBUF_RUNNING) {
-        struct pollfd pfd = { STDIN_FILENO, POLLIN, 0 };
-        int ready = poll(&pfd, 1, 10);
-        if (ready > 0) {
-            char ch;
-            ssize_t result;
-            do {
-                result = read(STDIN_FILENO, &ch, 1);
-            } while (result == -1 && errno == EINTR);
-            if (result == 1) return (unsigned char) ch;
-            if (result == 0) return 0;
-            return -1;
-        }
-    }
-    return -1;
-}
+int keybuf_read_char(void);
+
+#endif // MMB4L_KEYBUF_PRIVATE_H
