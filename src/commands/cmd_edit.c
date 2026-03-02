@@ -189,8 +189,8 @@ void cmd_edit(void) {
 
     // Edit the file.
     bool blocking = false;
-    if (cstring_casecmp(editor, "picomite") == 0) {
-        // Use the internal "PicoMite" editor.
+    if (cstring_casecmp(editor, "internal") == 0) {
+        // Use the internal "Internal" editor.
         blocking = true;
         ON_FAILURE_ERROR(editor_show(file_path, line > 1 ? line : 1));
     } else {
