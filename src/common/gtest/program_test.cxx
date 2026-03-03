@@ -1286,3 +1286,26 @@ TEST_F(ProgramTest, LoadFile_GivenDefineFont) {
     // Expect end marker
     EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 80)), 0xFFFFFFFFFFFFFFFF);
 }
+
+TEST_F(ProgramTest, LoadFile_GivenSucceeds_RestoresErrorLineToOne) {
+    std::string main_path = (test_dir / "main.bas").string();
+    ASSERT_EQ(kOk, file_mkfile(main_path.c_str(),
+        "Print \"Hello World\"\n"
+        "Print \"Goodbye Wold\"\n"
+        "Dim a = 1"));
+
+    EXPECT_EQ(kOk, program_load_file(main_path.c_str()));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(1, mmb_error_state_ptr->line);
+    EXPECT_EQ(false, mmb_error_state_ptr->override_line);
+
+
+    ExpectedProgram e;
+    e.appendProgramPath(main_path.c_str());
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_PRINT "\"Goodbye Wold\"'|2");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
