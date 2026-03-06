@@ -421,11 +421,11 @@ protected:
 class EditorConstructTest : public EditorTestBase { };
 
 // Test returns error if viewport too narrow
-TEST_F(EditorConstructTest, TooNarrowViewportReturnsError) {
-    MmResult result = editor_construct(self, NULL, SOFT_MARGIN * 2 - 1, 25);
+TEST_F(EditorConstructTest, When_ViewportTooNarrow_ExpectError) {
+    MmResult result = editor_construct(self, NULL, EDITOR_HOFFSET * 2 - 1, 25);
 
     EXPECT_EQ(kInternalFault, result);
-    EXPECT_STREQ("editor_construct() parameter check failed: width >= 2 * SOFT_MARGIN",
+    EXPECT_STREQ("editor_construct() parameter check failed: width >= 2 * EDITOR_HOFFSET",
                  mmresult_to_string(result));
 }
 
@@ -433,7 +433,13 @@ TEST_F(EditorConstructTest, TooNarrowViewportReturnsError) {
 // Tests for editor_adjust_viewport()
 ////////////////////////////////////////////////////////////////////////////////
 
-class EditorAdjustViewportTest : public EditorTestBase { };
+class EditorAdjustViewportTest : public EditorTestBase {
+   protected:
+    void SetUp() override {
+        EditorTestBase::SetUp();
+        FillBufferWithLines(100, 20);
+    }
+};
 
 // Test no adjustment needed when cursor is comfortably in middle
 TEST_F(EditorAdjustViewportTest, NoAdjustmentWhenCursorInMiddle) {
@@ -448,47 +454,48 @@ TEST_F(EditorAdjustViewportTest, NoAdjustmentWhenCursorInMiddle) {
     EXPECT_VIEWPORT_EQ(0, 0);
 }
 
-// Test no adjustment at left margin boundary (cx = SOFT_MARGIN)
-TEST_F(EditorAdjustViewportTest, NoAdjustmentAtLeftMarginBoundary) {
+// Test no adjustment just after left scroll offset (cx = EDITOR_HOFFSET)
+TEST_F(EditorAdjustViewportTest, When_CursorOutsideLeftScrollOffset_ExpectNoAdjustment) {
     self->width = 80;
-    self->cx = SOFT_MARGIN;
+    self->cx = EDITOR_HOFFSET;  // Just outside the offset
+    self->px = 10;
+    Editor old = editor_shallow_copy(self);
+
+    MmResult result = editor_adjust_viewport(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(old.cx, old.cy);    // No change
+    EXPECT_VIEWPORT_EQ(old.px, old.py);  // No change
+}
+
+// Test no adjustment just before right scroll offset (cx = width - EDITOR_HOFFSET - 1)
+TEST_F(EditorAdjustViewportTest, When_CursorOutsideRightScrollOffset_ExpectNoAdjustment) {
+    self->width = 80;
+    self->cx = 80 - EDITOR_HOFFSET - 1;  // Just outside the offset
     self->px = 0;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN, 0);
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(0, 0);
 }
 
-// Test no adjustment at right margin boundary (cx = width - SOFT_MARGIN - 1)
-TEST_F(EditorAdjustViewportTest, NoAdjustmentAtRightMarginBoundary) {
+// Test scrolls right when cursor at right edge (cx >= width - EDITOR_HOFFSET)
+TEST_F(EditorAdjustViewportTest, When_CursorWithinRightScrollOffset_ExpectScrollRight) {
     self->width = 80;
-    self->cx = 80 - SOFT_MARGIN - 1;  // Just inside the boundary
+    self->cx = self->width - EDITOR_HOFFSET;  // Just within the offset
     self->px = 0;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
-    EXPECT_VIEWPORT_EQ(0, 0);
-}
-
-// Test scrolls right when cursor at right edge (cx >= width - SOFT_MARGIN)
-TEST_F(EditorAdjustViewportTest, ScrollsRightWhenCursorAtRightEdge) {
-    self->width = 80;
-    self->cx = 80 - SOFT_MARGIN;  // Exactly at the boundary
-    self->px = 0;
-
-    MmResult result = editor_adjust_viewport(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);  // Decremented once
+    EXPECT_CURSOR_EQ(self->width - EDITOR_HOFFSET - 1, 0);  // Decremented once
     EXPECT_VIEWPORT_EQ(1, 0);  // Incremented once
 }
 
 // Test scrolls right multiple times when cursor well past right edge
-TEST_F(EditorAdjustViewportTest, ScrollsRightMultipleTimesWhenFarPastEdge) {
+TEST_F(EditorAdjustViewportTest, When_CursorFarRightOfScrollOffset_ExpectScrollToOffset) {
     self->width = 80;
     self->cx = 80;  // At actual width
     self->px = 0;
@@ -496,25 +503,25 @@ TEST_F(EditorAdjustViewportTest, ScrollsRightMultipleTimesWhenFarPastEdge) {
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);  // Decremented to width - SOFT_MARGIN - 1
-    EXPECT_VIEWPORT_EQ(SOFT_MARGIN + 1, 0);  // Incremented by SOFT_MARGIN + 1
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);  // Decremented to width - EDITOR_HOFFSET - 1
+    EXPECT_VIEWPORT_EQ(EDITOR_HOFFSET + 1, 0);  // Incremented by EDITOR_HOFFSET + 1
 }
 
-// Test scrolls left when cursor at left edge with px > 0 (cx <= SOFT_MARGIN)
-TEST_F(EditorAdjustViewportTest, ScrollsLeftWhenCursorAtLeftEdgeAndScrolled) {
+// Test scrolls left when cursor at left edge with px > 0 (cx <= EDITOR_HOFFSET - 1)
+TEST_F(EditorAdjustViewportTest, When_CursorWithinLeftScrollOffset_ExpectScrollLeft) {
     self->width = 80;
-    self->cx = SOFT_MARGIN;  // Exactly at the boundary
+    self->cx = EDITOR_HOFFSET - 1;  // Just within the offet
     self->px = 10;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);  // Incremented once
-    EXPECT_VIEWPORT_EQ(9, 0);  // Decremented once
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET, 0);  // Incremented once
+    EXPECT_VIEWPORT_EQ(9, 0);  // Decremented (scrolled right) once
 }
 
 // Test scrolls left multiple times when cursor well past left edge
-TEST_F(EditorAdjustViewportTest, ScrollsLeftMultipleTimesWhenFarPastEdge) {
+TEST_F(EditorAdjustViewportTest, When_CursorFarLeftOfScrollOffset_ExpectScrollToOffset) {
     self->width = 80;
     self->cx = 0;  // At far left
     self->px = 10;
@@ -522,20 +529,20 @@ TEST_F(EditorAdjustViewportTest, ScrollsLeftMultipleTimesWhenFarPastEdge) {
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);  // Incremented to SOFT_MARGIN + 1
-    EXPECT_VIEWPORT_EQ(10 - SOFT_MARGIN - 1, 0);  // Decremented by SOFT_MARGIN + 1
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET, 0);  // Incremented to EDITOR_HOFFSET
+    EXPECT_VIEWPORT_EQ(10 - EDITOR_HOFFSET, 0);  // Decremented by EDITOR_HOFFSET
 }
 
 // Test doesn't scroll left when cursor at left edge but px = 0
-TEST_F(EditorAdjustViewportTest, NoScrollLeftWhenPxIsZero) {
+TEST_F(EditorAdjustViewportTest, When_PxIsZero_ExpectNoScrollLeft) {
     self->width = 80;
-    self->cx = SOFT_MARGIN - 1;  // Would trigger scroll if px > 0
+    self->cx = EDITOR_HOFFSET - 1;  // Would trigger scroll if px > 0
     self->px = 0;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN - 1, 0);  // Unchanged
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET - 1, 0);  // Unchanged
     EXPECT_VIEWPORT_EQ(0, 0);  // Unchanged
 }
 
@@ -543,7 +550,7 @@ TEST_F(EditorAdjustViewportTest, NoScrollLeftWhenPxIsZero) {
 TEST_F(EditorAdjustViewportTest, StopsScrollingLeftAtPxZero) {
     self->width = 80;
     self->cx = 0;  // At far left
-    self->px = 3;  // Less than SOFT_MARGIN + 1
+    self->px = 3;  // Less than EDITOR_HOFFSET + 1
 
     MmResult result = editor_adjust_viewport(self);
 
@@ -552,10 +559,10 @@ TEST_F(EditorAdjustViewportTest, StopsScrollingLeftAtPxZero) {
     EXPECT_VIEWPORT_EQ(0, 0);  // Decremented to 0
 }
 
-// Test with narrow width (< 2 * SOFT_MARGIN)
+// Test with narrow width (< 2 * EDITOR_HOFFSET)
 TEST_F(EditorAdjustViewportTest, HandlesNarrowWidth) {
     self->width = 8;
-    self->cx = 8 - SOFT_MARGIN;  // >= width - SOFT_MARGIN
+    self->cx = 8 - EDITOR_HOFFSET;  // >= width - EDITOR_HOFFSET
     self->px = 0;
     Editor old = editor_shallow_copy(self);
 
@@ -566,9 +573,9 @@ TEST_F(EditorAdjustViewportTest, HandlesNarrowWidth) {
     EXPECT_VIEWPORT_EQ(old.px, old.py); // Unchanged
 }
 
-// Test with very narrow width (width = SOFT_MARGIN)
+// Test with very narrow width (width = EDITOR_HOFFSET)
 TEST_F(EditorAdjustViewportTest, HandlesVeryNarrowWidth) {
-    self->width = SOFT_MARGIN;
+    self->width = EDITOR_HOFFSET;
     self->cx = 1;
     self->px = 0;
     Editor old = editor_shallow_copy(self);
@@ -583,40 +590,40 @@ TEST_F(EditorAdjustViewportTest, HandlesVeryNarrowWidth) {
 // Test repeated adjustments (cursor keeps moving right)
 TEST_F(EditorAdjustViewportTest, HandlesRepeatedRightwardAdjustments) {
     self->width = 20;
-    self->cx = 20 - SOFT_MARGIN;  // >= width - SOFT_MARGIN
+    self->cx = 20 - EDITOR_HOFFSET;  // >= width - EDITOR_HOFFSET
     self->px = 0;
 
     ASSERT_EQ(kOk, editor_adjust_viewport(self));
-    EXPECT_CURSOR_EQ(20 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(20 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(1, 0);
 
     // Move cursor right again
-    self->cx = 20 - SOFT_MARGIN;
+    self->cx = 20 - EDITOR_HOFFSET;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(20 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(20 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(2, 0);
 }
 
 // Test repeated adjustments (cursor keeps moving left)
 TEST_F(EditorAdjustViewportTest, HandlesRepeatedLeftwardAdjustments) {
     self->width = 20;
-    self->cx = SOFT_MARGIN;
+    self->cx = EDITOR_HOFFSET - 1;
     self->px = 10;
 
     ASSERT_EQ(kOk, editor_adjust_viewport(self));
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET, 0);
     EXPECT_VIEWPORT_EQ(9, 0);
 
     // Move cursor left again
-    self->cx = SOFT_MARGIN;
+    self->cx = EDITOR_HOFFSET - 1;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET, 0);
     EXPECT_VIEWPORT_EQ(8, 0);
 }
 
@@ -629,8 +636,8 @@ TEST_F(EditorAdjustViewportTest, HandlesCursorAtExactWidth) {
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
-    EXPECT_VIEWPORT_EQ(SOFT_MARGIN + 1, 0);
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
+    EXPECT_VIEWPORT_EQ(EDITOR_HOFFSET + 1, 0);
 }
 
 // Test with cursor beyond width
@@ -642,37 +649,8 @@ TEST_F(EditorAdjustViewportTest, HandlesCursorBeyondWidth) {
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
-    EXPECT_VIEWPORT_EQ(100 - (80 - SOFT_MARGIN - 1), 0);
-}
-
-// Test cy is not affected
-TEST_F(EditorAdjustViewportTest, DoesNotModifyCy) {
-    self->width = 80;
-    self->cx = 80;
-    self->cy = 5;
-    self->px = 0;
-    self->py = 3;
-
-    MmResult result = editor_adjust_viewport(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 5);  // cy unchanged
-    EXPECT_VIEWPORT_EQ(SOFT_MARGIN + 1, 3);  // py unchanged
-}
-
-// Test py is not affected
-TEST_F(EditorAdjustViewportTest, DoesNotModifyPy) {
-    self->width = 80;
-    self->cx = 80;
-    self->cy = 5;
-    self->px = 0;
-    self->py = 10;
-
-    MmResult result = editor_adjust_viewport(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_VIEWPORT_EQ(SOFT_MARGIN + 1, 10);  // py unchanged
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
+    EXPECT_VIEWPORT_EQ(100 - (80 - EDITOR_HOFFSET - 1), 0);
 }
 
 // Test with large px value
@@ -684,47 +662,8 @@ TEST_F(EditorAdjustViewportTest, HandlesLargePxValue) {
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);
-    EXPECT_VIEWPORT_EQ(1000 - SOFT_MARGIN - 1, 0);
-}
-
-// Test boundary: cx exactly at width - SOFT_MARGIN (triggers scroll)
-TEST_F(EditorAdjustViewportTest, BoundaryExactlyAtWidthMinusSoftMargin) {
-    self->width = 80;
-    self->cx = 80 - SOFT_MARGIN;  // Exactly at the trigger point
-    self->px = 0;
-
-    MmResult result = editor_adjust_viewport(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);  // Scrolled once
-    EXPECT_VIEWPORT_EQ(1, 0);
-}
-
-// Test boundary: cx exactly at SOFT_MARGIN with px > 0 (triggers scroll)
-TEST_F(EditorAdjustViewportTest, BoundaryExactlyAtSoftMarginWithPx) {
-    self->width = 80;
-    self->cx = SOFT_MARGIN;  // Exactly at the trigger point
-    self->px = 10;
-
-    MmResult result = editor_adjust_viewport(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);  // Scrolled once
-    EXPECT_VIEWPORT_EQ(9, 0);
-}
-
-// Test boundary: cx at SOFT_MARGIN + 1 with px > 0 (no scroll)
-TEST_F(EditorAdjustViewportTest, BoundaryJustAboveSoftMarginWithPx) {
-    self->width = 80;
-    self->cx = SOFT_MARGIN + 1;  // Just above trigger point
-    self->px = 10;
-
-    MmResult result = editor_adjust_viewport(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);  // No change
-    EXPECT_VIEWPORT_EQ(10, 0);  // No change
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET, 0);
+    EXPECT_VIEWPORT_EQ(1000 - EDITOR_HOFFSET, 0);
 }
 
 // Test that buffer contents are not modified
@@ -761,10 +700,10 @@ TEST_F(EditorAdjustViewportTest, DoesNotModifyTxtp) {
     EXPECT_EQ(original_txtp, self->txtp);
 }
 
-// Test width of exactly 2 * SOFT_MARGIN (minimum practical width with soft margins)
+// Test width of exactly 2 * EDITOR_HOFFSET (minimum practical width with soft margins)
 TEST_F(EditorAdjustViewportTest, HandlesMinimumPracticalWidth) {
-    self->width = 2 * SOFT_MARGIN;
-    self->cx = 2 * SOFT_MARGIN - SOFT_MARGIN;  // Exactly at width - SOFT_MARGIN
+    self->width = 2 * EDITOR_HOFFSET;
+    self->cx = 2 * EDITOR_HOFFSET - EDITOR_HOFFSET;  // Exactly at width - EDITOR_HOFFSET
     self->px = 0;
     Editor old = editor_shallow_copy(self);
 
@@ -780,24 +719,24 @@ TEST_F(EditorAdjustViewportTest, HandlesAlternatingAdjustments) {
     self->width = 20;
 
     // Start at right edge
-    self->cx = 20 - SOFT_MARGIN;
+    self->cx = 20 - EDITOR_HOFFSET;
     self->px = 0;
     ASSERT_EQ(kOk, editor_adjust_viewport(self));
-    EXPECT_CURSOR_EQ(20 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(20 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(1, 0);
 
     // Move to left edge
-    self->cx = SOFT_MARGIN;
+    self->cx = EDITOR_HOFFSET - 1;
     ASSERT_EQ(kOk, editor_adjust_viewport(self));
-    EXPECT_CURSOR_EQ(SOFT_MARGIN + 1, 0);
+    EXPECT_CURSOR_EQ(EDITOR_HOFFSET, 0);
     EXPECT_VIEWPORT_EQ(0, 0);
 
     // Move back to right edge
-    self->cx = 20 - SOFT_MARGIN;
+    self->cx = 20 - EDITOR_HOFFSET;
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(20 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(20 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(1, 0);
 }
 
@@ -805,8 +744,8 @@ TEST_F(EditorAdjustViewportTest, HandlesAlternatingAdjustments) {
 TEST_F(EditorAdjustViewportTest, StandardTerminalWidth) {
     self->width = 80;
 
-    // Test comfortable range (columns SOFT_MARGIN+1 to width-SOFT_MARGIN-1)
-    for (int cx = SOFT_MARGIN + 1; cx < 80 - SOFT_MARGIN; cx++) {
+    // Test comfortable range (columns EDITOR_HOFFSET+1 to width-EDITOR_HOFFSET-1)
+    for (int cx = EDITOR_HOFFSET + 1; cx < 80 - EDITOR_HOFFSET; cx++) {
         self->cx = cx;
         self->px = 0;
         ASSERT_EQ(kOk, editor_adjust_viewport(self));
@@ -847,30 +786,30 @@ TEST_F(EditorAdjustViewportTest, DoesNotModifyChangeTracking) {
     EXPECT_EQ(10, self->change_end);
 }
 
-// Test left scroll stops at px = 0 even if cx still <= SOFT_MARGIN
+// Test left scroll stops at px = 0 even if cx still <= EDITOR_HOFFSET
 TEST_F(EditorAdjustViewportTest, LeftScrollStopsAtPxZeroEvenWithSmallCx) {
     self->width = 80;
-    self->cx = 0;  // Way below SOFT_MARGIN
-    self->px = 2;  // Not enough to reach SOFT_MARGIN + 1
+    self->cx = 0;  // Way below EDITOR_HOFFSET
+    self->px = 2;  // Not enough to reach EDITOR_HOFFSET + 1
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_CURSOR_EQ(2, 0);  // Incremented by 2 until px = 0
     EXPECT_VIEWPORT_EQ(0, 0);
-    // Note: cx is still < SOFT_MARGIN, but loop exits because px = 0
+    // Note: cx is still < EDITOR_HOFFSET, but loop exits because px = 0
 }
 
 // Test right scroll with already positive px
 TEST_F(EditorAdjustViewportTest, RightScrollWithExistingPx) {
     self->width = 80;
-    self->cx = 80 - SOFT_MARGIN;  // At right boundary
+    self->cx = 80 - EDITOR_HOFFSET;  // At right boundary
     self->px = 10;  // Already scrolled
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(11, 0);
 }
 
@@ -888,27 +827,27 @@ TEST_F(EditorAdjustViewportTest, NoScrollInMiddleWithPositivePx) {
 }
 
 // Test viewport scrolls up if cursor at bottom
-TEST_F(EditorAdjustViewportTest, CursorAtBottomScrollsUp) {
+TEST_F(EditorAdjustViewportTest, When_CursorWithinBottomScrollOffset_ExpectScrollUp) {
     self->cx = 0;
-    self->cy = self->height - 1;
+    self->cy = self->height - EDITOR_VOFFSET;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, self->height - 2);
+    EXPECT_CURSOR_EQ(0, self->height - EDITOR_VOFFSET - 1);
     EXPECT_VIEWPORT_EQ(0, 1);
 }
 
 // Test viewport does not scroll if cursor not quite at bottom
-TEST_F(EditorAdjustViewportTest, CursorAlmostAtBottomDoesNotScrollUp) {
+TEST_F(EditorAdjustViewportTest, When_CursorOutsideBottomScrollOffset_ExpectNoScroll) {
     self->cx = 0;
-    self->cy = self->height - 2;
+    self->cy = self->height - EDITOR_VOFFSET - 1;
 
     MmResult result = editor_adjust_viewport(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, self->height - 2);
-    EXPECT_VIEWPORT_EQ(0, 0);
+    EXPECT_CURSOR_EQ(0, self->height - EDITOR_VOFFSET - 1);  // No change
+    EXPECT_VIEWPORT_EQ(0, 0);  // No change
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1580,8 +1519,8 @@ TEST_F(EditorCmdBackspaceTest, BackspaceSmartTabWithHorizontalScrollAdjustsViewp
     // This maintains the invariant: absolute_position = px + cx
     // Before: px=0, cx=12 → position 12
     // After:  px=6, cx=6  → position 12 (same absolute position)
-    self->px = 6;
-    self->cx -= self->px;
+    self->px = EDITOR_HOFFSET + 1;  // px = 6
+    self->cx -= self->px;  // cx = 6
 
     // FIRST BACKSPACE: Delete 4 spaces (12 → 8 spaces remaining)
     {
@@ -1593,13 +1532,10 @@ TEST_F(EditorCmdBackspaceTest, BackspaceSmartTabWithHorizontalScrollAdjustsViewp
         // Buffer pointer moved back 4 positions: 12 → 8
         EXPECT_TXTP_EQ(8);
 
-        // Screen cursor unchanged at column 6 after viewport adjustment
         // Movement: cx: 6→2 (moved back 4)
-        // Adjustment: px: 6→2, cx: 2→6 (transferred 4 columns)
-        EXPECT_CURSOR_EQ(6, 0);
-
-        // Viewport scrolled left by 4 columns: px: 6→2
-        EXPECT_VIEWPORT_EQ(2, 0);
+        // Adjustment: px: 6→3, cx: 2→5 (viewport scrolled left by 3 columns)
+        EXPECT_CURSOR_EQ(5, 0);
+        EXPECT_VIEWPORT_EQ(3, 0);
     }
 
     // Simulate processing the queued DEL keys to actually remove characters from buffer
@@ -1618,11 +1554,9 @@ TEST_F(EditorCmdBackspaceTest, BackspaceSmartTabWithHorizontalScrollAdjustsViewp
         EXPECT_TXTP_EQ(4);
 
         // Screen cursor moved left by 2 after viewport adjustment
-        // Movement: cx: 6→2 (moved back 4)
-        // Adjustment: px: 2→0, cx: 2→4 (transferred 2 columns, px exhausted)
+        // Movement: cx: 5→1 (moved back 4)
+        // Adjustment: px: 3→0, cx: 1→4 (transferred 3 columns, px exhausted)
         EXPECT_CURSOR_EQ(4, 0);
-
-        // Viewport fully scrolled left: px: 2→0
         EXPECT_VIEWPORT_EQ(0, 0);
     }
 }
@@ -2330,14 +2264,14 @@ TEST_F(EditorCmdCharTest, CursorMovesRightAtEndOfLine) {
  * Test that viewport scrolls right when cursor reaches right margin.
  * Horizontal scrolling should occur to keep cursor visible.
  */
-TEST_F(EditorCmdCharTest, ViewportScrollsRightAtMargin) {
+TEST_F(EditorCmdCharTest, When_CursorAtRightScrollOffset_ExpectScrollRight) {
     self->width = 80;
 
     // Create a long line and position cursor near right edge
-    std::string content(80 - SOFT_MARGIN - 1, 'X');  // 74 X's
+    std::string content(80 - EDITOR_HOFFSET - 1, 'X');  // 74 X's
     content += "\n";
     SetBuffer(content.c_str());
-    SetPos(80 - SOFT_MARGIN - 1);  // Position 74 (at newline)
+    SetPos(80 - EDITOR_HOFFSET - 1);  // Position 74 (at newline)
 
     SetInsertMode();
     InsertChar('A');
@@ -2345,7 +2279,7 @@ TEST_F(EditorCmdCharTest, ViewportScrollsRightAtMargin) {
     MmResult result = editor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(1, 0);
     EXPECT_TXTP_EQ(75);
 }
@@ -2367,7 +2301,7 @@ TEST_F(EditorCmdCharTest, MultipleInsertsScrollRight) {
     }
 
     // Should have scrolled right
-    EXPECT_CURSOR_EQ(20 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(20 - EDITOR_HOFFSET - 1, 0);
     EXPECT_GT(self->px, 0);  // Viewport scrolled
     EXPECT_EQ(20, self->txtp - self->buf);  // 5 original + 15 inserted
 }
@@ -2414,20 +2348,16 @@ TEST_F(EditorCmdCharTest, NewlineAtStartOfLine) {
  * Test that newline causes viewport scroll when at bottom of screen.
  * Vertical scrolling should occur to keep cursor visible.
  */
-TEST_F(EditorCmdCharTest, NewlineScrollsViewportAtBottom) {
+TEST_F(EditorCmdCharTest, When_InsertNewlineAtBottomScrollOffset_ExpectScrollsUp) {
     self->height = 23;
 
-    // Create buffer with lines almost to bottom of screen
-    std::string content;
-    for (int i = 0; i < self->height - 1; i++) {
-        if (i != 0) content += "\n";
-        content += "Line" + std::to_string(i);
-    }
-    SetBuffer(content.c_str());
+    // Create buffer with lines to the bottom of the screen
+    FillBufferWithLines(self->height, 10);
 
     // Position at end of last visible line
-    SetPos(content.length());
-    ASSERT_EQ(self->height - 2, self->cy);  // At line before last
+    SetCursorAtEnd();
+    ASSERT_EQ(self->height - 1, self->cy);  // At last row
+    Editor old = editor_shallow_copy(self);
 
     SetInsertMode();
     InsertChar('\n');
@@ -2435,8 +2365,8 @@ TEST_F(EditorCmdCharTest, NewlineScrollsViewportAtBottom) {
     MmResult result = editor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, self->height - 2);  // Still at line before last
-    EXPECT_VIEWPORT_EQ(0, 1);  // Viewport scrolled up
+    EXPECT_CURSOR_EQ(0, old.cy);             // Still at last row
+    EXPECT_VIEWPORT_EQ(old.px, old.py + 1);  // Viewport scrolled up
 }
 
 /**
@@ -2469,7 +2399,7 @@ TEST_F(EditorCmdCharTest, NewlineResetsPx) {
     SetBuffer(buffer.c_str());
     SetPos(80);  // Far right
     self->px = 60;  // Viewport scrolled right
-    self->cx = 20 - SOFT_MARGIN - 1;
+    self->cx = 20 - EDITOR_HOFFSET - 1;
 
     SetInsertMode();
     InsertChar('\n');
@@ -2527,11 +2457,11 @@ TEST_F(EditorCmdCharTest, OverwriteScrollsAtMargin) {
     self->width = 80;
 
     // Create a long line and position cursor near right edge
-    std::string content(80 - SOFT_MARGIN - 1, 'X');  // 74 X's
+    std::string content(80 - EDITOR_HOFFSET - 1, 'X');  // 74 X's
     content += "\n";
     SetBuffer(content.c_str());
-    SetPos(80 - SOFT_MARGIN - 1);  // Position 75 (at newline)
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
+    SetPos(80 - EDITOR_HOFFSET - 1);  // Position 75 (at newline)
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(0, 0);
 
     SetOverwriteMode();
@@ -2540,7 +2470,7 @@ TEST_F(EditorCmdCharTest, OverwriteScrollsAtMargin) {
     MmResult result = editor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(80 - SOFT_MARGIN - 1, 0);
+    EXPECT_CURSOR_EQ(80 - EDITOR_HOFFSET - 1, 0);
     EXPECT_VIEWPORT_EQ(1, 0);
 }
 
@@ -2566,19 +2496,19 @@ TEST_F(EditorCmdCharTest, InsertOnSecondLine) {
  * Test that viewport y-position unchanged for insert not causing scroll.
  * Normal inserts should not affect vertical viewport.
  */
-TEST_F(EditorCmdCharTest, PyUnchangedForNormalInsert) {
+TEST_F(EditorCmdCharTest, When_InsertNormalChar_PyUnchanged) {
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4\nLine5\nLine6\nLine7\nLine8\n");
-    SetPos(30); // Beginning of "Line5"
-    self->py = 5; // Viewport scrolled
-    self->cy -= self->py;
+    SetPos(36);  // Beginning of "Line6"
+    self->py = 4;  // Viewport scrolled
+    self->cy -= self->py;  // self->cy == 2
     SetInsertMode();
     InsertChar('X');
 
     MmResult result = editor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(1, 0);
-    EXPECT_VIEWPORT_EQ(0, 5);  // py unchanged
+    EXPECT_CURSOR_EQ(1, 2);  // cx moved right, cy unchanged
+    EXPECT_VIEWPORT_EQ(0, 4);  // px, py unchanged
 }
 
 /**
@@ -2675,10 +2605,10 @@ TEST_F(EditorCmdCharTest, ViewportAdjustmentCalledAfterInsert) {
     self->width = 20;
 
     // Start with cursor at position that will trigger adjustment
-    std::string buffer(20 - SOFT_MARGIN, 'X');
+    std::string buffer(20 - EDITOR_HOFFSET, 'X');
     buffer += "\n";
     SetBuffer(buffer.c_str());
-    SetPos(20 - SOFT_MARGIN);
+    SetPos(20 - EDITOR_HOFFSET);
 
     SetInsertMode();
     InsertChar('Y');
@@ -2686,9 +2616,9 @@ TEST_F(EditorCmdCharTest, ViewportAdjustmentCalledAfterInsert) {
     MmResult result = editor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    // After insert, cx would be 20 - SOFT_MARGIN + 1
+    // After insert, cx would be 20 - EDITOR_HOFFSET + 1
     // editor_adjust_viewport should have been called
-    EXPECT_LT(self->cx, 20 - SOFT_MARGIN + 1);  // Adjusted
+    EXPECT_LT(self->cx, 20 - EDITOR_HOFFSET + 1);  // Adjusted
     EXPECT_GT(self->px, 0);  // Viewport scrolled
 }
 
@@ -5129,6 +5059,107 @@ TEST_F(EditorCmdDeleteSelectionTest, SetsExitFlag) {
     EXPECT_EQ(kEditMode, self->mode); // Should exit mark mode
 }
 
+/**
+ * Regression test for editor_sync_cursor_to_buffer when the deleted selection
+ * spans the entire document and the viewport was scrolled.
+ *
+ * With (height + 1) lines, SetCursorAtEnd() scrolls the viewport so py=1.
+ * After deleting everything, the cursor must land on the empty first line
+ * (num_lines=1, buf[0]=='\0') with both cursor and viewport reset to the
+ * origin. Prior to the fix, cy was computed as (0 - py) = -1, causing
+ * adjust_viewport to leave the state inconsistent.
+ */
+TEST_F(EditorCmdDeleteSelectionTest,
+       When_EntireScrolledDocumentDeleted_ExpectCursorAndViewportAtOrigin) {
+
+    // Build a document with exactly (height + 1) lines, so the last line is
+    // just off the bottom of the screen.
+    self->height = 20;
+    self->width = 20;  // Short enough to avoid horizontal scrolling.
+    FillBufferWithLines(self->height + 1, self->width);
+
+    // Place the mark at the very start of the buffer ...
+    self->mode = kMarkMode;
+    self->mark = self->buf;
+
+    // ... then move the cursor to the end of the document so the entire
+    // document is selected.
+    SetCursorAtEnd();
+
+    // Confirm viewport is scrolled, which is what triggered the bug.
+    ASSERT_EQ(1, self->py);
+
+    // Delete the selection.
+    MmResult result = editor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(kEditMode, self->mode);
+
+    // Sanity check the delete.
+    EXPECT_EQ('\0', self->buf[0]);
+    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_EQ(1, self->num_lines);
+
+    // Regression test: prior to the fix in editor_sync_cursor_to_buffer, cy
+    // would be computed as (0 - py) which is negative, causing adjust_viewport
+    // to leave the cursor and viewport in an inconsistent state.
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_VIEWPORT_EQ(0, 0);
+}
+
+/**
+ * Test that deleting from near the end of the first page to end-of-document
+ * leaves the cursor on the empty line following the last surviving newline,
+ * with the viewport scrolled to keep that position visible rather than
+ * snapping to the origin.
+ *
+ * The mark is placed at line 18 (height - 2), two lines before the page
+ * boundary, so lines 18-39 (22 lines) are deleted. The 18 lines above the
+ * mark survive, and the cursor lands on the resulting empty 19th line —
+ * the position immediately after line 17's newline.
+ *
+ * The commented-out assertions show the incorrect behaviour prior to the fix
+ * in editor_sync_cursor_to_buffer, where cy was clamped to zero without
+ * adjusting py, causing the viewport to snap to the origin.
+ *
+ * See also When_EntireScrolledDocumentDeleted_ExpectCursorAndViewportAtOrigin
+ * for the minimal case (py=1) that first exposed this bug.
+ */
+TEST_F(EditorCmdDeleteSelectionTest,
+       When_SelectionSpansFromLateFirstPageToEndOfDoc_ExpectCursorOnEmptyLineAfterLastSurvivingNewline) {
+
+    // Build a document with exactly two pages of content.
+    self->height = 20;
+    self->width = 20;  // Short enough to avoid horizontal scrolling.
+    FillBufferWithLines(self->height * 2, self->width);
+
+    // Place the mark at the start of line 18 (0 indexed)
+    self->mode = kMarkMode;
+    self->mark = editor_start_of_line_n(self, self->height - 2);
+    char *mark_pos = self->mark;
+
+    // ... then move the cursor to the end of the document so the entire
+    // selection is from line 18 to end-of-document
+    SetCursorAtEnd();
+
+    // Delete the selection.
+    MmResult result = editor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(kEditMode, self->mode);
+
+    // Sanity check the delete.
+    EXPECT_EQ(mark_pos, self->txtp);
+    EXPECT_EQ(19, self->num_lines);
+
+    // Behaviour before the bugfix
+    // EXPECT_CURSOR_EQ(0, 0);
+    // EXPECT_VIEWPORT_EQ(0, 0);
+
+    EXPECT_CURSOR_EQ(0, 2);
+    EXPECT_VIEWPORT_EQ(0, self->height - 4);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Tests for editor_cmd_down()
 ////////////////////////////////////////////////////////////////////////////////
@@ -5325,30 +5356,6 @@ TEST_F(EditorCmdDownTest, MoveDownFromEmptyLine) {
 }
 
 /**
- * Test moving down scrolls when near bottom of screen.
- * Should scroll viewport to keep cursor visible.
- */
-TEST_F(EditorCmdDownTest, ScrollsWhenNearBottomOfScreen) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line" + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    // Position where scrolling should occur (cy >= height - 3)
-    self->py = 0;
-    self->cy = self->height - 2; // Near bottom, should scroll
-    self->txtp = editor_start_of_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = editor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->height - 2, self->cy); // cy unchanged (screen scrolled)
-    EXPECT_EQ(1, self->py); // py incremented (scrolled up)
-}
-
-/**
  * Test moving down at bottom of screen when at last page.
  * Should move cursor down without scrolling.
  */
@@ -5498,19 +5505,13 @@ TEST_F(EditorCmdDownTest, PreservesPreferredXWhenMovingFromScrolledLongLine) {
 }
 
 /**
- * Test moving down when cy is near height-3 boundary.
- * Should trigger scrolling at appropriate boundary.
+ * Test that moving down into scroll offset scrolls viewport up.
  */
-TEST_F(EditorCmdDownTest, MovesNormallyAtHeightMinus3) {
-    // Create enough lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
+TEST_F(EditorCmdDownTest, When_CursorAtBottomScrollOffset_ExpectScrollUp) {
+    FillBufferWithLines(30, 20);
 
     self->py = 0;
-    self->cy = self->height - 3;
+    self->cy = self->height - EDITOR_VOFFSET - 1;
     self->txtp = editor_start_of_line_n(self, self->py + self->cy) + self->cx;
 
     const int old_cy = self->cy;
@@ -5519,32 +5520,28 @@ TEST_F(EditorCmdDownTest, MovesNormallyAtHeightMinus3) {
     MmResult result = editor_cmd_down(self);
 
     EXPECT_EQ(kOk, result);
-    // Should scroll
-    EXPECT_EQ(old_cy, self->cy); // cy unchanged
-    EXPECT_EQ(old_py + 1, self->py); // scrolled
+    EXPECT_EQ(old_cy, self->cy); // cy unchanged (screen scrolled)
+    EXPECT_EQ(old_py + 1, self->py); // py incremented (scrolled up)
 }
 
 /**
- * Test moving down calls scroll_up when scrolling.
- * Should properly update viewport when scrolling occurs.
+ * Test that moving down just before scroll offset does not scroll viewport.
  */
-TEST_F(EditorCmdDownTest, CallsScrollUpWhenScrolling) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
+TEST_F(EditorCmdDownTest, When_CursorBeforeBottomScrollOffset_ExpectNoScroll) {
+    FillBufferWithLines(30, 20);
 
     self->py = 0;
-    self->cy = self->height - 3;
+    self->cy = self->height - EDITOR_VOFFSET - 2;
     self->txtp = editor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    const int old_cy = self->cy;
+    const int old_py = self->py;
 
     MmResult result = editor_cmd_down(self);
 
     EXPECT_EQ(kOk, result);
-    // Verify that scrolling occurred by checking py changed
-    EXPECT_EQ(1, self->py);
+    EXPECT_EQ(old_cy + 1, self->cy);  // cy incremented
+    EXPECT_EQ(old_py, self->py);  // unchanged - no scrolling
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -5718,8 +5715,9 @@ TEST_F(EditorCmdEndTest, DoubleEndWithManyLinesCalculatesPy) {
     MmResult result = editor_cmd_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, self->height - 2); // cy = 21, last line but one
-    EXPECT_VIEWPORT_EQ(0, self->num_lines - self->height + 1); // py = 9
+    EXPECT_CURSOR_EQ(0, self->height - 1);  // last row of the viewport
+    EXPECT_VIEWPORT_EQ(0, self->num_lines - self->height); // py = 8
+    EXPECT_EQ(self->num_lines - 1, self->cy + self->py); // Cursor on last line of file
 }
 
 /**
@@ -5918,18 +5916,19 @@ TEST_F(EditorCmdEndTest, DoubleEndWhenLastLineLongerThanMaxLineLength) {
  * Should adjust horizontal viewport for long lines.
  */
 TEST_F(EditorCmdEndTest, AdjustsHorizontalViewport) {
-    FillBufferToSize(500, 100);
-    SetPos(400);
-    EXPECT_CURSOR_EQ(74, 3);
-    EXPECT_VIEWPORT_EQ(23, 0);
-    self->py = self->cy;
-    self->cy = 0;
+    FillBufferWithLines(25, 100);
+    SetPosP(editor_start_of_line_n(self, 8) + 85); // Near end of line 8
+    EXPECT_CURSOR_EQ(self->width - EDITOR_HOFFSET - 1, 8);
+    EXPECT_VIEWPORT_EQ(85 - self->cx, 0);
+    self->py += 3;
+    self->cy -= 3;
+    Editor old = editor_shallow_copy(self);
 
     MmResult result = editor_cmd_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(74, 0);   // self->cx = self->width - SOFT_MARGIN - 1
-    EXPECT_VIEWPORT_EQ(26, 3); // self->px = 26, self->py unchanged
+    EXPECT_CURSOR_EQ(old.cx, old.cy);  // unchanged
+    EXPECT_VIEWPORT_EQ(101 - self->width + EDITOR_HOFFSET, old.py);  // scrolled to the far right
 }
 
 /**
@@ -5944,8 +5943,8 @@ TEST_F(EditorCmdDownTest, DoubleEndToLongLine) {
     MmResult result = editor_cmd_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(74, 21);
-    EXPECT_VIEWPORT_EQ(26, 28);
+    EXPECT_CURSOR_EQ(74, 22);  // last row of the viewport
+    EXPECT_VIEWPORT_EQ(26, 27);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -6666,21 +6665,21 @@ TEST_F(EditorCmdLeftTest, MoveLeftInLongLine) {
  * Test moving left when scrolled and at left margin changes viewport.
  * Should adjust horizontal viewport when at margin.
  */
-TEST_F(EditorCmdLeftTest, WhenScrolledAndAtLeftMarginChangesViewport) {
-    std::string content(100, 'X');
-    SetBuffer(content.c_str());
+TEST_F(EditorCmdLeftTest, When_CursorAtLeftScrollOffsetOfScrolledLine_ScrollsLeft) {
+    FillBufferWithLines(1, 100);
 
     // Position at column 90 with viewport scrolled right
     SetPos(90);
-    self->cx = 6; // SOFT_MARGIN + 1
-    self->px = 84;
+    self->cx = EDITOR_HOFFSET;  // 5
+    self->px = 90 - self->cx;   // 85
+    Editor old = editor_shallow_copy(self);
 
     MmResult result = editor_cmd_left(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(89);
-    EXPECT_CURSOR_EQ(6, 0);    // cx unchanged
-    EXPECT_VIEWPORT_EQ(83, 0); // px decremented
+    EXPECT_CURSOR_EQ(old.cx, old.cy);        // cx unchanged
+    EXPECT_VIEWPORT_EQ(old.px - 1, old.py);  // px decremented
 }
 
 /**
@@ -6693,7 +6692,7 @@ TEST_F(EditorCmdLeftTest, WhenScrolledAndNotAtLeftMarginDoesNotChangeViewport) {
 
     // Position at column 90 with viewport scrolled right
     SetPos(90);
-    self->cx = 7; // SOFT_MARGIN + 2
+    self->cx = 7; // EDITOR_HOFFSET + 2
     self->px = 83;
 
     MmResult result = editor_cmd_left(self);
@@ -6775,25 +6774,19 @@ TEST_F(EditorCmdNewlineTest, NewlineAtBufferCapacityLimit) {
 }
 
 /**
- * Test newline triggers viewport scroll.
- * Should scroll viewport when cursor reaches bottom of screen.
+ * Test that a newline entered at the end of the viewport triggers the viewport to scroll up.
  */
-TEST_F(EditorCmdNewlineTest, NewlineTriggersViewportScroll) {
-    // Create buffer with lines to fill screen
-    std::string content;
-    for (int i = 0; i < self->height - 1; i++) {
-        if (i > 0) content += "\n";
-        content += "Line" + std::to_string(i);
-    }
-    SetBuffer(content.c_str());
+TEST_F(EditorCmdNewlineTest, When_CursorAtBottomOfViewPort_And_EndOfLine_Expect_ViewportScrollsUp) {
+    FillBufferWithLines(self->height, 10); // Fill viewport with lines (23 lines)
     SetCursorAtEnd();
-    ASSERT_EQ(self->height - 2, self->cy);
+    ASSERT_EQ(self->height - 1, self->cy);
+    Editor old = editor_shallow_copy(self);
 
     MmResult result = editor_cmd_newline(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, self->height - 2); // cy unchanged
-    EXPECT_VIEWPORT_EQ(0, 1); // py incremented (scrolled)
+    EXPECT_CURSOR_EQ(0, old.cy);             // start of new line, cy unchanged
+    EXPECT_VIEWPORT_EQ(old.px, old.py + 1);  // py incremented (scrolled up)
 }
 
 /**
@@ -7955,8 +7948,8 @@ TEST_F(EditorCmdRightTest, AtWidthBoundary) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(81);
-    EXPECT_CURSOR_EQ(self->width - SOFT_MARGIN - 1, 0);
-    EXPECT_VIEWPORT_EQ(SOFT_MARGIN + 2, 0);
+    EXPECT_CURSOR_EQ(self->width - EDITOR_HOFFSET - 1, 0);
+    EXPECT_VIEWPORT_EQ(EDITOR_HOFFSET + 2, 0);
 }
 
 // Test moving right near width boundary (but not at it)
@@ -7968,8 +7961,8 @@ TEST_F(EditorCmdRightTest, JustBeforeWidthBoundary) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(80); // Moves successfully
-    EXPECT_CURSOR_EQ(self->width - SOFT_MARGIN - 1, 0);
-    EXPECT_VIEWPORT_EQ(SOFT_MARGIN + 1, 0);
+    EXPECT_CURSOR_EQ(self->width - EDITOR_HOFFSET - 1, 0);
+    EXPECT_VIEWPORT_EQ(EDITOR_HOFFSET + 1, 0);
 }
 
 // Test that wrapping behavior queues correct commands for execution
@@ -8039,7 +8032,7 @@ TEST_F(EditorCmdRightTest, WhenAtRightMarginChangesViewport) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetPos(74);
-    self->cx = 74; // self-width - SOFT_MARGIN - 1
+    self->cx = 74; // self-width - EDITOR_HOFFSET - 1
     self->px = 0;
 
     MmResult result = editor_cmd_right(self);
@@ -8055,7 +8048,7 @@ TEST_F(EditorCmdRightTest, WhenNotAtRightMarginAndScrolledChangesViewport) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetPos(75);
-    self->cx = 74; // self-width - SOFT_MARGIN - 1
+    self->cx = 74; // self-width - EDITOR_HOFFSET - 1
     self->px = 1;
 
     MmResult result = editor_cmd_right(self);
@@ -8071,7 +8064,7 @@ TEST_F(EditorCmdRightTest, WhenNotAtRightMarginDoesNotChangeViewport) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetPos(73);
-    self->cx = 73; // self-width - SOFT_MARGIN - 2
+    self->cx = 73; // self-width - EDITOR_HOFFSET - 2
     self->px = 0;
 
     MmResult result = editor_cmd_right(self);
@@ -8087,7 +8080,7 @@ TEST_F(EditorCmdRightTest, WhenNotAtRightMarginAndScrolledDoesNotChangeViewport)
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetPos(74);
-    self->cx = 73; // self-width - SOFT_MARGIN - 2
+    self->cx = 73; // self-width - EDITOR_HOFFSET - 2
     self->px = 1;
 
     MmResult result = editor_cmd_right(self);
@@ -8804,26 +8797,19 @@ TEST_F(EditorCmdUpTest, NoMoveWhenAtTopOfScreenAndFirstLine) {
 }
 
 // Test moving up preserves cursor when scrolling
-TEST_F(EditorCmdUpTest, PreservesCursorPositionWhenScrolling) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "ABCD\n";
-    }
-    SetBuffer(content.c_str());
-
+TEST_F(EditorCmdUpTest, When_ScrollDown_ExpectCursorPositionPreserved) {
+    FillBufferWithLines(30, 10);
+    self->cy = EDITOR_VOFFSET;
     self->py = 10;
-    self->cy = 1;
-    self->txtp = self->buf;
     self->txtp = editor_start_of_line_n(self, self->py + self->cy) + self->cx;
     self->stored_cx = 2;
+    Editor old = editor_shallow_copy(self);
 
     MmResult result = editor_cmd_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(1, self->cy); // cy preserved
-    EXPECT_EQ(9, self->py); // Scrolled
-    EXPECT_CURSOR_EQ(2, 1); // Cursor column maintained
+    EXPECT_EQ(old.py - 1, self->py);  // Scrolled down by onbe line
+    EXPECT_CURSOR_EQ(2, old.cy);      // cursor column maintained, cy unchanged
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -11644,9 +11630,9 @@ TEST_F(EditorUpdateDisplayTest, RedrawsScreenWhenPyDecreasesByTwo) {
 }
 
 // Test screen redrawn when viewport moves down by one
-TEST_F(EditorUpdateDisplayTest, ScrollsScreenDownWhenPyIncreasesByOne) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetPos(6);
+TEST_F(EditorUpdateDisplayTest, When_PyIncreasedByOne_ExpectScrollUp) {
+    FillBufferWithLines(30, 10);
+    SetPosP(editor_start_of_line_n(self, 5));
     Editor old = editor_shallow_copy(self);
     self->py += 1;
 
@@ -11656,7 +11642,8 @@ TEST_F(EditorUpdateDisplayTest, ScrollsScreenDownWhenPyIncreasesByOne) {
 
     // Can't easily test that the screen has been scrolled
     // but can test that the last line of viewport and the status line have been redrawn
-    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 23, /*end*/ 23, /*cy*/ 22}));
+    // Viewport is height 23, so the last line would be 22, but we are scrolled up one so 23.
+    EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 23, /*end*/ 23, /*cy*/ 23}));
     EXPECT_PRINT_FUNC_KEYS_CALLED((PrintFuncKeysCapture{/*calls*/ 1}));
     EXPECT_PRINT_STATUS_CALLED((PrintStatusCapture{/*calls*/ 1}));
 }
@@ -11992,7 +11979,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsWhenPxChanges) {
     EXPECT_PRINT_LINES_CALLED((PrintLinesCapture{/*calls*/ 1, /*start*/ 0, /*end*/ 0, /*cy*/ 0}));
 }
 
-TEST_F(EditorUpdateDisplayTest, RedrawsCurrentLineWhenPxChangesAndPyAlsoChanges) {
+TEST_F(EditorUpdateDisplayTest, When_PxAndPyChange_ExpectRedrawCurrentLine) {
     SetBuffer("Line0\nVery long line that requires horizontal scrolling");
     SetPos(55);
     self->px = 10;

@@ -130,7 +130,7 @@ void editor_restore_fn_pointers() {
  * @note Sets insert mode as default and saves the current break key setting.
  */
 MmResult editor_construct(Editor *self, const char *filename, int width, int height) {
-    CHECK_PARAM(width >= 2 * SOFT_MARGIN);
+    CHECK_PARAM(width >= 2 * EDITOR_HOFFSET);
 
     memset(self, 0, sizeof(Editor));
     self->buf_sz = EDIT_BUFFER_SIZE;
@@ -373,10 +373,10 @@ static MmResult editor_save_file(Editor *self, const char *filename) {
 /**
  * Adjusts the horizontal viewport to keep the cursor visible.
  *
- * Implements horizontal scrolling with a soft margin of SOFT_MARGIN characters.
- * When the cursor approaches the left or right edge of the screen, shifts
- * columns between cx (cursor column) and px (viewport offset) to maintain
- * comfortable viewing distance from screen edges.
+ * Implements horizontal scrolling with a soft margin of EDITOR_HOFFSET
+ * characters. When the cursor approaches the left or right edge of the screen,
+ * shifts columns between cx (cursor column) and px (viewport offset) to
+ * maintain comfortable viewing distance from screen edges.
  *
  * @param  self  Pointer to the Editor instance.
  * @return       kOk on success, or an error code on failure.
@@ -387,21 +387,25 @@ static MmResult editor_save_file(Editor *self, const char *filename) {
 MmResult editor_adjust_viewport(Editor *self) {
     // LOG_DEBUG("self->cx=%d, self->width=%d", self->cx, self->width);
     ON_INVALID_CURSOR_RETURN();
-    if (self->width < 2 * SOFT_MARGIN) {
+    if (self->width < 2 * EDITOR_HOFFSET) {
         LOG_ERROR("viewport too narrow: self->width=%d", self->width);
         return kOk;
     }
-    while (self->cx >= self->width - SOFT_MARGIN) {
+    while (self->cx >= self->width - EDITOR_HOFFSET) {
         self->cx--;
         self->px++;
     }
-    while (self->cx <= SOFT_MARGIN && self->px != 0) {
+    while (self->cx <= (EDITOR_HOFFSET - 1) && self->px != 0) {
         self->cx++;
         self->px--;
     }
-    while (self->cy >= self->height - 1) {
+    while (self->cy >= (self->height - EDITOR_VOFFSET) && (self->py + self->height) < self->num_lines) {
         self->py++;
         self->cy--;
+    }
+    while (self->cy <= (EDITOR_VOFFSET - 1) && self->py != 0) {
+        self->py--;
+        self->cy++;
     }
 
     return kOk;
@@ -429,6 +433,11 @@ MmResult editor_sync_cursor_to_buffer(Editor *self, char *pbuf) {
 
     self->cx = column;
     self->cy = line - self->py;
+    if (self->cy < 0) {
+        self->py += self->cy;
+        self->cy = 0;
+        if (self->py < 0) self->py = 0;
+    }
     self->px = 0;
     ON_FAILURE_RETURN(editor_adjust_viewport(self));
 
@@ -1940,13 +1949,10 @@ MmResult editor_cmd_down(Editor *self) {
     // or the end of the line
     ON_FAILURE_RETURN(editor_try_to_restore_column(self, p));
 
-    if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
-        // If we are less than two lines from the bottom then move the cursor down
-        self->cy++;
-    } else {
-        // Otherwise scroll the document up
-        self->py++;
-    }
+    self->cy++;
+
+    // If necessary move viewport down
+    ON_FAILURE_RETURN(editor_adjust_viewport(self));
 
     return editor_set_cursor_pos(self, self->cx, self->cy);
 }
@@ -1973,13 +1979,10 @@ MmResult editor_cmd_up(Editor *self) {
     // or the end of the line
     ON_FAILURE_RETURN(editor_try_to_restore_column(self, p));
 
-    if (self->cy > 2 || self->py == 0) {
-        // If we are more than two lines from the top then move the cursor up
-        self->cy--;
-    } else {
-        // Otherwise scroll the document down
-        self->py--;
-    }
+    self->cy--;
+
+    // If necessary move viewport down
+    ON_FAILURE_RETURN(editor_adjust_viewport(self));
 
     return editor_set_cursor_pos(self, self->cx, self->cy);
 }
@@ -2912,7 +2915,7 @@ MmResult editor_show(const char *filename, int line) {
 
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
-    if (width < 2 * SOFT_MARGIN) {
+    if (width < 2 * EDITOR_HOFFSET) {
         return mmresult_ex(kError, "Terminal too narrow for EDITor");
     }
 

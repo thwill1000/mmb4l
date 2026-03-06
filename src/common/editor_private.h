@@ -61,7 +61,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EMSG_EDIT_BUFFER_FULL    "EDIT BUFFER FULL"
 #define EMSG_LINE_TOO_LONG       "LINE IS TOO LONG"
 #define EMSG_NOT_FOUND           "NOT FOUND"
-#define SOFT_MARGIN              5
+#define EDITOR_HOFFSET           5
+#define EDITOR_VOFFSET           2
 
 typedef enum {
     kHighlightUnspecified = 0,
