@@ -1004,6 +1004,10 @@ MmResult program_load_file(const char *filename) {
         char title[STRINGSIZE + 10];
         sprintf(title, "MMBasic - %s", CurrentFile);
         console_set_title(title, false);
+
+        // Restore default error line reporting
+        mmb_error_state_ptr->override_line = false;
+        mmb_error_state_ptr->line = 1;
     }
 
     // TODO: Is the 'errno' check really necessary?
