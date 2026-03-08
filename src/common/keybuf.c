@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "interrupt.h"
 #include "keybuf.h"
+#include "keybuf_private.h"
 #include "keycodes.h"
 #include "logger.h"
 #include "options.h"
@@ -61,29 +62,30 @@ static char keybuf_data[KEYBUF_SIZE];
 static RxBuf keybuf_buf;
 static SDL_mutex *keybuf_mutex = NULL;
 static SDL_Thread *keybuf_thread = NULL;
-static SDL_atomic_t keybuf_stop;
-static SDL_atomic_t keybuf_thread_exited;
-
-/**
- * Platform-specific function to read a single character from the terminal.
- * Implemented in keybuf_linux.c and keybuf_windows.c.
- * Should block until a character is available or keybuf_stop is set.
- * Returns the character read, or -1 on error or if keybuf_stop is set.
- */
-int keybuf_read_char(void);
+SDL_atomic_t keybuf_state;
 
 static int keybuf_thread_fn(void *data) {
     (void) data;
     const bool is_tty = keybuf_isatty();
 
-    while (!SDL_AtomicGet(&keybuf_stop)) {
+    while (SDL_AtomicGet(&keybuf_state) != KEYBUF_STOP_REQUESTED) {
+        if (SDL_AtomicGet(&keybuf_state) == KEYBUF_PAUSE_REQUESTED) {
+            SDL_AtomicSet(&keybuf_state, KEYBUF_PAUSED);
+            LOG_DEBUG("keybuf thread PAUSED");
+        }
+
+        if (SDL_AtomicGet(&keybuf_state) == KEYBUF_PAUSED) {
+            SDL_Delay(1);  // Spin slowly while paused
+            continue;
+        }
+
         int ch = keybuf_read_char();
         if (ch == 0) {
-            break;
+            break;  // EOF
         } else if (ch == -1) {
-            if (!SDL_AtomicGet(&keybuf_stop)) {
-                LOG_ERROR("error reading from terminal");
-            }
+            KeybufState state = (KeybufState) SDL_AtomicGet(&keybuf_state);
+            if (state == KEYBUF_PAUSED || state == KEYBUF_PAUSE_REQUESTED) continue;
+            if (state != KEYBUF_STOP_REQUESTED) LOG_ERROR("error reading from terminal");
             break;
         }
 
@@ -102,7 +104,8 @@ static int keybuf_thread_fn(void *data) {
         keybuf_put((char) ch);
     }
 
-    SDL_AtomicSet(&keybuf_thread_exited, 1);
+    SDL_AtomicSet(&keybuf_state, KEYBUF_STOPPED);
+    LOG_DEBUG("keybuf thread STOPPED");
     return 0;
 }
 
@@ -113,17 +116,18 @@ MmResult keybuf_init(void) {
 
     keybuf_mutex = SDL_CreateMutex();
     if (!keybuf_mutex) {
-        fprintf(stderr, "keybuf: failed to create mutex: %s\n", SDL_GetError());
-        return kError;
+        RETURN_RESULT(INTERNAL_FAULT_EX("failed to create SDL mutex: %s", SDL_GetError()));
     }
 
-    SDL_AtomicSet(&keybuf_stop, false);
+    SDL_AtomicSet(&keybuf_state, KEYBUF_RUNNING);  // Must be set before thread starts
+    LOG_DEBUG("keybuf thread RUNNING");
+
     keybuf_thread = SDL_CreateThread(keybuf_thread_fn, "keybuf", NULL);
     if (!keybuf_thread) {
-        fprintf(stderr, "keybuf: failed to create thread: %s\n", SDL_GetError());
+        MmResult result = INTERNAL_FAULT_EX("failed to create SDL thread: %s", SDL_GetError());
         SDL_DestroyMutex(keybuf_mutex);
         keybuf_mutex = NULL;
-        return kError;
+        return result;
     }
 
     RETURN_RESULT(kOk);
@@ -133,7 +137,8 @@ void keybuf_term(void) {
     // Signal the thread to stop. We don't wait for it to exit - the OS will
     // clean up when the process exits. The thread may be blocked in
     // keybuf_read_char() but that's acceptable since we're exiting anyway.
-    SDL_AtomicSet(&keybuf_stop, true);
+    SDL_AtomicSet(&keybuf_state, KEYBUF_STOP_REQUESTED);
+    LOG_DEBUG("keybuf thread STOP_REQUESTED");
 }
 
 void keybuf_clear(void) {
@@ -155,12 +160,8 @@ void keybuf_unget(char ch) {
     SDL_UnlockMutex(keybuf_mutex);
 }
 
-int keybuf_match_chars(char *pattern) {
+static int keybuf_match_chars(char *pattern) {
     if (*pattern == '\0') return 1;
-
-    // if (rx_buf_size(&keybuf_buf) == 0) {
-    //     perform_background_tasks(); // Which calls other background processing.
-    // }
 
     SDL_LockMutex(keybuf_mutex);
     int ch = rx_buf_get(&keybuf_buf);
@@ -217,8 +218,6 @@ int keybuf_get(void) {
         '[', '2', '3',  ';',  '2',  '~',  '\0', SHIFT_FN(F11),
         '[', '2', '4',  ';',  '2',  '~',  '\0', SHIFT_FN(F12),
         0xFF};
-
-    // perform_background_tasks(); // Which calls console_pump_input();
 
     SDL_LockMutex(keybuf_mutex);
     int ch = rx_buf_get(&keybuf_buf);
@@ -343,8 +342,25 @@ void keybuf_key_to_string(int ch, char *buf) {
     sprintf(buf, "'%c'", ch);
 }
 
-bool keybuf_exhausted() {
-    if (!SDL_AtomicGet(&keybuf_thread_exited)) return false;
+void keybuf_pause(void) {
+    SDL_AtomicSet(&keybuf_state, KEYBUF_PAUSE_REQUESTED);
+    LOG_DEBUG("keybuf thread PAUSE_REQUESTED");
+
+    // Wait for the thread to acknowledge the pause by entering its idle loop.
+    // A semaphore handshake may be needed here in future if spinning proves
+    // problematic.
+    while (SDL_AtomicGet(&keybuf_state) != KEYBUF_PAUSED) {
+        SDL_Delay(1);
+    }
+}
+
+void keybuf_resume(void) {
+    SDL_AtomicSet(&keybuf_state, KEYBUF_RUNNING);
+    LOG_DEBUG("keybuf thread RUNNING");
+}
+
+bool keybuf_exhausted(void) {
+    if (SDL_AtomicGet(&keybuf_state) != KEYBUF_STOPPED) return false;
     SDL_LockMutex(keybuf_mutex);
     bool result = (rx_buf_size(&keybuf_buf) == 0);
     SDL_UnlockMutex(keybuf_mutex);

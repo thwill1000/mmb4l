@@ -106,4 +106,21 @@ void keybuf_put(char ch);
  */
 bool keybuf_exhausted(void);
 
+/**
+ * Pauses the background input thread so that a child process can read
+ * from stdin without keypresses being stolen by the keybuf thread.
+ * Blocks briefly to allow any in-progress read() to complete and for
+ * the thread to notice the state change before returning.
+ * Call keybuf_resume() when the child process has finished with stdin.
+ * Note: if the brief delay proves insufficient a semaphore handshake
+ * between this function and the thread may be needed in future.
+ */
+void keybuf_pause(void);
+
+/**
+ * Resumes the background input thread after a keybuf_pause() call.
+ * Must only be called after a matching keybuf_pause() call.
+ */
+void keybuf_resume(void);
+
 #endif // MMB4L_KEYBUF_H
