@@ -2914,6 +2914,42 @@ MmResult editor_show_internal(Editor *self, int line) {
     return result;
 }
 
+/**
+ * Reports an editor failure and attempts to create a .recovered file containing
+ * the current contents of the buffer.
+ */
+static MmResult editor_handle_error(Editor *self, MmResult error) {
+    CHECK_PARAM(self != NULL);
+    CHECK_PARAM(error != kOk);
+
+    ON_FAILURE_RETURN(display_puts("Editor failed: "));
+    ON_FAILURE_RETURN(display_puts(mmresult_to_string(error)));
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+
+    char recovery_file[PATH_MAX];
+    if (FAILED(cstring_cpy(recovery_file, self->fname, PATH_MAX)
+            || FAILED(cstring_cat(recovery_file, ".recovered", PATH_MAX)))) {
+        LOG_WARN("failed to create recovery file.");
+    }
+
+    ON_FAILURE_RETURN(display_puts("Saving current contents to: "));
+    ON_FAILURE_RETURN(display_puts(recovery_file));
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+
+    MmResult result = editor_save_file(self, recovery_file);
+    if (SUCCEEDED(result)) {
+        ON_FAILURE_RETURN(display_puts("Save succeeded\r\n"));
+    } else {
+        ON_FAILURE_RETURN(display_puts("Save failed: "));
+        ON_FAILURE_RETURN(display_puts(mmresult_to_string(result)));
+        ON_FAILURE_RETURN(display_puts("\r\n"));
+    }
+
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+
+    return kOk;
+}
+
 MmResult editor_show(const char *filename, int line, bool *run_on_exit) {
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
@@ -2926,11 +2962,16 @@ MmResult editor_show(const char *filename, int line, bool *run_on_exit) {
 
     MmResult result = editor_show_internal(&editor, line);
 
-    if (SUCCEEDED(result)) *run_on_exit = editor.run_on_exit;
-
-    ON_FAILURE_LOG(editor_destruct(&editor));
     ON_FAILURE_LOG(display_reset());
     ON_FAILURE_LOG(display_cls());
+
+    if (SUCCEEDED(result)) {
+        *run_on_exit = editor.run_on_exit;
+    } else if (SUCCEEDED(editor_handle_error(&editor, result))) {
+        result = kOk;  // Don't propagate the error further
+    }
+
+    ON_FAILURE_LOG(editor_destruct(&editor));
 
     return result;
 }
