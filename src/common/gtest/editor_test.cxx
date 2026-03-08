@@ -135,7 +135,7 @@ protected:
         SDL_AtomicSet(&mmb_options.break_key, 0);
 
         // Construct editor to test
-        editor_construct(self, "myfile.bas", 80, 25);
+        ASSERT_EQ(kOk, editor_construct(self, "myfile.bas", 80, 25));
 
         // Mock editor functions
         editor_restore_fn_pointers();
@@ -156,6 +156,8 @@ protected:
         print_line_fast_capture = { .calls = 0, .p = nullptr };
         print_lines_capture = { .calls = 0, .start = -1, .end = -1, .cy = -1 };
         print_status_capture = { .calls = 0 };
+
+        ClearClipboard();
     }
 
     void TearDown() override {
@@ -319,6 +321,10 @@ protected:
     void InsertChar(char ch) {
         self->key_buf[0] = ch;
         self->key_buf[1] = '\0';
+    }
+
+    void ClearClipboard() {
+        self->clipboard_buf[0] = '\0';
     }
 };
 
@@ -3220,7 +3226,7 @@ TEST_F(EditorCmdCopyTest, CopyWhenMarkAfterTxtp) {
  * Test copying zero-length selection (mark equals txtp).
  * Should result in empty clipboard.
  */
-TEST_F(EditorCmdCopyTest, CopyZeroLengthSelection) {
+TEST_F(EditorCmdCopyTest, When_CopyZeroLengthSelection_ExpectClipboardEmpty) {
     SetBuffer("Hello");
     SetMark(3);
     SetPos(3);
@@ -3305,19 +3311,19 @@ TEST_F(EditorCmdCopyTest, CopyMultipleNewlines) {
 }
 
 /**
- * Test copying at clipboard size limit (exactly at MAXCLIP).
+ * Test copying at clipboard size limit (exactly at CLIPBOARD_SIZE).
  * Should succeed when selection is exactly at limit.
  */
 TEST_F(EditorCmdCopyTest, CopyAtClipboardLimit) {
-    std::string content(MAXCLIP, 'X');
+    std::string content(CLIPBOARD_SIZE, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
-    SetPos(MAXCLIP);
+    SetPos(CLIPBOARD_SIZE);
 
     MmResult result = editor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_EQ(CLIPBOARD_SIZE, strlen(self->clipboard_buf));
     EXPECT_FALSE(self->text_changed);
 }
 
@@ -3326,10 +3332,10 @@ TEST_F(EditorCmdCopyTest, CopyAtClipboardLimit) {
  * Should return error and leave clipboard unchanged.
  */
 TEST_F(EditorCmdCopyTest, CopyExceedsClipboardLimitMarkBefore) {
-    std::string content(MAXCLIP + 10, 'X');
+    std::string content(CLIPBOARD_SIZE + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
-    SetPos(MAXCLIP + 5);
+    SetPos(CLIPBOARD_SIZE + 5);
 
     MmResult result = editor_cmd_copy(self);
 
@@ -3344,9 +3350,9 @@ TEST_F(EditorCmdCopyTest, CopyExceedsClipboardLimitMarkBefore) {
  * Should return error regardless of mark/cursor order.
  */
 TEST_F(EditorCmdCopyTest, CopyExceedsClipboardLimitMarkAfter) {
-    std::string content(MAXCLIP + 10, 'X');
+    std::string content(CLIPBOARD_SIZE + 10, 'X');
     SetBuffer(content.c_str());
-    SetMark(MAXCLIP + 5);
+    SetMark(CLIPBOARD_SIZE + 5);
     SetPos(0);
 
     MmResult result = editor_cmd_copy(self);
@@ -3358,14 +3364,14 @@ TEST_F(EditorCmdCopyTest, CopyExceedsClipboardLimitMarkAfter) {
 }
 
 /**
- * Test copying exactly MAXCLIP + 1 characters (boundary test).
+ * Test copying exactly CLIPBOARD_SIZE + 1 characters (boundary test).
  * Should fail when selection exceeds limit by one character.
  */
 TEST_F(EditorCmdCopyTest, CopyExceedsClipboardByOne) {
-    std::string content(MAXCLIP + 1, 'Y');
+    std::string content(CLIPBOARD_SIZE + 1, 'Y');
     SetBuffer(content.c_str());
     SetMark(0);
-    SetPos(MAXCLIP + 1);
+    SetPos(CLIPBOARD_SIZE + 1);
 
     MmResult result = editor_cmd_copy(self);
 
@@ -3452,8 +3458,8 @@ TEST_F(EditorCmdCopyTest, ClipboardNullTermination) {
     SetPos(4);
 
     // Pre-fill clipboard with garbage
-    memset(self->clipboard_buf, 'Z', MAXCLIP);
-    self->clipboard_buf[MAXCLIP] = '\0';
+    memset(self->clipboard_buf, 'Z', CLIPBOARD_SIZE);
+    self->clipboard_buf[CLIPBOARD_SIZE] = '\0';
 
     MmResult result = editor_cmd_copy(self);
 
@@ -3546,23 +3552,23 @@ TEST_F(EditorCmdCopyTest, CopyMarkAtTxtpMinusOne) {
 
 /**
  * Test that clipboard size boundary is respected exactly.
- * Should allow MAXCLIP characters but reject MAXCLIP+1.
+ * Should allow CLIPBOARD_SIZE characters but reject CLIPBOARD_SIZE+1.
  */
 TEST_F(EditorCmdCopyTest, ClipboardSizeBoundaryCheck) {
-    // Test that MAXCLIP characters can be copied
-    std::string content1(MAXCLIP, 'A');
+    // Test that CLIPBOARD_SIZE characters can be copied
+    std::string content1(CLIPBOARD_SIZE, 'A');
     SetBuffer(content1.c_str());
     SetMark(0);
-    SetPos(MAXCLIP);
+    SetPos(CLIPBOARD_SIZE);
 
     EXPECT_EQ(kOk, editor_cmd_copy(self));
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_EQ(CLIPBOARD_SIZE, strlen(self->clipboard_buf));
 
-    // Test that MAXCLIP+1 characters cannot be copied
-    std::string content2(MAXCLIP + 1, 'B');
+    // Test that CLIPBOARD_SIZE+1 characters cannot be copied
+    std::string content2(CLIPBOARD_SIZE + 1, 'B');
     SetBuffer(content2.c_str());
     SetMark(0);
-    SetPos(MAXCLIP + 1);
+    SetPos(CLIPBOARD_SIZE + 1);
 
     MmResult result = editor_cmd_copy(self);
     EXPECT_EQ(kEditorError, result);
@@ -3713,18 +3719,18 @@ TEST_F(EditorCmdCutTest, CutMultipleNewlines) {
 
 /**
  * Test cutting at clipboard size limit.
- * Should succeed when selection is exactly at MAXCLIP.
+ * Should succeed when selection is exactly at CLIPBOARD_SIZE.
  */
 TEST_F(EditorCmdCutTest, CutAtClipboardLimit) {
-    std::string content(MAXCLIP, 'X');
+    std::string content(CLIPBOARD_SIZE, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
-    SetPos(MAXCLIP);
+    SetPos(CLIPBOARD_SIZE);
 
     MmResult result = editor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_EQ(CLIPBOARD_SIZE, strlen(self->clipboard_buf));
     EXPECT_STREQ("", self->buf);  // Content cut
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
@@ -3735,17 +3741,17 @@ TEST_F(EditorCmdCutTest, CutAtClipboardLimit) {
  * Should return error and leave buffer unchanged.
  */
 TEST_F(EditorCmdCutTest, CutExceedsClipboardLimit) {
-    std::string content(MAXCLIP + 10, 'X');
+    std::string content(CLIPBOARD_SIZE + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
-    SetPos(MAXCLIP + 5);
+    SetPos(CLIPBOARD_SIZE + 5);
 
     MmResult result = editor_cmd_cut(self);
 
     EXPECT_EQ(kEditorError, result);
     EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
     // Buffer should be UNCHANGED when clipboard overflow occurs
-    EXPECT_EQ(MAXCLIP + 10, strlen(self->buf));
+    EXPECT_EQ(CLIPBOARD_SIZE + 10, strlen(self->buf));
     EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
 }
 
@@ -4014,30 +4020,30 @@ TEST_F(EditorCmdCutTest, MaintainsBufferStateAfterLargeDeletion) {
 
 /**
  * Test clipboard boundary validation for cut operations.
- * Should respect MAXCLIP limit exactly.
+ * Should respect CLIPBOARD_SIZE limit exactly.
  */
 TEST_F(EditorCmdCutTest, ClipboardBoundaryValidation) {
-    // Test that MAXCLIP characters can be cut
-    std::string content1(MAXCLIP, 'A');
+    // Test that CLIPBOARD_SIZE characters can be cut
+    std::string content1(CLIPBOARD_SIZE, 'A');
     SetBuffer(content1.c_str());
     SetMark(0);
-    SetPos(MAXCLIP);
+    SetPos(CLIPBOARD_SIZE);
 
     EXPECT_EQ(kOk, editor_cmd_cut(self));
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_EQ(CLIPBOARD_SIZE, strlen(self->clipboard_buf));
     EXPECT_STREQ("", self->buf);
 
-    // Test that MAXCLIP+1 characters cannot be cut (buffer preserved)
-    std::string content2(MAXCLIP + 1, 'B');
+    // Test that CLIPBOARD_SIZE+1 characters cannot be cut (buffer preserved)
+    std::string content2(CLIPBOARD_SIZE + 1, 'B');
     SetBuffer(content2.c_str());
     SetMark(0);
-    SetPos(MAXCLIP + 1);
+    SetPos(CLIPBOARD_SIZE + 1);
 
     MmResult result = editor_cmd_cut(self);
 
     EXPECT_EQ(kEditorError, result);
     EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
-    EXPECT_EQ(MAXCLIP + 1, strlen(self->buf));  // Buffer UNCHANGED
+    EXPECT_EQ(CLIPBOARD_SIZE + 1, strlen(self->buf));  // Buffer UNCHANGED
     EXPECT_EQ(kMarkMode, self->mode);  // Should not exit mark mode
 }
 
@@ -7701,9 +7707,9 @@ TEST_F(EditorCmdPasteTest, PasteDoesNotModifyMode) {
 
 // Test paste with maximum length clipboard content
 TEST_F(EditorCmdPasteTest, PasteWithMaximumLengthContent) {
-    // Fill clipboard to near capacity (MAXCLIP is the limit)
-    memset(self->clipboard_buf, 'X', MAXCLIP - 1);
-    self->clipboard_buf[MAXCLIP - 1] = '\0';
+    // Fill clipboard to near capacity (CLIPBOARD_SIZE is the limit)
+    memset(self->clipboard_buf, 'X', CLIPBOARD_SIZE - 1);
+    self->clipboard_buf[CLIPBOARD_SIZE - 1] = '\0';
     self->key_buf[1] = '\0';
 
     MmResult result = editor_cmd_paste(self);
@@ -7712,7 +7718,7 @@ TEST_F(EditorCmdPasteTest, PasteWithMaximumLengthContent) {
     // First character should be 'X'
     EXPECT_EQ('X', self->key_buf[1]);
     // Last should be null terminator
-    EXPECT_EQ('\0', self->key_buf[MAXCLIP]);
+    EXPECT_EQ('\0', self->key_buf[KEYBUF_SIZE]);
 }
 
 // Test paste doesn't modify txtp
@@ -7737,6 +7743,25 @@ TEST_F(EditorCmdPasteTest, PasteDoesNotModifyCursorPosition) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_CURSOR_EQ(3, 0);
+}
+
+// Test copying in one instance of the editor and then pasting in a different one
+TEST_F(EditorCmdPasteTest, When_CopyFromInOneEditorAndPasteInAnother_ExpectCopiedContentsPasted) {
+    // Copy from first instance
+    {
+        SetBuffer("Hello World");
+        SetMark(0);
+        SetCursorAtEnd();
+        ASSERT_EQ(kOk, editor_cmd_copy(self));
+        ASSERT_EQ(kOk, editor_destruct(self));  // Close the editor.
+    }
+
+    // Paste into a second instance
+    {
+        ASSERT_EQ(kOk, editor_construct(self, "second.bas", 80, 25));
+        EXPECT_EQ(kOk, editor_cmd_paste(self));
+        EXPECT_KEYS_EQ('H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd');
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

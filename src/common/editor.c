@@ -101,6 +101,9 @@ MmResult (*editor_print_lines)(Editor *, int, int) = editor_print_lines_impl;
 MmResult (*editor_print_msg)(Editor *, const char *) = editor_print_msg_impl;
 MmResult (*editor_print_status)(Editor *) = editor_print_status_impl;
 
+// A single global clipboard is persisted between invocations.
+static char editor_clipboard_buf[CLIPBOARD_SIZE + 2] = { '\0' };
+
 /**
  * Restores all overridable functions to their real implementations.
  */
@@ -154,13 +157,13 @@ MmResult editor_construct(Editor *self, const char *filename, int width, int hei
     self->change_start = NO_CHANGE;
     self->change_end = NO_CHANGE;
 
-    // Allocate dynamic memory, including space for clipboard and key buffers.
+    // Allocate dynamic memory, including space for key buffer.
     // We use a single allocation to reduce fragmentation.
-    self->buf = GetTempMemory(self->buf_sz + 2 * MAXCLIP + 4);
+    self->buf = GetTempMemory(self->buf_sz + KEYBUF_SIZE + 2);
     if (!self->buf) return kOutOfMemory;
-    self->clipboard_buf = self->buf + self->buf_sz;
-    self->key_buf = self->clipboard_buf + MAXCLIP + 2;
+    self->key_buf = self->buf + self->buf_sz;;
 
+    self->clipboard_buf = editor_clipboard_buf;
     self->run_on_exit = false;
 
     return kOk;
@@ -1583,7 +1586,7 @@ MmResult editor_cmd_copy(Editor *self) {
 
     if (selection_length > 0) {
         // Check clipboard size limit
-        if (selection_length > MAXCLIP) {
+        if (selection_length > CLIPBOARD_SIZE) {
             return mmresult_ex(kEditorError, EMSG_CLIPBOARD_OVERFLOW);
         }
 
@@ -1763,8 +1766,8 @@ MmResult editor_print_lines_impl(Editor *self, int start, int end) {
 static MmResult editor_read_keys(Editor *self) {
     if (self->key_buf[1] != '\0') {
         // Handle queued keystrokes.
-        self->key_buf[MAXCLIP + 1] = '\0';
-        for (int i = 0; i < MAXCLIP + 1; i++) {
+        self->key_buf[KEYBUF_SIZE + 1] = '\0';
+        for (int i = 0; i < KEYBUF_SIZE + 1; i++) {
             self->key_buf[i] = self->key_buf[i + 1];
         }
         return kOk;
