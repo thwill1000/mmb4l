@@ -181,7 +181,7 @@ MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
 uint32_t graphics_font = 0x11; // Font 1, scale 1.
 unsigned graphics_mode = 0;
-static uint64_t frameEnd = 0;
+static uint64_t graphics_frame_end = 0;
 
 /**
  * If kGraphicsTypeCmm2 && colour depth== 12 then simulate a three layer CMM2
@@ -214,7 +214,7 @@ MmResult graphics_init() {
     }
     graphics_colour_depth = 12;
     graphics_cmm2_background = RGB_BLACK;
-    frameEnd = 0;
+    graphics_frame_end = 0;
     ON_FAILURE_RETURN(sprite_init());
     graphics_initialised = true;
     return kOk;
@@ -396,65 +396,85 @@ static MmResult graphics_refresh_picomite_vga_window() {
 }
 
 #define COUNTER_MAX  20
+#define FRAME_MS  16
 
 void graphics_refresh_windows() {
     static uint32_t counter = 0;
 
-    // if (SDL_GetTicks64() > frameEnd) {
-    if (SDL_GetTicks() > frameEnd) {
+    uint32_t now = SDL_GetTicks();  // TODO: update to SDL_GetTicks64
+    if (now < graphics_frame_end) return;
+    graphics_frame_end += FRAME_MS;
+    if (graphics_frame_end < now) graphics_frame_end = now + FRAME_MS;  // too far behind, reset
 
-        // LOG_DEBUG("Refresh windows");
+    for (uint32_t id = 0; id <= GRAPHICS_MAX_ID; ++id) {
 
         // TODO: Optimise by using linked-list of windows.
-        for (uint32_t id = 0;
-                id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type == kGraphicsWindow;
-                ++id) {
-            MmSurface* s = &graphics_surfaces[id];
-            const SDL_WindowFlags flags = SDL_GetWindowFlags(s->window);
+        if (graphics_surfaces[id].type != kGraphicsWindow) continue;
 
-            // Refresh 'display' when simulating other 'Mites.
-            if (id == 0 && (counter == 0 || (flags & SDL_WINDOW_INPUT_FOCUS))) {
-                switch (mmb_features.graphics_type) {
-                    case kGraphicsTypeCmm2:
-                        ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
-                        break;
-                    case kGraphicsTypePicomiteLcd:
-                        ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
-                        break;
-                    case kGraphicsTypePicomiteHdmi:
-                    case kGraphicsTypePicomiteVga:
-                        ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
-                        break;
-                    default:
-                        break;
-                }
+        MmSurface* s = &graphics_surfaces[id];
+        const SDL_WindowFlags flags = SDL_GetWindowFlags(s->window);
+
+        // For id==0, unconditionally refresh the 'display' surface every COUNTER_MAX frames,
+        // or every frame when focused. This polls for hardware state changes that occur
+        // independently of dirty-marking (e.g. simulated 'Mite output).
+        if (id == 0 && (counter == 0 || (flags & SDL_WINDOW_INPUT_FOCUS))) {
+            switch (mmb_features.graphics_type) {
+                case kGraphicsTypeCmm2:
+                    ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
+                    break;
+                case kGraphicsTypePicomiteLcd:
+                    ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
+                    break;
+                case kGraphicsTypePicomiteHdmi:
+                case kGraphicsTypePicomiteVga:
+                    ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
+                    break;
+                default:
+                    break;
             }
-
-            if (!s->dirty) continue;
-
-            // If the window is hidden then show it, bring it to the front and give it input
-            // focus.
-            if (flags & SDL_WINDOW_HIDDEN) {
-                SDL_ShowWindow(s->window);
-                SDL_RaiseWindow(s->window);
-            }
-
-            // If a window does not have the input focus then only update it infrequently so as to
-            // try and keep the console responsive when the windows are not on top.
-            if (!((flags & SDL_WINDOW_INPUT_FOCUS) || counter == id % COUNTER_MAX)) continue;
-
-            SDL_UpdateTexture((SDL_Texture *) s->texture, NULL, s->pixels, s->width * 4);
-            SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
-                           NULL);
-            SDL_RenderPresent((SDL_Renderer *) s->renderer);
-
-            s->dirty = false;
         }
-        // frameEnd = SDL_GetTicks64() + 15;
-        frameEnd = SDL_GetTicks() + 15;
-        counter++;
-        counter %= COUNTER_MAX;
+
+        // s->dirty is intentionally left set if we skip rendering below (no focus,
+        // not this window's counter slot) so it will be rendered on the next eligible frame.
+        if (!s->dirty) continue;
+
+        // If the window is hidden then show it, bring it to the front and give it input
+        // focus.
+        if (flags & SDL_WINDOW_HIDDEN) {
+            SDL_ShowWindow(s->window);
+            SDL_RaiseWindow(s->window);
+        }
+
+        // Throttle background windows: each window ID is assigned a slot in the counter
+        // cycle (id % COUNTER_MAX) so background updates are staggered across frames,
+        // keeping the console responsive when windows are not on top.
+        if (!((flags & SDL_WINDOW_INPUT_FOCUS) || counter == id % COUNTER_MAX)) continue;
+
+        // Upload pixels to GPU. Uses streaming texture + LockTexture for better performance
+        // than SDL_UpdateTexture. Each surface has its own renderer so RenderPresent is
+        // called per-window. pitch may differ from width*4 due to GPU row alignment.
+        void *pixels;
+        int pitch;
+        SDL_LockTexture((SDL_Texture *) s->texture, NULL, &pixels, &pitch);
+        if (pitch == s->width * 4) {
+            memcpy(pixels, s->pixels, s->height * pitch);
+        } else {
+            for (int y = 0; y < s->height; y++) {
+                memcpy((uint8_t*)pixels    + y * pitch,      // dest: GPU stride
+                    (uint8_t*)s->pixels + y * s->width * 4,  // src: tight stride
+                    s->width * 4);                           // copy only real pixels
+            }
+        }
+        SDL_UnlockTexture((SDL_Texture *) s->texture);
+        SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
+                       NULL);
+        SDL_RenderPresent((SDL_Renderer *) s->renderer);
+
+        s->dirty = false;
     }
+
+    counter++;
+    counter %= COUNTER_MAX;
 }
 
 static inline MmSurface *graphics_surface_from_id(MmSurfaceId id) {
@@ -590,10 +610,15 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
         if (!window) result = graphics_api_error();
     }
 
-    // Create SDL renderer with V-Sync enabled.
+    // Create SDL renderer without V-Sync. V-Sync would cause SDL_RenderPresent()
+    // to block until the next monitor refresh pulse (~16ms at 60Hz), stalling
+    // the main thread and reducing emulation throughput. Instead we manage our
+    // own frame timing viagraphics_frame_end, accepting occasional tearing
+    // which is imperceptible in practice for an emulator.
+    // Note: SDL rendering must occur on the main thread (required by Metal on macOS).
     SDL_Renderer *renderer = NULL;
     if (SUCCEEDED(result)) {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+        renderer = SDL_CreateRenderer(window, -1, 0 /* not SDL_RENDER_PRESENTVSYNC */);
         if (!renderer) result = graphics_api_error();
     }
 
