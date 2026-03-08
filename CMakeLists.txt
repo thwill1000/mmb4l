@@ -1094,6 +1094,26 @@ target_link_libraries(test_rx_buf
 gtest_discover_tests(test_rx_buf)
 
 ################################################################################
+# test_sha256
+################################################################################
+
+add_executable(test_sha256
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/sha256_test.cxx
+    src/common/sha256.c
+)
+
+configure_sdl2(test_sha256 FALSE)
+
+target_link_libraries(test_sha256
+    gtest_main
+    gmock
+    gmock_main
+)
+
+gtest_discover_tests(test_sha256)
+
+################################################################################
 # test_sprite
 ################################################################################
 
