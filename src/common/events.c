@@ -76,8 +76,17 @@ MmResult events_init() {
     return kOk;
 }
 
+#define POLL_MS  8
+
 void events_pump() {
     if (!events_initialised) return;
+
+    // Only poll SDL events every POLL_MS to reduce overhead.
+    static uint32_t next_poll = 0;
+    uint32_t now = SDL_GetTicks();  // TODO: update to SDL_GetTicks64
+    if (now < next_poll) return;
+    next_poll += POLL_MS;
+    if (next_poll < now) next_poll = now + POLL_MS;  // too far behind, reset
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
