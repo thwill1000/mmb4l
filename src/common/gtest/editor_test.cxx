@@ -23,9 +23,6 @@ extern "C" {
 #include "../../core/gtest/function_stubs.h"
 #include "../../core/gtest/operation_stubs.h"
 
-// Defined in "common/file.c"
-bool file_exists_regular(const char *filename) { return false; }
-
 // Defined in "common/options.c"
 Options mmb_options;
 
@@ -132,21 +129,21 @@ protected:
     }
 
     void SetUp() override {
-        // Common initialization
-        editor_restore_fn_pointers();
-        editor_construct(self, NULL, 80, 25);
+        // Initialize options
+        mmb_options.syntax_highlight = true;
+        mmb_options.tab = 4;
+        SDL_AtomicSet(&mmb_options.break_key, 0);
+
+        // Construct editor to test
+        editor_construct(self, "myfile.bas", 80, 25);
 
         // Mock editor functions
+        editor_restore_fn_pointers();
         editor_print_func_keys = editor_test_print_func_keys;
         editor_print_line_fast = editor_test_print_line_fast;
         editor_print_lines = editor_test_print_lines;
         editor_print_msg = editor_test_print_msg;
         editor_print_status = editor_test_print_status;
-
-        // Initialize options
-        mmb_options.syntax_highlight = true;
-        mmb_options.tab = 4;
-        SDL_AtomicSet(&mmb_options.break_key, 0);
 
         // Reset syntax state
         memset(&syntax, 0, sizeof(syntax));
@@ -418,7 +415,16 @@ protected:
 // Tests for editor_construct()
 ////////////////////////////////////////////////////////////////////////////////
 
-class EditorConstructTest : public EditorTestBase { };
+class EditorConstructTest : public EditorTestBase {
+protected:
+    void SetUp() override {
+        EditorTestBase::SetUp();
+
+        // Clean up the default editor created in EditorTestBase as we will be
+        // creating new instances for EditorConstructTests.
+        ASSERT_EQ(kOk, editor_destruct(self));
+    }
+};
 
 // Test returns error if viewport too narrow
 TEST_F(EditorConstructTest, When_ViewportTooNarrow_ExpectError) {
@@ -427,6 +433,39 @@ TEST_F(EditorConstructTest, When_ViewportTooNarrow_ExpectError) {
     EXPECT_EQ(kInternalFault, result);
     EXPECT_STREQ("editor_construct() parameter check failed: width >= 2 * EDITOR_HOFFSET",
                  mmresult_to_string(result));
+}
+
+TEST_F(EditorConstructTest, When_GlobalSyntaxHighlightingDisabled_ExpectSyntaxHighlightingDisabled) {
+    mmb_options.syntax_highlight = false;
+
+    EXPECT_EQ(kOk, editor_construct(self, "filename.bAs", 80, 40));
+    EXPECT_EQ(false, self->syntax_highlight);
+    ASSERT_EQ(kOk, editor_destruct(self));
+
+    EXPECT_EQ(kOk, editor_construct(self, "filename.inC", 80, 40));
+    EXPECT_EQ(false, self->syntax_highlight);
+    ASSERT_EQ(kOk, editor_destruct(self));
+
+    EXPECT_EQ(kOk, editor_construct(self, "filename.TXt", 80, 40));
+    EXPECT_EQ(false, self->syntax_highlight);
+}
+
+TEST_F(EditorConstructTest, When_GlobalSyntaxHighlightingEnabledAndBasicFile_ExpectSyntaxHighlightingEnabled) {
+    mmb_options.syntax_highlight = true;
+
+    EXPECT_EQ(kOk, editor_construct(self, "filename.bAs", 80, 40));
+    EXPECT_EQ(true, self->syntax_highlight);
+    ASSERT_EQ(kOk, editor_destruct(self));
+
+    EXPECT_EQ(kOk, editor_construct(self, "filename.inC", 80, 40));
+    EXPECT_EQ(true, self->syntax_highlight);
+}
+
+TEST_F(EditorConstructTest, When_GlobalSyntaxHighlightingEnabledAndNotBasicFile_ExpectSyntaxHighlightingDisabled) {
+    mmb_options.syntax_highlight = true;
+
+    EXPECT_EQ(kOk, editor_construct(self, "filename.TXt", 80, 40));
+    EXPECT_EQ(false, self->syntax_highlight);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -11781,7 +11820,7 @@ TEST_F(EditorUpdateDisplayTest, RedrawsLinesWhenChangeTrackingSet) {
 // Test that fast path is used when syntax highlighting is off, not in mark mode,
 // and change is on current line
 TEST_F(EditorUpdateDisplayTest, UsesFastPathForSingleLineEdit) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8);  // Position in Line1
     self->mode = kEditMode;
@@ -11996,7 +12035,7 @@ TEST_F(EditorUpdateDisplayTest, When_PxAndPyChange_ExpectRedrawCurrentLine) {
 
 // Test that slow path is used when syntax highlighting is on
 TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenSyntaxHighlightingOn) {
-    mmb_options.syntax_highlight = true;
+    self->syntax_highlight = true;
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8);  // Position in Line1
     self->mode = kEditMode;
@@ -12013,7 +12052,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenSyntaxHighlightingOn) {
 
 // Test that slow path is used when in mark mode
 TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenInMarkMode) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8);  // Position in Line1
     self->mode = kMarkMode;
@@ -12030,7 +12069,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenInMarkMode) {
 
 // Test that slow path is used when change is not on current line
 TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenChangeNotOnCurrentLine) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8);  // Position in Line1 (cy=1, py=0)
     self->mode = kEditMode;
@@ -12047,7 +12086,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenChangeNotOnCurrentLine) {
 
 // Test that fast path is used even with viewport offset
 TEST_F(EditorUpdateDisplayTest, UsesFastPathWithViewportOffset) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
     self->py = 2;  // Viewport starts at Line2
     SetPos(12);     // Position in Line2 (first visible line)
@@ -12065,7 +12104,7 @@ TEST_F(EditorUpdateDisplayTest, UsesFastPathWithViewportOffset) {
 
 // Test that slow path is used for multi-line changes
 TEST_F(EditorUpdateDisplayTest, UsesSlowPathForMultiLineChange) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8);  // Position in Line1
     self->mode = kEditMode;
@@ -12082,7 +12121,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathForMultiLineChange) {
 
 // Test fast path with horizontal scrolling (px != 0)
 TEST_F(EditorUpdateDisplayTest, UsesFastPathWithHorizontalScroll) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("This is a very long line that exceeds viewport width");
     SetPos(50);
     self->px = 10;  // Horizontal scroll active
@@ -12100,7 +12139,7 @@ TEST_F(EditorUpdateDisplayTest, UsesFastPathWithHorizontalScroll) {
 
 // Test slow path when change spans across viewport boundary
 TEST_F(EditorUpdateDisplayTest, UsesSlowPathForChangeCrossingViewport) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
     SetPos(12);    // At start of "Line2"
     self->py = 1;  // Viewport starts at "Line1"
@@ -12119,7 +12158,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathForChangeCrossingViewport) {
 
 // Test fast path boundary: change_start == change_end == current line
 TEST_F(EditorUpdateDisplayTest, FastPathBoundaryCheckExactMatch) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     self->cy = 1;  // Current line is 1
@@ -12139,7 +12178,7 @@ TEST_F(EditorUpdateDisplayTest, FastPathBoundaryCheckExactMatch) {
 // Test that slow path is used when cy + py != change_start
 // (i.e., absolute line number doesn't match)
 TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenAbsoluteLineMismatch) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
     self->py = 1;  // Viewport offset
     self->cy = 1;  // Cursor at line 1 relative to viewport (absolute line 2)
@@ -12158,7 +12197,7 @@ TEST_F(EditorUpdateDisplayTest, UsesSlowPathWhenAbsoluteLineMismatch) {
 
 // Test fast path is NOT used when all conditions met EXCEPT change_end != change_start
 TEST_F(EditorUpdateDisplayTest, NoFastPathWhenChangeEndDiffersFromStart) {
-    mmb_options.syntax_highlight = false;
+    self->syntax_highlight = false;
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8);  // At 'n' in "Line1"
     self->mode = kEditMode;

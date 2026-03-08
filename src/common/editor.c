@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.h"
 #include "mmb4l.h"
 #include "mmtime.h"
+#include "path.h"
 #include "program.h"
 #include "prompt.h"
 #include "streamio.h"
@@ -133,6 +134,13 @@ MmResult editor_construct(Editor *self, const char *filename, int width, int hei
     CHECK_PARAM(width >= 2 * EDITOR_HOFFSET);
 
     memset(self, 0, sizeof(Editor));
+
+    // Syntax highlighting enabled if global option is set and the file is a
+    // .bas or .inc file.
+    self->syntax_highlight =
+        mmb_options.syntax_highlight &&
+        (path_has_extension(filename, ".bas", true) || path_has_extension(filename, ".inc", true));
+
     self->buf_sz = EDIT_BUFFER_SIZE;
     self->height = height - 2; // 2 rows for the status line
     self->width = width;
@@ -829,7 +837,7 @@ static MmResult editor_insert_char(Editor *self, char ch) {
     if (ch == '\n') multiple_line_change = true;
 
     // Check for interactions that make or break multiline comments
-    if (!multiple_line_change && mmb_options.syntax_highlight) {
+    if (!multiple_line_change && self->syntax_highlight) {
         char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
         switch (ch) {
             case '/':
@@ -872,7 +880,7 @@ static MmResult editor_insert_char(Editor *self, char ch) {
 
     // Check for a completed REM command before /*
     if (!multiple_line_change
-            && mmb_options.syntax_highlight
+            && self->syntax_highlight
             && editor_find_in_line(
                 self,
                 "REM",
@@ -998,7 +1006,7 @@ MmResult editor_get_highlight(Editor *self, SyntaxState *syntax, char *p,
                               HighlightType *highlight) {
     CHECK_PARAM(p != NULL);
 
-    if (!mmb_options.syntax_highlight) {
+    if (!self->syntax_highlight) {
         *highlight = kHighlightNormal;
         return kOk;
     }
@@ -1377,7 +1385,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
     // Display the line from here to the end of the line or the screen width
     for (int x = 0; x < self->width + offset && *p && *p != '\n'; x++) {
         HighlightType new_highlight = kHighlightUnspecified;
-        if (mmb_options.syntax_highlight) {
+        if (self->syntax_highlight) {
             ON_FAILURE_RETURN(editor_get_highlight(self, &syntax, p, &new_highlight));
         } else {
             new_highlight = kHighlightNormal;
@@ -1831,7 +1839,7 @@ MmResult editor_update_display(Editor *self, Editor *old) {
 
     // Draw lines as necessary
     if (self->change_start != NO_CHANGE) {
-        if (!mmb_options.syntax_highlight
+        if (!self->syntax_highlight
             && self->mode != kMarkMode
             && self->cy + self->py == self->change_start
             && self->change_start == self->change_end) {
@@ -2094,7 +2102,7 @@ static MmResult editor_delete_char(Editor *self) {
 
     // ... unless we are syntax highlighting in which case we also need to
     // check for multiline comments being invalidated.
-    if (!multiple_line_change && mmb_options.syntax_highlight) {
+    if (!multiple_line_change && self->syntax_highlight) {
         bool potential_multiline_change = false;
         switch (currdel) {
             case '/':
@@ -2911,8 +2919,6 @@ MmResult editor_show_internal(Editor *self, int line) {
  * @return           kOk on success, or an error code on failure.
  */
 MmResult editor_show(const char *filename, int line) {
-    // mmb_options.syntax_highlight = false;
-
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
     if (width < 2 * EDITOR_HOFFSET) {
