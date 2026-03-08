@@ -631,7 +631,10 @@ add_executable(test_editor
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/editor_test.cxx
     src/common/editor.c
+    src/common/file.c
+    src/common/file_${PLATFORM}.c
     src/common/memory.c
+    src/common/path.c
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/display_stubs.c
     src/common/gtest/stubs/keybuf_stubs.c
