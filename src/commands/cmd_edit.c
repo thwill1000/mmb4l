@@ -166,6 +166,7 @@ void cmd_edit(void) {
             strcpy(fname, CurrentFile);
         }
     }
+    line = line > 1 ? line : 1;
 
     char file_path[STRINGSIZE];
     MmResult result = path_get_canonical(fname, file_path, STRINGSIZE);
@@ -192,11 +193,16 @@ void cmd_edit(void) {
     if (cstring_casecmp(editor, "internal") == 0) {
         // Use the internal "Internal" editor.
         blocking = true;
-        ON_FAILURE_ERROR(editor_show(file_path, line > 1 ? line : 1));
+        const char *old_codepage = mmb_options.codepage;
+        mmb_options.codepage = NULL;
+        LOG_DEBUG("starting internal editor: file_path=%s, line=%d", file_path, line);
+        MmResult result = editor_show(file_path, line);
+        mmb_options.codepage = old_codepage;
+        ON_FAILURE_ERROR(result);
     } else {
         char command[CMD_SIZE] = { 0 };
         ON_FAILURE_ERROR(
-                get_editor_command(editor, file_path, line > 1 ? line : 1, command, &blocking));
+                get_editor_command(editor, file_path, line, command, &blocking));
         LOG_DEBUG("starting editor with command: %s", command);
         if (blocking) keybuf_pause();
         errno = 0;
