@@ -161,6 +161,8 @@ MmResult editor_construct(Editor *self, const char *filename, int width, int hei
     self->clipboard_buf = self->buf + self->buf_sz;
     self->key_buf = self->clipboard_buf + MAXCLIP + 2;
 
+    self->run_on_exit = false;
+
     return kOk;
 }
 
@@ -2479,12 +2481,14 @@ static MmResult editor_cmd_save_and_exit(Editor *self) {
 static MmResult editor_cmd_save_and_run(Editor *self) {
     if (self->mode != kEditMode) return display_bell();
 
+    if (!path_has_extension(self->fname, ".bas", true)) {
+        return mmresult_ex(kEditorError, "NOT A PROGRAM FILE");
+    }
+
     ON_FAILURE_RETURN(editor_cmd_save_and_exit(self));
     if (self->mode != kExitMode) return kOk;
 
-    ON_FAILURE_RETURN(ClearRuntime());
-    ON_FAILURE_RETURN(PrepareProgram(true));
-    if (*ProgMemory == T_NEWLINE) nextstmt = ProgMemory;
+    self->run_on_exit = true;
     return kOk;
 }
 
@@ -2907,18 +2911,7 @@ MmResult editor_show_internal(Editor *self, int line) {
     return result;
 }
 
-/**
- * Main entry point for the PicoMite editor.
- *
- * Initializes the editor state, loads the specified file, sets up the
- * display, and enters the main keyboard handling loop. Cleans up and
- * restores terminal state on exit.
- *
- * @param  filename  Path to the file to edit.
- * @param  line      Line number to position cursor on (1-based).
- * @return           kOk on success, or an error code on failure.
- */
-MmResult editor_show(const char *filename, int line) {
+MmResult editor_show(const char *filename, int line, bool *run_on_exit) {
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
     if (width < 2 * EDITOR_HOFFSET) {
@@ -2929,6 +2922,8 @@ MmResult editor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(editor_construct(&editor, filename, width, height));
 
     MmResult result = editor_show_internal(&editor, line);
+
+    if (SUCCEEDED(result)) *run_on_exit = editor.run_on_exit;
 
     ON_FAILURE_LOG(editor_destruct(&editor));
     ON_FAILURE_LOG(display_reset());

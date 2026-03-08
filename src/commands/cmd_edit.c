@@ -129,6 +129,8 @@ static MmResult delete_if_empty(char *file_path) {
     }
 }
 
+extern char cmd_run_args[STRINGSIZE];
+
 void cmd_edit(void) {
     // Check if the first argument overides the EDITOR option.
     const char *editor = mmb_options.editor;
@@ -190,13 +192,14 @@ void cmd_edit(void) {
 
     // Edit the file.
     bool blocking = false;
+    bool run_on_exit = false;
     if (cstring_casecmp(editor, "internal") == 0) {
         // Use the internal "Internal" editor.
         blocking = true;
         const char *old_codepage = mmb_options.codepage;
         mmb_options.codepage = NULL;
         LOG_DEBUG("starting internal editor: file_path=%s, line=%d", file_path, line);
-        MmResult result = editor_show(file_path, line);
+        MmResult result = editor_show(file_path, line, &run_on_exit);
         mmb_options.codepage = old_codepage;
         ON_FAILURE_ERROR(result);
     } else {
@@ -223,7 +226,13 @@ void cmd_edit(void) {
     if (path_exists(file_path)
             && path_is_regular(file_path)
             && path_has_extension(file_path, ".bas", true)) {
-        MmResult result = program_load_file(file_path);
-        if (FAILED(result)) error_throw(result);
+        ON_FAILURE_ERROR(program_load_file(file_path));
+
+        // Run the program if requested.
+        if (run_on_exit) {
+            *cmd_run_args = '\0';
+            ON_FAILURE_ERROR(PrepareProgram(true));
+            if (*ProgMemory == T_NEWLINE) nextstmt = ProgMemory;
+        }
     }
 }

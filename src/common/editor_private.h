@@ -108,7 +108,7 @@ typedef enum {
  */
 typedef struct {
     // Configuration
-    bool syntax_highlight;   ///> True if syntax highlighting is enabled
+    bool syntax_highlight;   ///< True if syntax highlighting is enabled
 
     // File and buffer
     const char *fname;       ///< Name/path of file being edited
@@ -150,6 +150,9 @@ typedef struct {
 
     // Clipboard
     char *clipboard_buf;     ///< Clipboard storage (MAXCLIP+2 bytes)
+
+    // Exit state
+    bool run_on_exit;        ///< True if editor closed with "F2:Run" command?
 } Editor;
 
 // By changing these function pointers unit-tests can override "display"
