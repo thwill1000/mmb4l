@@ -52,7 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "program.h" // for EDIT_BUFFER_SIZE
 
-#define MAXCLIP                  1024
+#define CLIPBOARD_SIZE           1024
+#define KEYBUF_SIZE              CLIPBOARD_SIZE
 #define LAST_LINE                INT32_MAX
 #define NO_CHANGE                -1
 #define MAX_LINE_LENGTH          MAXSTRLEN
@@ -100,8 +101,7 @@ typedef enum {
  * Main editor state structure.
  *
  * Manages text buffer, cursor position (cx, cy, txtp), viewport (py),
- * and editing mode. Uses single contiguous allocation for buf,
- * clipboard_buf, and key_buf.
+ * and editing mode. Uses single contiguous allocation for buf and key_buf.
  *
  * Coordinates: (cx, cy) are viewport-relative, py is scroll offset,
  * txtp is absolute buffer position. Actual line = py + cy.
@@ -149,7 +149,7 @@ typedef struct {
     char saved_break_key;    ///< Original break key (restored on exit)
 
     // Clipboard
-    char *clipboard_buf;     ///< Clipboard storage (MAXCLIP+2 bytes)
+    char *clipboard_buf;     ///< Pointer to global clipboard storage
 
     // Exit state
     bool run_on_exit;        ///< True if editor closed with "F2:Run" command?
