@@ -107,6 +107,9 @@ typedef enum {
  * txtp is absolute buffer position. Actual line = py + cy.
  */
 typedef struct {
+    // Configuration
+    bool syntax_highlight;   ///> True if syntax highlighting is enabled
+
     // File and buffer
     const char *fname;       ///< Name/path of file being edited
     char *buf;               ///< Buffer containing text (base of single allocation)
@@ -129,7 +132,7 @@ typedef struct {
     // Editing state
     bool insert;             ///< True for INSERT mode, false for OVERWRITE
     bool text_changed;       ///< True if buffer modified
-    EditorMode mode;       ///< Edit, Mark, or Exit mode
+    EditorMode mode;         ///< Edit, Mark, or Exit mode
     char *mark;              ///< Mark position for text selection
 
     // Change tracking (for efficient redrawing)
