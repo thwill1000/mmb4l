@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 editor.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
-MmResult editor_show(const char *filename, int line);
+/**
+ * Main entry point for the PicoMite editor.
+ *
+ * Initializes the editor state, loads the specified file, sets up the
+ * display, and enters the main keyboard handling loop. Cleans up and
+ * restores terminal state on exit.
+ *
+ * @param[in]   filename     Path to the file to edit.
+ * @param[in]   line         Line number to position cursor on (1-based).
+ * @param[out]  run_on_exit  Set true on exit if edited program should now be run.
+ * @return                   kOk on success, or an error code on failure.
+ */
+MmResult editor_show(const char *filename, int line, bool *run_on_exit);
 
 #endif // #if !defined(MMB4L_EDITOR)
