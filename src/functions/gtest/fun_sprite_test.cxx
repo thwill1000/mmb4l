@@ -16,11 +16,8 @@ extern "C" {
 
 #include "../../common/bitset.h"
 #include "../../common/features.h"
-#include "../../common/options.h"
 #include "../../common/memory.h"
-#include "../../common/mmresult.h"
 #include "../../common/sprite.h"
-#include "../../common/utility.h"
 #include "../../common/gtest/test_helper.h"
 #include "../../common/gtest/stubs/error_stubs.h"
 #include "../../core/Commands.h"
@@ -40,13 +37,8 @@ Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 
-void MMgetline(int fnbr, char *p) {}
-
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
-
-// Defined in "common/keybuf.c"
-void keybuf_pump_tty(void) { }
 
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
@@ -55,6 +47,9 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return k
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
+
+// Defined in "common/mmgetline.c"
+void MMgetline(int fnbr, char *p) {}
 
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
