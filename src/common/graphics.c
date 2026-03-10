@@ -703,12 +703,33 @@ MmResult graphics_surface_destroy_all() {
 MmResult graphics_surface_write(MmSurfaceId id) {
     if (id == GRAPHICS_NONE) {
         graphics_current = NULL;
-    } else if (!graphics_surface_exists(id)) {
-        return kGraphicsInvalidWriteSurface;
-    } else {
-        graphics_current = &graphics_surfaces[id];
+        RETURN_RESULT(kOk);
     }
-    return kOk;
+
+    if (id == GRAPHICS_SURFACE_DEFAULT) {
+        switch (mmb_features.graphics_type) {
+            case kGraphicsTypeCmm2:
+            case kGraphicsTypeMmb4l:
+                id = 0;
+                break;
+            case kGraphicsTypePicomiteHdmi:
+            case kGraphicsTypePicomiteLcd:
+            case kGraphicsTypePicomiteVga:
+                id = GRAPHICS_SURFACE_N;
+                break;
+            default:
+                RETURN_RESULT(
+                    INTERNAL_FAULT_EX("invalid GraphicsType: %d", mmb_features.graphics_type));
+        }
+    }
+
+    if (!graphics_surface_exists(id)) {
+        RETURN_RESULT(kGraphicsInvalidWriteSurface);
+    }
+
+    graphics_current = &graphics_surfaces[id];
+
+    RETURN_RESULT(kOk);
 }
 
 static inline void graphics_set_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
