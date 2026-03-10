@@ -243,6 +243,10 @@ static void reset_console_title() {
 void longjmp_handler(int jmp_state) {
 
     if (mmb_args.show_prompt) {
+        if (mmb_options.console == kScreen) {
+            // Ensure we have a visible prompt
+            ON_FAILURE_EXIT(graphics_surface_write(GRAPHICS_SURFACE_DEFAULT));
+        }
         ON_FAILURE_EXIT(console_show_cursor(true));
         ON_FAILURE_EXIT(console_reset());
         int cursor_x = -1, cursor_y = -1;

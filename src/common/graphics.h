@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WINDOW_MAX_WIDTH         2048
 #define WINDOW_MAX_HEIGHT        2048
 #define WINDOW_MAX_SCALE         10
+#define GRAPHICS_SURFACE_DEFAULT -2
 #define GRAPHICS_SURFACE_N       1
 #define GRAPHICS_SURFACE_F       2
 #define GRAPHICS_SURFACE_L       3

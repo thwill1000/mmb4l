@@ -366,3 +366,54 @@ TEST_F(GraphicsTest, TypeAsString_GivenSimulatingPicomiteVga) {
     // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }
+
+class SurfaceWriteTest : public GraphicsTest {};
+
+TEST_F(SurfaceWriteTest, When_IdEqualsNone_ExpectCurrentSurfaceIsNull) {
+    EXPECT_EQ(kOk, graphics_surface_write(GRAPHICS_NONE));
+    EXPECT_EQ(nullptr, graphics_current);
+}
+
+TEST_F(SurfaceWriteTest, When_IdIsExistingSurface_ExpectCurrentSurfaceIsExistingSurface) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 100, 100));
+    EXPECT_EQ(kOk, graphics_surface_write(0));
+    EXPECT_EQ(&graphics_surfaces[0], graphics_current);
+}
+
+TEST_F(SurfaceWriteTest, When_IdIsNonExistentSurface_ExpectInternalError) {
+    EXPECT_EQ(kGraphicsInvalidWriteSurface, graphics_surface_write(GRAPHICS_MAX_SURFACES - 1));
+}
+
+class SurfaceWriteDefaultTest : public ::testing::TestWithParam<std::pair<OptionsSimulate, MmSurfaceId>> {
+   protected:
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(GetParam().first);
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
+};
+
+TEST_P(SurfaceWriteDefaultTest, WhenIdIsDefaultSurface_ExpectCurrentSurfaceIsPlatformDefault) {
+    const MmSurfaceId expected_id = GetParam().second;
+    ASSERT_EQ(kOk, graphics_buffer_create(expected_id, 100, 100));
+    EXPECT_EQ(kOk, graphics_surface_write(GRAPHICS_SURFACE_DEFAULT));
+    EXPECT_EQ(&graphics_surfaces[expected_id], graphics_current);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    AllGraphicsTypes,
+    SurfaceWriteDefaultTest,
+    ::testing::Values(
+        std::make_pair(kSimulateCmm2,        MmSurfaceId(0)),
+        std::make_pair(kSimulateMmb4l,       MmSurfaceId(0)),
+        std::make_pair(kSimulateMmb4w,       MmSurfaceId(0)),
+        std::make_pair(kSimulatePicomiteHdmi, MmSurfaceId(GRAPHICS_SURFACE_N)),
+        std::make_pair(kSimulatePicomiteVga,  MmSurfaceId(GRAPHICS_SURFACE_N)),
+        std::make_pair(kSimulatePicomiteVgaUsb, MmSurfaceId(GRAPHICS_SURFACE_N)),
+        std::make_pair(kSimulateGamemite,    MmSurfaceId(GRAPHICS_SURFACE_N)),
+        std::make_pair(kSimulatePicocalc,    MmSurfaceId(GRAPHICS_SURFACE_N))
+    )
+);
