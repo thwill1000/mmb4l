@@ -328,8 +328,23 @@ void mminfo_hres(const char *p, bool check_feature) {
     } else if (!parse_is_end(p)) {
         ERROR_SYNTAX;
     }
-    int width, height;
-    ON_FAILURE_ERROR(display_get_size(pixel, &width, &height));
+
+    int width = 0;
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        if (graphics_current) {
+            width = graphics_current->width;
+        } else {
+            int height = 0;
+            ON_FAILURE_ERROR(display_get_size(true, &width, &height));
+        }
+    } else {
+        width = graphics_surfaces[0].width;
+    }
+
+    if (!pixel) {
+        width /= font_width(graphics_font);
+    }
+
     g_rtn_type = T_INT;
     g_integer_rtn = width;
 }
@@ -590,8 +605,23 @@ void mminfo_vres(const char *p, bool check_feature) {
     } else if (!parse_is_end(p)) {
         ERROR_SYNTAX;
     }
-    int width, height;
-    ON_FAILURE_ERROR(display_get_size(pixel, &width, &height));
+
+    int height = 0;
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        if (graphics_current) {
+            height = graphics_current->height;
+        } else {
+            int width = 0;
+            ON_FAILURE_ERROR(display_get_size(true, &width, &height));
+        }
+    } else {
+        height = graphics_surfaces[0].height;
+    }
+
+    if (!pixel) {
+        height /= font_height(graphics_font);
+    }
+
     g_rtn_type = T_INT;
     g_integer_rtn = height;
 }

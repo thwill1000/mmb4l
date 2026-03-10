@@ -146,6 +146,7 @@ typedef enum {
     kSimulatePicomiteHdmi,
     kSimulatePicomiteVga,
     kSimulatePicomiteVgaUsb,
+    kSimulateCount,
 } OptionsSimulate;
 
 typedef enum { kTitle, kLower, kUpper } OptionsListCase;
