@@ -23,7 +23,14 @@ MmResult display_cursor_left(int count, bool wrap) { return kOk; }
 MmResult display_cursor_up(int count) { return kOk; }
 MmResult display_flush() { return kOk; }
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y) { return kOk; }
-MmResult display_get_size(bool pixel, int *width, int *height) { return kOk; }
+
+MmResult (*mock_display_get_size)(bool pixel, int *width, int *height);
+MmResult display_get_size(bool pixel, int *width, int *height) {
+    return mock_display_get_size
+            ? mock_display_get_size(pixel, width, height)
+            : kOk;
+}
+
 MmResult display_inverse(bool inverse) { return kOk; }
 MmResult display_putc(char c) { return kOk; }
 
