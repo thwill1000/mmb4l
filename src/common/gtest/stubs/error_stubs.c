@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Thomas Hugo Williams
+ * Copyright (c) 2024-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -9,8 +9,9 @@
 
 char error_msg[256];
 
-// Defined in "common/error.c"
 MmResult error_init(ErrorState *error_state) { return kOk; }
+
+void error_get_line_and_file(int *line, char *file_path) { }
 
 MmResult error_throw(MmResult result) {
     return error_throw_ex(result, mmresult_to_string(result));

@@ -41,7 +41,11 @@ void fun_fix() { }
 void fun_format() { }
 void fun_gamepad() { }
 void fun_hex() { }
+#if defined(DO_NOT_STUB_FUN_VRES)
+void fun_hres();
+#else
 void fun_hres() { }
+#endif
 void fun_inkey() { }
 void fun_inputstr() { }
 void fun_instr() { }
@@ -67,7 +71,9 @@ void fun_min() { }
 void fun_mmcmdline() { }
 #endif
 void fun_mmdevice() { }
+#if !defined(DO_NOT_STUB_FUN_MMINFO)
 void fun_mminfo() { }
+#endif
 void fun_oct() { }
 void fun_peek() { }
 void fun_pi() { }
@@ -98,6 +104,10 @@ void fun_timer() { }
 void fun_ucase() { }
 void fun_val() { }
 void fun_version() { }
+#if defined(DO_NOT_STUB_FUN_VRES)
+void fun_vres();
+#else
 void fun_vres() { }
+#endif
 
 #endif // #if !defined(MMB4L_FUNCTION_STUBS_H)
