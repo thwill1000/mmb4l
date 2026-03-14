@@ -73,6 +73,7 @@ int gosubindex;
 const char *gosubstack[MAXGOSUB];
 
 // Defined in "common/gtest/stubs/display_stubs.c"
+extern MmResult (*mock_display_get_cursor_pos)(bool pixel, int *width, int *height);
 extern MmResult (*mock_display_get_size)(bool pixel, int *width, int *height);
 
 } // extern "C"
@@ -104,10 +105,12 @@ class PlatformParameterisedTest : public BaseTest, public testing::WithParamInte
         if (sim == kSimulateMmb4l) {
             ASSERT_EQ(kOk, graphics_buffer_create(1, 320, 240));
         }
-        mock_display_get_size= NULL;
+        mock_display_get_cursor_pos = NULL;
+        mock_display_get_size = NULL;
     }
 
     void TearDown() override {
+        mock_display_get_cursor_pos = NULL;
         mock_display_get_size = NULL;
         BaseTest::TearDown();
     }
@@ -118,6 +121,112 @@ class PlatformParameterisedTest : public BaseTest, public testing::WithParamInte
 
     OptionsSimulate sim;
 };
+
+class FunMmInfoHPosTest : public PlatformParameterisedTest { };
+
+TEST_P(FunMmInfoHPosTest, WithSurface_ReturnsPositionInPixels) {
+    const MmSurfaceId defaultSurface = DefaultSurface();
+    graphics_surface_write(defaultSurface);
+    graphics_surfaces[defaultSurface].cursor_x = 100;
+    graphics_surfaces[defaultSurface].cursor_y = 150;
+
+    char args[STRINGSIZE] = "HPOS";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(100, iret);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_P(FunMmInfoHPosTest, WithNoSurface_ReturnsPositionInPixels) {
+    graphics_surface_write(GRAPHICS_NONE);
+
+    int expected = 0;
+    if (sim == kSimulateMmb4l) {
+        // Expect position from the display/terminal
+        mock_display_get_cursor_pos = [](bool pixel, int *x, int *y) -> MmResult {
+            *x = 110;
+            *y = 120;
+            return kOk;
+        };
+        expected = 110;
+    } else {
+        // Expect position from surface 0
+        graphics_surfaces[0].cursor_x = 100;
+        graphics_surfaces[0].cursor_y = 150;
+        expected = 100;
+    }
+
+    char args[STRINGSIZE] = "HPOS";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(expected, iret);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_P(FunMmInfoHPosTest, WhenCharParameter_WithSurface_ReturnsPositionInCharacters) {
+    const MmSurfaceId defaultSurface = DefaultSurface();
+    graphics_surface_write(defaultSurface);
+    graphics_surfaces[defaultSurface].cursor_x = 100;
+    graphics_surfaces[defaultSurface].cursor_y = 150;
+
+    char args[STRINGSIZE] = "HPOS C";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(100 / 8, iret);  // font width 8
+    EXPECT_STREQ("", error_msg);
+
+    strcpy(args, "HPOS CHAR");
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(100 / 8, iret);  // font width 8
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_P(FunMmInfoHPosTest, WithCharParameter_NoSurface_ReturnsPositionInCharacters) {
+    graphics_surface_write(GRAPHICS_NONE);
+
+    int expected = 0;
+    if (sim == kSimulateMmb4l) {
+        // Expect position from the display/terminal
+        mock_display_get_cursor_pos = [](bool pixel, int *x, int *y) -> MmResult {
+            *x = 110;
+            *y = 120;
+            return kOk;
+        };
+        expected = 110;
+    } else {
+        // Expect position from surface 0
+        graphics_surfaces[0].cursor_x = 100;
+        graphics_surfaces[0].cursor_y = 150;
+        expected = 100;
+    }
+    expected /= 8;  // font width 8
+
+    char args[STRINGSIZE] = "HPOS C";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(expected, iret);
+    EXPECT_STREQ("", error_msg);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    FunMmInfoHPosTest,
+    testing::Range(
+        static_cast<OptionsSimulate>(kSimulateUnspecified + 1),
+        kSimulateCount
+    ),
+    [](const testing::TestParamInfo<OptionsSimulate>& info) {
+        std::string s = options_simulate_to_string(info.param);
+        std::replace_if(s.begin(), s.end(), [](char c) { return !std::isalnum(c); }, '_');
+        return s;
+    }
+);
 
 class FunMmInfoHResTest : public PlatformParameterisedTest { };
 
@@ -193,6 +302,112 @@ TEST_P(FunMmInfoHResTest, WithCharParameter_WithSurface_ReturnsWidthInCharacters
 INSTANTIATE_TEST_SUITE_P(
     ,
     FunMmInfoHResTest,
+    testing::Range(
+        static_cast<OptionsSimulate>(kSimulateUnspecified + 1),
+        kSimulateCount
+    ),
+    [](const testing::TestParamInfo<OptionsSimulate>& info) {
+        std::string s = options_simulate_to_string(info.param);
+        std::replace_if(s.begin(), s.end(), [](char c) { return !std::isalnum(c); }, '_');
+        return s;
+    }
+);
+
+class FunMmInfoVPosTest : public PlatformParameterisedTest { };
+
+TEST_P(FunMmInfoVPosTest, WithSurface_ReturnsPositionInPixels) {
+    const MmSurfaceId defaultSurface = DefaultSurface();
+    graphics_surface_write(defaultSurface);
+    graphics_surfaces[defaultSurface].cursor_x = 100;
+    graphics_surfaces[defaultSurface].cursor_y = 150;
+
+    char args[STRINGSIZE] = "VPOS";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(150, iret);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_P(FunMmInfoVPosTest, WithNoSurface_ReturnsPositionInPixels) {
+    graphics_surface_write(GRAPHICS_NONE);
+
+    int expected = 0;
+    if (sim == kSimulateMmb4l) {
+        // Expect position from the display/terminal
+        mock_display_get_cursor_pos = [](bool pixel, int *x, int *y) -> MmResult {
+            *x = 110;
+            *y = 120;
+            return kOk;
+        };
+        expected = 120;
+    } else {
+        // Expect position from surface 0
+        graphics_surfaces[0].cursor_x = 100;
+        graphics_surfaces[0].cursor_y = 150;
+        expected = 150;
+    }
+
+    char args[STRINGSIZE] = "VPOS";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(expected, iret);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_P(FunMmInfoVPosTest, WithCharParameter_WithSurface_ReturnsPositionInCharacters) {
+    const MmSurfaceId defaultSurface = DefaultSurface();
+    graphics_surface_write(defaultSurface);
+    graphics_surfaces[defaultSurface].cursor_x = 100;
+    graphics_surfaces[defaultSurface].cursor_y = 150;
+
+    char args[STRINGSIZE] = "VPOS C";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(150 / 12, iret);  // font height 12
+    EXPECT_STREQ("", error_msg);
+
+    strcpy(args, "VPOS CHAR");
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(150 / 12, iret);  // font height 12
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_P(FunMmInfoVPosTest, WithCharParameter_NoSurface_ReturnsPositionInCharacters) {
+    graphics_surface_write(GRAPHICS_NONE);
+
+    int expected = 0;
+    if (sim == kSimulateMmb4l) {
+        // Expect position from the display/terminal
+        mock_display_get_cursor_pos = [](bool pixel, int *x, int *y) -> MmResult {
+            *x = 110;
+            *y = 120;
+            return kOk;
+        };
+        expected = 120;
+    } else {
+        // Expect position from surface 0
+        graphics_surfaces[0].cursor_x = 100;
+        graphics_surfaces[0].cursor_y = 150;
+        expected = 150;
+    }
+    expected /= 12;  // font height 12
+
+    char args[STRINGSIZE] = "VPOS C";
+    ep = args;
+    iret = 9999;
+    fun_mminfo();
+    EXPECT_EQ(expected, iret);
+    EXPECT_STREQ("", error_msg);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    FunMmInfoVPosTest,
     testing::Range(
         static_cast<OptionsSimulate>(kSimulateUnspecified + 1),
         kSimulateCount

@@ -357,10 +357,23 @@ static void mminfo_hpos(const char *p) {
     } else if (!parse_is_end(p)) {
         ERROR_SYNTAX;
     }
-    int x, y;
-    ON_FAILURE_ERROR(display_get_cursor_pos(pixel, &x, &y));
+
+    int hpos = 0;
+    if (graphics_current) {
+        hpos = graphics_current->cursor_x;
+    } else if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        int vpos = 0;
+        display_get_cursor_pos(true, &hpos, &vpos);
+    } else {
+        hpos = graphics_surfaces[0].cursor_x;
+    }
+
+    if (!pixel) {
+        hpos /= font_width(graphics_font);
+    }
+
     g_rtn_type = T_INT;
-    g_integer_rtn = x;
+    g_integer_rtn = hpos;
 }
 
 static void mminfo_line(const char *p) {
@@ -634,10 +647,23 @@ static void mminfo_vpos(const char *p) {
     } else if (!parse_is_end(p)) {
         ERROR_SYNTAX;
     }
-    int x, y;
-    ON_FAILURE_ERROR(display_get_cursor_pos(pixel, &x, &y));
+
+    int vpos = 0;
+    if (graphics_current) {
+        vpos = graphics_current->cursor_y;
+    } else if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        int hpos = 0;
+        display_get_cursor_pos(true, &hpos, &vpos);
+    } else {
+        vpos = graphics_surfaces[0].cursor_y;
+    }
+
+    if (!pixel) {
+        vpos /= font_height(graphics_font);
+    }
+
     g_rtn_type = T_INT;
-    g_integer_rtn = y;
+    g_integer_rtn = vpos;
 }
 
 static void mminfo_writebuff(const char *p) {
