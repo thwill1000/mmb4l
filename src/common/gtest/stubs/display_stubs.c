@@ -22,7 +22,13 @@ MmResult display_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult display_cursor_left(int count, bool wrap) { return kOk; }
 MmResult display_cursor_up(int count) { return kOk; }
 MmResult display_flush() { return kOk; }
-MmResult display_get_cursor_pos(bool pixel, int *x, int *y) { return kOk; }
+
+MmResult (*mock_display_get_cursor_pos)(bool pixel, int *x, int *y);
+MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
+    return mock_display_get_cursor_pos
+        ? mock_display_get_cursor_pos(pixel, x, y)
+        : kOk;
+}
 
 MmResult (*mock_display_get_size)(bool pixel, int *width, int *height);
 MmResult display_get_size(bool pixel, int *width, int *height) {

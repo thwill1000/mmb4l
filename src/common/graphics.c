@@ -702,6 +702,11 @@ MmResult graphics_surface_destroy_all() {
 
 MmResult graphics_surface_write(MmSurfaceId id) {
     if (id == GRAPHICS_NONE) {
+        if (graphics_current && mmb_features.graphics_type != kGraphicsTypeMmb4l) {
+            // On simulated platforms stash the shared cursor location
+            graphics_surfaces[0].cursor_x = graphics_current->cursor_x;
+            graphics_surfaces[0].cursor_y = graphics_current->cursor_y;
+        }
         graphics_current = NULL;
         RETURN_RESULT(kOk);
     }
@@ -725,6 +730,15 @@ MmResult graphics_surface_write(MmSurfaceId id) {
 
     if (!graphics_surface_exists(id)) {
         RETURN_RESULT(kGraphicsInvalidWriteSurface);
+    }
+
+    if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
+        // Simulate platforms maintain a single cursor position across surfaces
+        // so when we change surface we copy the value from the old surface to
+        // the new surface.
+        MmSurface *old = graphics_current ? graphics_current: &graphics_surfaces[0];
+        graphics_surfaces[id].cursor_x = old->cursor_x;
+        graphics_surfaces[id].cursor_y = old->cursor_y;
     }
 
     graphics_current = &graphics_surfaces[id];
