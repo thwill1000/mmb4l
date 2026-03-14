@@ -417,3 +417,99 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_pair(kSimulatePicocalc,    MmSurfaceId(GRAPHICS_SURFACE_N))
     )
 );
+
+class SurfaceWriteTestP : public ::testing::TestWithParam<OptionsSimulate> {
+   protected:
+    void SetUp() override {
+        sim = GetParam();
+        graphics_init();
+        OPTIONS_SET_SIMULATE(sim);
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
+
+    OptionsSimulate sim;
+};
+
+TEST_P(SurfaceWriteTestP,
+       CursorStashBehaviourWhenIdIsNone) {
+    ASSERT_EQ(kOk, graphics_buffer_create(63, 100, 100));
+    ASSERT_EQ(kOk, graphics_surface_write(63));
+    graphics_current->cursor_x = 42;
+    graphics_current->cursor_y = 99;
+    graphics_surfaces[0].cursor_x = 7;
+    graphics_surfaces[0].cursor_y = 8;
+
+    EXPECT_EQ(kOk, graphics_surface_write(GRAPHICS_NONE));
+
+    if (sim == kSimulateMmb4l) {
+        // Does not stash cursor position on surface 0
+        EXPECT_EQ(7, graphics_surfaces[0].cursor_x);
+        EXPECT_EQ(8, graphics_surfaces[0].cursor_y);
+    } else {
+        // Stashes cursor position on surface 0
+        EXPECT_EQ(42, graphics_surfaces[0].cursor_x);
+        EXPECT_EQ(99, graphics_surfaces[0].cursor_y);
+    }
+}
+
+TEST_P(SurfaceWriteTestP,
+       CursorRestoredToNewSurfaceWhenSwitchingSurfaces) {
+    ASSERT_EQ(kOk, graphics_buffer_create(62, 100, 100));
+    ASSERT_EQ(kOk, graphics_buffer_create(63, 100, 100));
+    ASSERT_EQ(kOk, graphics_surface_write(62));
+    graphics_current->cursor_x = 42;
+    graphics_current->cursor_y = 99;
+    graphics_surfaces[63].cursor_x = 7;
+    graphics_surfaces[63].cursor_y = 8;
+
+    EXPECT_EQ(kOk, graphics_surface_write(63));
+
+    if (sim == kSimulateMmb4l) {
+        // Does not copy cursor position to new surface
+        EXPECT_EQ(7, graphics_surfaces[63].cursor_x);
+        EXPECT_EQ(8, graphics_surfaces[63].cursor_y);
+    } else {
+        // Copies cursor position from old surface to new surface
+        EXPECT_EQ(42, graphics_surfaces[63].cursor_x);
+        EXPECT_EQ(99, graphics_surfaces[63].cursor_y);
+    }
+}
+
+TEST_P(SurfaceWriteTestP,
+       CursorRestoredFromSurface0WhenCurrentIsNull) {
+    ASSERT_EQ(kOk, graphics_buffer_create(63, 100, 100));
+    // graphics_current is NULL after graphics_init(), no surface_write needed
+    graphics_surfaces[0].cursor_x = 42;
+    graphics_surfaces[0].cursor_y = 99;
+    graphics_surfaces[63].cursor_x = 7;
+    graphics_surfaces[63].cursor_y = 8;
+
+    EXPECT_EQ(kOk, graphics_surface_write(63));
+
+    if (sim == kSimulateMmb4l) {
+        // Does not change cursor position of new surface
+        EXPECT_EQ(7, graphics_surfaces[63].cursor_x);
+        EXPECT_EQ(8, graphics_surfaces[63].cursor_y);
+    } else {
+        // COpies cursor position from surface 0 to the new surface
+        EXPECT_EQ(42, graphics_surfaces[63].cursor_x);
+        EXPECT_EQ(99, graphics_surfaces[63].cursor_y);
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    AllPlatforms,
+    SurfaceWriteTestP,
+    testing::Range(
+        static_cast<OptionsSimulate>(kSimulateUnspecified + 1),
+        kSimulateCount
+    ),
+    [](const testing::TestParamInfo<OptionsSimulate>& info) {
+        std::string s = options_simulate_to_string(info.param);
+        std::replace_if(s.begin(), s.end(), [](char c) { return !std::isalnum(c); }, '_');
+        return s;
+    }
+);
