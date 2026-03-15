@@ -1413,3 +1413,195 @@ TEST_F(GraphicsBlitTest, GivenInvert_AndHorizontalFlip_AndVerticalFlip_AndTransl
     graphics_fcolour = saved_fcolour;
     graphics_bcolour = saved_bcolour;
 }
+
+class GraphicsBlitResizeTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, graphics_init());
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+
+        // 7x9 source surface with a cross-hair pattern of distinct values.
+        const MmSurfaceId srcId = 1;
+        ASSERT_EQ(kOk, graphics_buffer_create(srcId, 7, 9));
+        src = &graphics_surfaces[srcId];
+        memcpy(src->pixels, DEFAULT_SRC_PIXELS, sizeof(DEFAULT_SRC_PIXELS));
+
+        // 7x9 destination surface pre-filled with 9s so untouched pixels are
+        // easy to distinguish from copied ones.
+        const MmSurfaceId dstId = 2;
+        ASSERT_EQ(kOk, graphics_buffer_create(dstId, 7, 9));
+        dst = &graphics_surfaces[dstId];
+        memcpy(dst->pixels, DEFAULT_DST_PIXELS, sizeof(DEFAULT_DST_PIXELS));
+
+        // Small 2x2 surface for scale-up tests.
+        const MmSurfaceId src2Id = 3;
+        ASSERT_EQ(kOk, graphics_buffer_create(src2Id, 2, 2));
+        src2 = &graphics_surfaces[src2Id];
+        memcpy(src2->pixels, SRC_2_PIXELS, sizeof(SRC_2_PIXELS));
+    }
+
+    void TearDown() override {
+        ASSERT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, memory_term());
+    }
+
+    MmSurface *dst;
+    MmSurface *src;
+    MmSurface *src2;
+};
+
+// Blit with identical src/dst dimensions — should be a pixel-exact copy.
+TEST_F(GraphicsBlitResizeTest, GivenSameDimensions_CopiesExactly) {
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src, 0, 0, 7, 9,
+        dst, 0, 0, 7, 9,
+        NO_TRANSPARENCY));
+
+    EXPECT_PIXELS_EQ(DEFAULT_SRC_PIXELS, dst->pixels, dst->width, dst->height);
+}
+
+// Scale a 2x2 source up to 4x4 using nearest-neighbour sampling.
+TEST_F(GraphicsBlitResizeTest, GivenScaleUp_UsesNearestNeighbour) {
+    const MmSurfaceId outId = 4;
+    ASSERT_EQ(kOk, graphics_buffer_create(outId, 4, 4));
+    MmSurface *out = &graphics_surfaces[outId];
+
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src2, 0, 0, 2, 2,
+        out,  0, 0, 4, 4,
+        NO_TRANSPARENCY));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        1, 1, 2, 2,
+        1, 1, 2, 2,
+        3, 3, 4, 4,
+        3, 3, 4, 4 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, out->pixels, out->width, out->height);
+}
+
+// Scale the full 7x9 source down to 3x4 — nearest-neighbour sampling should
+// preserve the cross-hair pattern of distinct values.
+TEST_F(GraphicsBlitResizeTest, GivenScaleDown_SamplesCorrectly) {
+    const MmSurfaceId outId = 4;
+    ASSERT_EQ(kOk, graphics_buffer_create(outId, 3, 4));
+    MmSurface *out = &graphics_surfaces[outId];
+
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src, 0, 0, 7, 9,
+        out, 0, 0, 3, 4,
+        NO_TRANSPARENCY));
+
+    // With nearest-neighbour, output pixel (x, y) samples source pixel
+    // (floor(x * 7/3), floor(y * 9/4)):
+    //   (0,0) -> (0,0)=0  (1,0) -> (2,0)=0  (2,0) -> (4,0)=0
+    //   (0,1) -> (0,2)=0  (1,1) -> (2,2)=0  (2,1) -> (4,2)=0
+    //   (0,2) -> (0,4)=4  (1,2) -> (2,4)=4  (2,2) -> (4,4)=2
+    //   (0,3) -> (0,6)=0  (1,3) -> (2,6)=0  (2,3) -> (4,6)=0
+    // clang-format off
+    const uint32_t expected[] = {
+        0, 0, 0,
+        0, 0, 0,
+        4, 4, 2,
+        0, 0, 0 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, out->pixels, out->width, out->height);
+}
+
+// Pixels matching the transparent colour must not overwrite the destination.
+TEST_F(GraphicsBlitResizeTest, GivenTransparency_SkipsMatchingPixels) {
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src, 0, 0, 7, 9,
+        dst, 0, 0, 7, 9,
+        0 /* transparent colour = 0 */));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        4, 4, 4, 5, 2, 2, 2,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+// Blit a sub-region of the source rather than the whole surface.
+TEST_F(GraphicsBlitResizeTest, GivenSourceSubRegion_CopiesCorrectRegion) {
+    const MmSurfaceId outId = 4;
+    ASSERT_EQ(kOk, graphics_buffer_create(outId, 3, 4));
+    MmSurface *out = &graphics_surfaces[outId];
+
+    // Grab the right half of DEFAULT_SRC_PIXELS (columns 4-6, rows 5-8),
+    // which is all 0s except for the first column which is 2.
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src, 4, 5, 3, 4,
+        out, 0, 0, 3, 4,
+        NO_TRANSPARENCY));
+
+    // clang-format off
+    const uint32_t expected_corrected[] = {
+        0, 0, 0,
+        0, 0, 0,
+        0, 0, 0,
+        0, 0, 0 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected_corrected, out->pixels, out->width, out->height);
+}
+
+// When src and dst are the same surface and regions do not overlap,
+// the result should still be correct.
+TEST_F(GraphicsBlitResizeTest, GivenSameSurface_NonOverlapping_CopiesCorrectly) {
+    // Copy the left half (columns 0-2) of src into its right half (columns 4-6),
+    // same height — no overlap.
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src, 0, 0, 3, 9,
+        src, 4, 0, 3, 9,
+        NO_TRANSPARENCY));
+
+    // Column 3 (the vertical bar of 1s/3s/5) is untouched.
+    // Columns 4-6 should now mirror columns 0-2 (all 0s except row 4 = 4,4,4).
+    // clang-format off
+    const uint32_t expected[] = {
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        4, 4, 4, 5, 4, 4, 4,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, src->pixels, src->width, src->height);
+}
+
+// When src and dst are the same surface and regions overlap, the temporary
+// surface path should still produce a correct result.
+TEST_F(GraphicsBlitResizeTest, GivenSameSurface_Overlapping_CopiesCorrectly) {
+    // Shift the entire surface one column to the right (overlapping by 6 cols).
+    EXPECT_EQ(kOk, graphics_blit_resize(
+        src, 0, 0, 6, 9,
+        src, 1, 0, 6, 9,
+        NO_TRANSPARENCY));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        4, 4, 4, 4, 5, 2, 2,
+        0, 0, 0, 0, 3, 0, 0,
+        0, 0, 0, 0, 3, 0, 0,
+        0, 0, 0, 0, 3, 0, 0,
+        0, 0, 0, 0, 3, 0, 0 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, src->pixels, src->width, src->height);
+}

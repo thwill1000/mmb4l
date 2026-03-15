@@ -73,6 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_PICOMITE_HDMI_MODE   5
 #define MIN_PICOMITE_VGA_MODE    1
 #define MAX_PICOMITE_VGA_MODE    2
+#define NO_TRANSPARENCY          -1
 
 #define CMM2_BLIT_BASE   63
 #define CMM2_BLIT_COUNT  64
@@ -283,6 +284,50 @@ MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, 
  */
 MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x, int y, int w,
                                            int h, int transparent);
+
+/**
+ * Blits (copies) a rectangular region from a source surface to a destination
+ * surface, scaling the image to fit the target dimensions (using fast nearest
+ * neighbour sampling) and optionally applying transparency.
+ *
+ * The source rectangle defined by (src_x, src_y, src_w, src_h) is scaled to
+ * fill the destination rectangle defined by (dst_x, dst_y, dst_w, dst_h). If
+ * a transparent colour is specified, pixels matching that colour in the source
+ * are not copied.
+ *
+ * The source and destination surfaces may be the same. If the source and
+ * destination rectangles overlap, a temporary internal surface is used
+ * automatically to ensure correct output.
+ *
+ * @param src    Pointer to the source surface to copy from.
+ * @param src_x  X coordinate of the top-left corner of the source rectangle,
+ *               in pixels.
+ * @param src_y  Y coordinate of the top-left corner of the source rectangle,
+ *               in pixels.
+ * @param src_w  Width of the source rectangle, in pixels.
+ * @param src_h  Height of the source rectangle, in pixels.
+ * @param dst    Pointer to the destination surface to copy into. May be the
+ *               same as src.
+ * @param dst_x  X coordinate of the top-left corner of the destination
+ *               rectangle, in pixels.
+ * @param dst_y  Y coordinate of the top-left corner of the destination
+ *               rectangle, in pixels.
+ * @param dst_w  Width of the destination rectangle, in pixels. If different
+ *               from src_w, the image will be scaled horizontally to fit.
+ * @param dst_h  Height of the destination rectangle, in pixels. If different
+ *               from src_h, the image will be scaled vertically to fit.
+ * @param transparent  Colour value treated as transparent during the blit.
+ *               Pixels in the source that match this colour are skipped and
+ *               leave the destination unchanged. Pass NO_TRANSPARENCY to
+ *               disable transparency.
+ *
+ * @return  kOk on success, or a non-zero error code on failure (e.g. if
+ *          either surface pointer is NULL, or the rectangles fall outside
+ *          surface bounds).
+ */
+MmResult graphics_blit_resize(MmSurface *src, int src_x, int src_y, int src_w, int src_h,
+                              MmSurface *dst, int dst_x, int dst_y, int dst_w, int dst_h,
+                              MmGraphicsColour transparent);
 
 /**
  * Clears a graphics surface.

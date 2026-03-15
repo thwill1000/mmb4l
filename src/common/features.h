@@ -94,6 +94,7 @@ typedef struct {
     bool has_mminfo_ps2;                     // Supports MM.INFO(PS2)
     bool has_mminfo_usb;                     // Supports MM.INFO(USB)
     bool has_mminfo_res;                     // Supports MM.INFO(HRES) and MM.INFO(VRES)
+    bool uses_4bit_colour;                   // Uses 4-bit colour for surfaces (instead of 32-bit)
     int hres;
     int vres;
     MmGraphicsColour foreground;
