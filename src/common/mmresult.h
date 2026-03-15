@@ -183,6 +183,7 @@ typedef enum {
     kFileInvalidOperation,
     kFileInvalidSeekPosition,
     kOutOfMemory,
+    kOutOfSystemMemory,
     kOutOfTemporaryBuffers,
     kPreprocessorReplaceFailed,
     kNotEnoughData,

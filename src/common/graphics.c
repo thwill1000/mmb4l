@@ -2022,6 +2022,78 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
     return kOk;
 }
 
+MmResult graphics_blit_resize(MmSurface *src, int src_x, int src_y,
+                              int src_w, int src_h, MmSurface *dst,
+                              int dst_x, int dst_y, int dst_w, int dst_h,
+                              MmGraphicsColour transparent) {
+    CHECK_PARAM(src != NULL && dst != NULL);
+    CHECK_PARAM(src_w >= 1 && src_h >= 1);
+    CHECK_PARAM(dst_w >= 1 && dst_h >= 1);
+    CHECK_PARAM(src_x >= 0 && src_y >= 0);
+    CHECK_PARAM(src_x + src_w <= src->width && src_y + src_h <= src->height);
+
+    const int start_x = dst_x < 0 ? 0 : dst_x;
+    const int start_y = dst_y < 0 ? 0 : dst_y;
+    int end_x = dst_x + dst_w;
+    int end_y = dst_y + dst_h;
+    if (end_x > dst->width) end_x = dst->width;
+    if (end_y > dst->height) end_y = dst->height;
+
+    // If the destination rectangle is outside the surface or has zero width
+    // or height then this is a no-op.
+    if (start_x >= end_x || start_y >= end_y) return kOk;
+
+    // If src and dst are the same surfaces and the rectangles overlap then
+    // create and use a temporary buffer to avoid conflict.
+    uint32_t *src_copy = NULL;
+    if (src == dst) {
+        if (start_x < src_x + src_w && end_x > src_x && start_y < src_y + src_h && end_y > src_y) {
+            // Guard against src_w * src_h overflowing 32-bit integer.
+            CHECK_PARAM(src_w <= INT32_MAX / src_h);
+            src_copy = (uint32_t *)malloc(sizeof(uint32_t) * src_w * src_h);
+            if (!src_copy) return kOutOfSystemMemory;
+            for (int y = 0; y < src_h; y++) {
+                memcpy(&src_copy[y * src_w], &src->pixels[(src_y + y) * src->width + src_x],
+                       sizeof(uint32_t) * src_w);
+            }
+        }
+    }
+
+    const int64_t x_step = ((int64_t)src_w << 16) / dst_w;
+    const int64_t y_step = ((int64_t)src_h << 16) / dst_h;
+    const int64_t x_fp0 = (((int64_t)(start_x - dst_x) * src_w) << 16) / dst_w;
+    int64_t y_fp = (((int64_t)(start_y - dst_y) * src_h) << 16) / dst_h;
+
+    for (int y = start_y; y < end_y; y++, y_fp += y_step) {
+        int sy = (int)(y_fp >> 16);
+        if (sy < 0) {
+            sy = 0;
+        } else if (sy >= src_h) {
+            sy = src_h - 1;
+        }
+
+        int64_t x_fp = x_fp0;
+        for (int x = start_x; x < end_x; x++, x_fp += x_step) {
+            int sx = (int)(x_fp >> 16);
+            if (sx < 0) {
+                sx = 0;
+            } else if (sx >= src_w) {
+                sx = src_w - 1;
+            }
+
+            uint32_t pix = src_copy ? src_copy[sy * src_w + sx]
+                                    : src->pixels[(src_y + sy) * src->width + (src_x + sx)];
+
+            if (transparent != NO_TRANSPARENCY && pix == (uint32_t)transparent) continue;
+
+            dst->pixels[y * dst->width + x] = pix;
+        }
+    }
+
+    if (src_copy) free(src_copy);
+    return kOk;
+}
+
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) {
     surface->cursor_x = 0;
     surface->cursor_y = 0;
