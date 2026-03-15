@@ -122,7 +122,7 @@ void console_putc_raw_n(const char *p, int count) {
 }
 
 MmResult console_sync_cursor_pos(int timeout_ms) {
-    if (!isatty(STDIN_FILENO)) {
+    if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) ) {
         LOG_WARN("cannot read cursor position from non-TTY");
         RETURN_RESULT(kOk);
     }
