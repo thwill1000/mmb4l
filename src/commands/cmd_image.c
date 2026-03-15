@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_image.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -53,83 +53,35 @@ static MmResult cmd_image_resize(const char *p) {
     return kUnimplemented;
 }
 
-// TODO: Replace use with graphics_blit() instead ?
-static void read_buffer_fast(MmSurface *surface, uint32_t* dst, int x1, int y1, int x2,
-                                        int y2) {
-    if (x2 <= x1) SWAP(int, x1, x2);
-    if (y2 <= y1) SWAP(int, y1, y2);
-    for (int y = y1; y <= y2; ++y) {
-        uint32_t *src = surface->pixels + y * surface->width + x1;
-        for (int x = x1; x <= x2; ++x) {
-            if (x >= 0 && x < (int) surface->width && y >=0 && y < (int) surface->height) {
-                *dst++ = *src++;
-            } else {
-                dst++;
-                src++;
-            }
-        }
-    }
-}
-
 /**
  * IMAGE RESIZE_FAST x, y, width, height, new_x, new_y, new_width, new_height [, src_id] [, flag]
  */
 static MmResult cmd_image_resize_fast(const char *p) {
     getargs(&p, 19, DELIM_COMMA);
-    if (argc < 15) return kArgumentCount;
+    if (argc < 15) RETURN_RESULT(kArgumentCount);
 
-    const MmSurfaceId src_id = (argc >= 17 && *argv[16])
+    const MmSurfaceId src_id = has_arg(16)
             ? getint(argv[16], 0, GRAPHICS_MAX_ID)
             : -1;
     if (src_id != -1 && !graphics_surface_exists(src_id)) return kGraphicsInvalidReadSurface;
     MmSurface *src_surface = (src_id == -1) ? graphics_current : &graphics_surfaces[src_id];
-    MmSurface *write_surface = graphics_current;
+    MmSurface *dst_surface = graphics_current;
 
-    const int x = getint(argv[0], 0, src_surface->width - 1);
-    const int y = getint(argv[2], 0, src_surface->height - 1);
-    const int width = getint(argv[4], 1, src_surface->width - x);
-    const int height = getint(argv[6], 1, src_surface->height - y);
-    const int new_x = getint(argv[8], 0, write_surface->width - 1);
-    const int new_y = getint(argv[10], 0, write_surface->height - 1);
-    const int new_width = getint(argv[12], 1, write_surface->width - new_x);
-    const int new_height = getint(argv[14], 1, write_surface->height - new_y);
-    const bool transparent_black = (argc == 19) && (getint(argv[18], 0, 1) == 1);
+    const int sx = getint(argv[0], 0, src_surface->width - 1);
+    const int sy = getint(argv[2], 0, src_surface->height - 1);
+    const int sw = getint(argv[4], 1, src_surface->width - sx);
+    const int sh = getint(argv[6], 1, src_surface->height - sy);
+    const int dx = getint(argv[8], INT32_MIN, dst_surface->width - 1);
+    const int dy = getint(argv[10], INT32_MIN, dst_surface->height - 1);
+    const int dw = getint(argv[12], 1, dst_surface->width - dx);
+    const int dh = getint(argv[14], 1, dst_surface->height - dy);
+    const MmGraphicsColour transparent = (has_arg(18) && (getint(argv[18], 0, 1) == 1))
+            ? (MmGraphicsColour) RGB_BLACK
+            : NO_TRANSPARENCY;
 
-    if (width == new_width && height == new_height && src_surface != write_surface) {
-        return graphics_blit(x, y, new_x, new_y, width, height, src_surface, write_surface,
-                             transparent_black ? 4 : 0, RGB_BLACK);
-    } else if (width == new_width && src_surface != write_surface) {
-        const float y_ratio = ((float) height / (float) new_height);
-        for (int yy = 0; yy < new_height; ++yy) {
-            int py = (yy * y_ratio) + y;
-            return graphics_blit(x, py, new_x, new_y + yy, width, 1, src_surface, write_surface,
-                                 transparent_black ? 4 : 0, RGB_BLACK);
-        }
-    } else {
-        const int x_ratio = (int)((float) width / (float) new_width * (float)65536.0);
-        const int y_ratio = (int)((float) height / (float) new_height * (float)65536.0);
-        uint32_t *buffer = calloc(width * height, sizeof(uint32_t));
-        read_buffer_fast(src_surface, buffer, x, y, x + width - 1, y + height - 1);
-        uint32_t *start1 = write_surface->pixels + new_y * write_surface->width + new_x;
-        uint32_t *cout1;
-        for (int i = 0; i < new_height; i++) {
-            cout1 = start1;
-            int py = (i * y_ratio) >> 16;
-            for (int j = 0; j < new_width; j++) {
-                int px = (j * x_ratio) >> 16;
-                uint32_t c = buffer[px + py * width];
-                if (!transparent_black || c) {
-                    *cout1 = c;
-                }
-                cout1++;
-            }
-            start1 += write_surface->width;
-        }
-        free(buffer);
-        write_surface->dirty = true;
-    }
-
-    return kOk;
+    return graphics_blit_resize(src_surface, sx, sy, sw, sh,
+                                dst_surface, dx, dy, dw, dh,
+                                transparent);
 }
 
 static MmResult cmd_image_rotate(const char *p) {
