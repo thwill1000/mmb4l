@@ -198,8 +198,8 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
 
     bool start = true;
     if (buf) {
-        int64_t i;
-        for (i = 0; i < (int64_t) *sz;) {
+        int64_t len;
+        for (len = 0; len < (int64_t) *sz;) {
             int ch = fgetc(f);
             if (ch == EOF) break;
             if (start) {
@@ -210,15 +210,14 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
                     start = false;
                 }
             }
-            buf[i++] = (char) ch;
+            buf[len++] = (char) ch;
         }
-        i--;
 
         // Trim trailing whitespace from the captured output.
-        for (; i > -1; i--) {
-            if (!isspace(buf[i])) break;
+        for (; len > 0; len--) {
+            if (!isspace(buf[len - 1])) break;
         }
-        *sz = i + 1;
+        *sz = len;
     } else {
         for (;;) {
             int ch = fgetc(f);
