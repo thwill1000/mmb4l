@@ -201,6 +201,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
         case kOutOfMemory:                return "Out of memory";
+        case kOutOfSystemMemory:          return "Out of system memory";
         case kOutOfTemporaryBuffers:      return "Out of temporary memory buffers";
         case kNotEnoughData:              return "Not enough data";
         case kPreprocessorReplaceFailed:  return "Preprocessor string replacement failed";
