@@ -147,7 +147,7 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
 
             if (verbose) {
                 if (total > 0) display_cursor_up(1);
-                sprintf(sbuf, "Sent %d bytes\n", total);
+                sprintf(sbuf, "Sent %d bytes\r\n", total);
                 display_puts(sbuf);
             }
 
