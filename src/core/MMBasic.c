@@ -1158,16 +1158,42 @@ void tokenise(int console) {
  the main functions are getnumber(), getinteger() and getstring()
 ********************************************************************************************************************************************/
 
-
-
-// A convenient way of evaluating an expression
-// it takes two arguments:
-//     p = pointer to the expression in memory (leading spaces will be skipped)
-//     t = pointer to the type
-//         if *t = T_STR or T_NBR or T_INT will throw an error if the result is not the correct type
-//         if *t = T_NOTYPE it will not throw an error and will return the type found in *t
-// it returns with a void pointer to a float, integer or string depending on the value returned in *t
-// this will check that the expression is terminated correctly and throw an error if not
+/**
+ * Convenience wrapper around evaluate() that returns the result as a
+ * type-dispatched void pointer instead of writing to separate float,
+ * integer and string output parameters.
+ *
+ * Suitable for call sites that need only the result value and its type, and
+ * do not need to know how far through the token stream parsing advanced.
+ * Call sites that need the post-expression position (e.g. to continue
+ * parsing the same line) should call evaluate() directly.
+ *
+ * The result is stored in one of three function-scoped static variables, so
+ * the returned pointer remains valid until the next call to DoExpression().
+ * This function is therefore not reentrant.
+ *
+ * The expression must be correctly terminated (NUL, comma, closing
+ * parenthesis or comment character); an error is thrown if it is not.
+ * To suppress that check use evaluate() directly with the E_NOERROR flag.
+ *
+ * @param[in]     p  Pointer to the start of the expression in tokenised
+ *                   memory.  Leading spaces are skipped automatically.
+ * @param[in,out] t  On entry, an optional type constraint:
+ *                     - T_NBR, T_INT or T_STR: throws an error if the
+ *                       expression does not yield that type (coercion between
+ *                       T_NBR and T_INT is performed where possible).
+ *                     - T_NOTYPE: accepts any type without error.
+ *                   On exit, holds the actual type of the result (T_NBR,
+ *                   T_INT or T_STR).
+ *
+ * @return A void pointer to the result, which must be cast by the caller
+ *         according to the type in @p t on exit:
+ *           - T_NBR: cast to MMFLOAT *
+ *           - T_INT: cast to MMINTEGER *
+ *           - T_STR: cast to char * (MMBasic length-prefixed string)
+ *         Returns NULL only if an internal fault is detected, in which case
+ *         an error will also have been thrown.
+ */
 void *DoExpression(const char *p, int *t) {
     static MMFLOAT f;
     static MMINTEGER i64;
@@ -1182,14 +1208,38 @@ void *DoExpression(const char *p, int *t) {
     return NULL;                                                    // to keep the compiler happy
 }
 
-
-
-// evaluate an expression.  p points to the start of the expression in memory
-// returns either the float or string in the pointer arguments
-// *t points to an integer which holds the type of variable we are looking for
-//  if *t = T_STR or T_NBR or T_INT will throw an error if the result is not the correct type
-//  if *t = T_NOTYPE it will not throw an error and will return the type found in *t
-// this will check that the expression is terminated correctly and throw an error if not.  flags & E_NOERROR will suppress that check
+/**
+ * Evaluates a tokenised MMBasic expression.
+ *
+ * Parses and evaluates the expression beginning at @p p, dispatching through
+ * getvalue() and doexpr() to handle operator precedence recursively.  On
+ * return, exactly one of @p fa, @p ia or @p sa will hold the result, depending
+ * on the type recorded in @p ta.
+ *
+ * @param[in]     p     Pointer to the start of the expression in tokenised
+ *                      memory.  Leading spaces are skipped automatically.
+ * @param[out]    fa    Receives the result when the expression yields T_NBR,
+ *                      or the float equivalent when a T_INT result is coerced
+ *                      to T_NBR by the type hint in @p ta.
+ * @param[out]    ia    Receives the result when the expression yields T_INT,
+ *                      or the integer equivalent when a T_NBR result is coerced
+ *                      to T_INT by the type hint in @p ta.
+ * @param[out]    sa    Receives a pointer to the result string when the
+ *                      expression yields T_STR.
+ * @param[in,out] ta    On entry, an optional type constraint:
+ *                        - T_NBR, T_INT or T_STR: throws an error if the
+ *                          expression does not yield that type (coercion between
+ *                          T_NBR and T_INT is performed where possible).
+ *                        - T_NOTYPE: accepts any type without error.
+ *                      On exit, holds the actual type of the result (T_NBR,
+ *                      T_INT or T_STR).
+ * @param[in]     flags Behavioural flags.  Pass E_NOERROR to suppress the check
+ *                      that the expression is followed by a valid terminator
+ *                      (NUL, comma, closing parenthesis or comment character).
+ *
+ * @return Pointer to the first token in the stream immediately after the end
+ *         of the expression, ready to be passed to the next parser call.
+ */
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flags) {
     FunctionToken o;
     int t = *ta;
@@ -1284,9 +1334,56 @@ char *getCstring(const char *p) {
     return tp;
 }
 
-
-
-// recursively evaluate an expression observing the rules of operator precedence
+/**
+ * Recursively evaluates a binary operator and its right-hand operand,
+ * respecting operator precedence.
+ *
+ * On entry the caller supplies the left-hand value (in @p fa / @p ia / @p sa),
+ * its type (in @p ta), and the operator that binds it to the right (in @p oo).
+ * doexpr() then calls getvalue() to fetch the right-hand operand and peeks at
+ * the operator beyond it (@p o2).  Two cases arise:
+ *
+ *   - If @p o2 has lower or equal precedence to @p o1, the pending operator
+ *     @p o1 is applied immediately: the two operands are coerced to a common
+ *     type as required by @p o1, the operator function is invoked via the
+ *     token dispatch table, and the result is written back through @p fa /
+ *     @p ia / @p sa and @p ta.  @p o2 is returned through @p oo so that
+ *     evaluate()'s loop can continue with the next operator.
+ *
+ *   - If @p o2 has higher precedence than @p o1, doexpr() recurses with the
+ *     right-hand value and @p o2 as the new left-hand state, effectively
+ *     binding the higher-precedence operator first before returning to apply
+ *     @p o1.
+ *
+ * Type coercion rules applied before dispatching the operator:
+ *   - Operator requires T_NBR only: any T_INT operand is widened to T_NBR.
+ *   - Operator requires T_INT only: any T_NBR operand is narrowed via
+ *     FloatToInt64().
+ *   - Operator accepts T_NBR | T_INT: if the operands are mixed, the T_INT
+ *     operand is widened to T_NBR.
+ *
+ * @param[in]     p   Pointer to the token immediately after the operator
+ *                    consumed by the caller (i.e. the start of the right-hand
+ *                    operand).  Leading spaces are skipped by getvalue().
+ * @param[in,out] fa  On entry, the left-hand float operand.  On exit, the
+ *                    float result of applying operator @p oo (via the global
+ *                    fret set by the operator function).
+ * @param[in,out] ia  On entry, the left-hand integer operand.  On exit, the
+ *                    integer result of applying operator @p oo (via iret).
+ * @param[in,out] sa  On entry, the left-hand string operand.  On exit, the
+ *                    string result of applying operator @p oo (via sret).
+ * @param[in,out] oo  On entry, the pending binary operator token (o1) that
+ *                    binds the left-hand value to the right.  On exit, the
+ *                    next operator token (o2) found after the right-hand
+ *                    operand, or E_END if no further operator exists.
+ * @param[in,out] ta  On entry, the type of the left-hand operand (T_NBR,
+ *                    T_INT or T_STR), masked via TypeMask().  On exit, the
+ *                    type of the result after the operator has been applied.
+ *
+ * @return Pointer to the first token in the stream after the right-hand
+ *         operand and the operator written to @p oo, ready for the next
+ *         iteration of evaluate()'s loop or a further recursive call.
+ */
 const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *ta) {
     MMFLOAT fa1, fa2;
     MMINTEGER ia1, ia2;
@@ -1338,10 +1435,44 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Functio
     }
 }
 
-
-
-// get a value, either from a constant, function or variable
-// also returns the next operator to the right of the value or E_END if no operator
+/**
+ * Fetches a single value from the token stream.
+ *
+ * Reads the next atomic value starting at @p p and returns it together with
+ * the operator token that immediately follows it.  The value may be any of:
+ *   - a unary prefix operator (NOT, INV, unary +, unary -) applied
+ *     recursively to the next value;
+ *   - a built-in function call (T_FUN with arguments, or T_FNA without);
+ *   - a user-defined function call (identifier followed by parentheses);
+ *   - a plain variable reference;
+ *   - a decimal, floating-point, or based integer literal (&H, &O, &B);
+ *   - a parenthesised sub-expression (delegated back to evaluate());
+ *   - a quoted string constant (converted to MMBasic string format via CtoM()).
+ *
+ * This function is the leaf-level parser called by doexpr() and evaluate() to
+ * obtain operands.  It does not perform type constraint checking; that is the
+ * responsibility of evaluate().
+ *
+ * @param[in]  p   Pointer to the start of the value in tokenised memory.
+ *                 Leading spaces are skipped automatically.
+ * @param[out] fa  Receives the result as a float (MMFLOAT) when the value
+ *                 yields T_NBR.
+ * @param[out] ia  Receives the result as a 64-bit integer (MMINTEGER) when
+ *                 the value yields T_INT.  Also used as an intermediate when
+ *                 coercing a T_NBR result through the INV operator.
+ * @param[out] sa  Receives a pointer to the result string when the value
+ *                 yields T_STR, or to temporary memory allocated for a string
+ *                 constant or function return value.
+ * @param[out] oo  Receives the token of the binary operator immediately
+ *                 following the value, or E_END if no operator is present.
+ *                 This is consumed by doexpr() to drive the precedence loop.
+ * @param[out] ta  Receives the type of the value that was fetched: T_NBR,
+ *                 T_INT or T_STR.  Always written on exit; never read on entry.
+ *
+ * @return Pointer to the first token in the stream after the value and its
+ *         trailing operator (i.e. after the token written to @p oo), ready
+ *         for the next call to doexpr().
+ */
 const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, FunctionToken* oo, int* ta) {
     MMFLOAT f = 0;
     MMINTEGER i64 = 0;

@@ -116,7 +116,26 @@ void op_divint(void) {
     iret = iarg1 / iarg2;
 }
 
-
+/**
+ * Implements the MMBasic addition and string concatenation operator (+).
+ *
+ * Operates on the global argument variables set by doexpr() prior to
+ * dispatch, and writes its result to the corresponding global return
+ * variable.  The type of operation performed is determined by @p targ:
+ *
+ *   - T_NBR: adds farg1 and farg2, result written to fret.
+ *   - T_INT: adds iarg1 and iarg2, result written to iret.
+ *   - T_STR: concatenates the MMBasic strings sarg1 and sarg2 into a
+ *            newly allocated temporary string, result written to sret.
+ *            Throws kStringTooLong if the combined length would exceed
+ *            MAXSTRLEN.
+ *
+ * This function takes no parameters and returns no value directly; all
+ * operands and results are communicated through the global state variables
+ * farg1, farg2, iarg1, iarg2, sarg1, sarg2, targ, fret, iret and sret.
+ * It is intended to be called exclusively via the token dispatch table
+ * (tokenfunction()), never directly.
+ */
 void op_add(void) {
   if(targ & T_NBR)
       fret = farg1 + farg2;
