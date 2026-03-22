@@ -74,14 +74,14 @@ void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"
 
-#define CMD_CSUB        "\x94\x80"
-#define CMD_DATA        "\x96\x80"
-#define CMD_DEFINEFONT  "\x97\x80"
-#define CMD_DIM         "\x99\x80"
-#define CMD_END         "\x9F\x80"
-#define CMD_LET         "\xC1\x80"
-#define CMD_MMDEBUG     "\xCE\x80"
-#define CMD_PRINT       "\xDD\x80"
+#define CMD_CSUB        "\x95\x80"
+#define CMD_DATA        "\x97\x80"
+#define CMD_DEFINEFONT  "\x98\x80"
+#define CMD_DIM         "\x9A\x80"
+#define CMD_END         "\xA0\x80"
+#define CMD_LET         "\xC2\x80"
+#define CMD_MMDEBUG     "\xCF\x80"
+#define CMD_PRINT       "\xDE\x80"
 #if defined(USE_TWO_BYTE_TOKENS)
 #define OP_EQUALS       "\xF7\x80"
 #else
