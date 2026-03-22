@@ -64,6 +64,7 @@ const struct s_tokentbl commandtbl[] = {
     { "AutoSave",    T_CMD,              0, cmd_autosave },
     { "Blit",        T_CMD,              0, cmd_blit     },
     { "Box",         T_CMD,              0, cmd_box      },
+    { "Breakpoint",  T_CMD,              0, cmd_breakpoint },
     { "Call",        T_CMD,              0, cmd_call     },
     { "Case Else",   T_CMD,              0, cmd_case     },
     { "Case",        T_CMD,              0, cmd_case     },

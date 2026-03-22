@@ -72,6 +72,7 @@ void cmd_arc(void);
 void cmd_autosave(void);
 void cmd_blit(void);
 void cmd_box(void);
+void cmd_breakpoint(void);
 void cmd_call(void);
 void cmd_case(void);
 void cmd_cfunction(void);

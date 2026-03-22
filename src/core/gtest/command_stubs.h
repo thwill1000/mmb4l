@@ -10,6 +10,7 @@ void cmd_arc() { }
 void cmd_autosave() { }
 void cmd_blit() { }
 void cmd_box() { }
+void cmd_breakpoint() { }
 void cmd_call() { }
 void cmd_case() { }
 void cmd_cfunction() { }
