@@ -133,6 +133,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_arc.c
     src/commands/cmd_blit.c
     src/commands/cmd_box.c
+    src/commands/cmd_breakpoint.c
     src/commands/cmd_call.c
     src/commands/cmd_case.c
     src/commands/cmd_cfunction.c
