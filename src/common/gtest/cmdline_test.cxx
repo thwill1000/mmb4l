@@ -162,6 +162,61 @@ TEST_F(CmdLineTest, Parse_GivenInteractiveAndVersionFlags) {
     EXPECT_STREQ("", args.directory);
 }
 
+TEST_F(CmdLineTest, Parse_GivenLogFlag) {
+    int argc = 3;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = "-l";
+    argv[2] = "Debug";
+    CmdLineArgs args = { 0 };
+
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
+    EXPECT_STREQ("Debug", args.log);
+    EXPECT_EQ(1, args.show_prompt);
+
+    argv[1] = "--log";
+    argv[2] = "warning";
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
+    EXPECT_STREQ("warning", args.log);
+
+    argc = 2;
+    argv[1] = "-l=Info";
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
+    EXPECT_STREQ("Info", args.log);
+
+    argv[1] = "--log=Error";
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
+    EXPECT_STREQ("Error", args.log);
+}
+
+TEST_F(CmdLineTest, Parse_GivenLogFlagInvalidValue_Fails) {
+    int argc = 3;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = "--log";
+    argv[2] = "Trace";
+    CmdLineArgs args = { 0 };
+
+    EXPECT_EQ(kInvalidValue, cmdline_parse(argc, argv, &args));
+
+    argc = 2;
+    argv[1] = "-l=verbose";
+    EXPECT_EQ(kInvalidValue, cmdline_parse(argc, argv, &args));
+}
+
+TEST_F(CmdLineTest, Parse_GivenLogFlagMissingValue_Fails) {
+    int argc = 2;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = "-l";
+    CmdLineArgs args = { 0 };
+
+    EXPECT_EQ(kInvalidCommandLine, cmdline_parse(argc, argv, &args));
+
+    argv[1] = "--log";
+    EXPECT_EQ(kInvalidCommandLine, cmdline_parse(argc, argv, &args));
+}
+
 TEST_F(CmdLineTest, Parse_GivenProgramArgument) {
     int argc = 2;
     const char *argv[10];

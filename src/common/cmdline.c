@@ -57,6 +57,14 @@ static int is_prefix(const char *pre, const char *str) {
     return strncmp(pre, str, strlen(pre)) == 0;
 }
 
+static int is_valid_log_level(const char *s) {
+    return cstring_casecmp(s, "None") == 0
+           || cstring_casecmp(s, "Debug") == 0
+           || cstring_casecmp(s, "Info") == 0
+           || cstring_casecmp(s, "Warning") == 0
+           || cstring_casecmp(s, "Error") == 0;
+}
+
 MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
 
     // TODO: should perhaps be rewritten to use getopt().
@@ -90,6 +98,18 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
             out->help = 1;
         } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interactive") == 0) {
             out->show_prompt = 1;
+        } else if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--log") == 0) {
+            if (i == argc - 1) return kInvalidCommandLine;
+            if (FAILED(cstring_cpy(out->log, argv[++i], sizeof(out->log)))) return kStringTooLong;
+            if (!is_valid_log_level(out->log)) return kInvalidValue;
+        } else if (is_prefix("-l=", argv[i])) {
+            if (FAILED(cstring_cpy(out->log, argv[i] + strlen("-l="), sizeof(out->log))))
+                return kStringTooLong;
+            if (!is_valid_log_level(out->log)) return kInvalidValue;
+        } else if (is_prefix("--log=", argv[i])) {
+            if (FAILED(cstring_cpy(out->log, argv[i] + strlen("--log="), sizeof(out->log))))
+                return kStringTooLong;
+            if (!is_valid_log_level(out->log)) return kInvalidValue;
         } else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--simulate") == 0) {
             if (i == argc - 1) return kInvalidCommandLine;
             const int s = options_simulate_from_string(argv[++i]);
@@ -147,7 +167,9 @@ void cmdline_print_usage() {
     fprintf(stderr, "  -i, --interactive  if started with a <file.bas> then return to the MMBasic\n");
     fprintf(stderr, "                     prompt when the program ends or reports an error instead\n");
     fprintf(stderr, "                     of automatically exiting.\n");
+    fprintf(stderr, "  -l <level>         set initial log level: None, Debug, Info, Warning, Error.\n");
+    fprintf(stderr, "  --log <level>\n");
     fprintf(stderr, "  -s <device>        simulate the specified device.\n");
-    fprintf(stderr, "  --simulate <device\n");
+    fprintf(stderr, "  --simulate <device>\n");
     fprintf(stderr, "  -v, --version      display version and copyright and exit.\n");
 }
