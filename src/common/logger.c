@@ -221,6 +221,9 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
         case kLoggerLevelFatal:
             fprintf(logger, "FATAL:   ");
             break;
+        case kLoggerLevelNone:
+            fprintf(logger, "NONE:    ");
+            break;
     }
     va_list args;
     va_start(args, format);

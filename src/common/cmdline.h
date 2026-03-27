@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
     char help;
+    char log[16];
     char show_prompt;
     char version;
     char run_cmd[INPBUF_SIZE];
