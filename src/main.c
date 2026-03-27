@@ -378,6 +378,7 @@ int main(int argc, char *argv[]) {
 #if !defined(__ANDROID__) && !defined(NDEBUG)
     ON_FAILURE_EXIT(logger_init("mmb4l.log"));
 #endif
+    logger_set_min_level(kLoggerLevelInfo);
 
     // LOG_FN_ENTRY("argc=%d, argv=0x%" PRIxPTR, argc, (uintptr_t) argv);
     {
@@ -427,6 +428,14 @@ int main(int argc, char *argv[]) {
 
     init_mmbasic_config_dir();
     init_options();
+    if (mmb_args.log[0] != '\0') {
+        result = options_set_string_value(&mmb_options, kOptionLog, mmb_args.log);
+        if (FAILED(result)) {
+            fprintf(stderr, "Invalid --log value '%s': %s\n", mmb_args.log, mmresult_to_string(result));
+            cmdline_print_usage();
+            exit(EX_FAIL);
+        }
+    }
 
 #if defined(__ANDROID__)
     mmb_state.default_simulate = kSimulatePicocalc;
