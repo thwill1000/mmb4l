@@ -55,7 +55,8 @@ typedef enum {
     kLoggerLevelInfo,
     kLoggerLevelWarning,
     kLoggerLevelError,
-    kLoggerLevelFatal
+    kLoggerLevelFatal,
+    kLoggerLevelNone
 } LoggerLevel;
 
 static const bool logger_in_function = false;
@@ -70,6 +71,9 @@ MmResult logger_init(const char *filename);
 
 /** Terminates the logger. */
 MmResult logger_term(void);
+
+/** Sets the minimum log level emitted at runtime. */
+void logger_set_min_level(LoggerLevel level);
 
 /** Writes a message to the log. */
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
