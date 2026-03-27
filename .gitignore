@@ -1,0 +1,9 @@
+# Build outputs
+/build/
+/dist/
+
+# Android project artifacts
+/android/
+
+# Runtime logs
+**/mmb4l.log
