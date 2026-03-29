@@ -87,6 +87,7 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("", options->fn_keys[10]);
     EXPECT_STREQ("", options->fn_keys[11]);
     EXPECT_EQ(kTitle, options->list_case);
+    EXPECT_EQ(kLogInfo, options->log);
     EXPECT_STREQ("", options->search_path);
     EXPECT_EQ(true, options->syntax_highlight);
     EXPECT_EQ(4, options->tab);
@@ -107,6 +108,7 @@ static void given_non_default_options(Options *options) {
     options->angle = kDegrees;
     strcpy(options->editor, "Vi");
     options->list_case = kLower;
+    options->log = kLogDebug;
     strcpy(options->search_path, "/foo/bar");
     options->simulate = kSimulateCmm2;
     options->tab = 8;
@@ -130,6 +132,7 @@ TEST_F(OptionsTest, HasDefaultValue) {
             case kOptionAngle:
             case kOptionEditor:
             case kOptionListCase:
+            case kOptionLog:
             case kOptionSearchPath:
             case kOptionSimulate:
             case kOptionTab:
@@ -1114,6 +1117,32 @@ TEST_F(OptionsTest, GetStringValue_ForListCase) {
     EXPECT_STREQ("Upper", svalue);
 }
 
+TEST_F(OptionsTest, GetStringValue_ForLog) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.log = kLogNone;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("None", svalue);
+
+    options.log = kLogDebug;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Debug", svalue);
+
+    options.log = kLogInfo;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Info", svalue);
+
+    options.log = kLogWarning;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Warning", svalue);
+
+    options.log = kLogError;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Error", svalue);
+}
+
 TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     Options options;
     options_init(&options);
@@ -1620,6 +1649,35 @@ TEST_F(OptionsTest, SetStringValue_ForListCase) {
     EXPECT_EQ(kLower, options.list_case);
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionListCase, "wombat"));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForLog) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "None"));
+    EXPECT_EQ(kLogNone, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Debug"));
+    EXPECT_EQ(kLogDebug, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Info"));
+    EXPECT_EQ(kLogInfo, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Warning"));
+    EXPECT_EQ(kLogWarning, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Error"));
+    EXPECT_EQ(kLogError, options.log);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "dEBUg"));
+    EXPECT_EQ(kLogDebug, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "warnING"));
+    EXPECT_EQ(kLogWarning, options.log);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionLog, "Trace"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForSearchPath) {

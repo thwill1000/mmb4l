@@ -119,6 +119,15 @@ static const NameOrdinalPair options_list_case_map[] = {
     { NULL,    -1 }
 };
 
+static const NameOrdinalPair options_log_map[] = {
+    { "None",  kLogNone },
+    { "Debug", kLogDebug },
+    { "Info",  kLogInfo },
+    { "Warning", kLogWarning },
+    { "Error", kLogError },
+    { NULL,    -1 }
+};
+
 const NameOrdinalPair options_simulate_map[] = {
     { "Unspecified",       kSimulateUnspecified },
     { "MMB4L",             kSimulateMmb4l },
@@ -163,6 +172,7 @@ OptionsDefinition options_definitions[] = {
     { "F10",         kOptionF10,          kOptionTypeString,  true,  "RUN \"\"\202",            NULL },
     { "F11",         kOptionF11,          kOptionTypeString,  true,  "",                        NULL },
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
+    { "Log",         kOptionLog,          kOptionTypeString,  false, "Info",                    options_log_map },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
     { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
     { "Syntax Highlight", kOptionSyntaxHighlight, kOptionTypeBoolean, true, "On",               NULL },
@@ -751,6 +761,14 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
                     svalue);
             break;
 
+        case kOptionLog:
+            assert(options->log >= kLogNone && options->log <= kLogError);
+            options_ordinal_to_name(
+                options_definitions[kOptionLog].enum_map,
+                options->log,
+                svalue);
+            break;
+
         case kOptionSearchPath:
             strcpy(svalue, options->search_path);
             break;
@@ -902,6 +920,35 @@ static MmResult options_set_list_case(Options *options, const char *svalue) {
     return kInvalidValue;
 }
 
+static MmResult options_set_log(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_log_map; entry->name; ++entry) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
+            options->log = entry->ordinal;
+            switch (options->log) {
+                case kLogNone:
+                    logger_set_min_level(kLoggerLevelNone);
+                    break;
+                case kLogDebug:
+                    logger_set_min_level(kLoggerLevelDebug);
+                    break;
+                case kLogInfo:
+                    logger_set_min_level(kLoggerLevelInfo);
+                    break;
+                case kLogWarning:
+                    logger_set_min_level(kLoggerLevelWarning);
+                    break;
+                case kLogError:
+                    logger_set_min_level(kLoggerLevelError);
+                    break;
+                default:
+                    return kInvalidValue;
+            }
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
 static MmResult options_set_search_path(Options *options, const char *svalue) {
     // LOG_FN_ENTRY("options=%p, svalue=\"%s\"", options, svalue);
 
@@ -1037,6 +1084,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
         case kOptionF11:
         case kOptionF12:          return options_set_fn_key(options, id, svalue);
         case kOptionListCase:     return options_set_list_case(options, svalue);
+        case kOptionLog:          return options_set_log(options, svalue);
         case kOptionSearchPath:   return options_set_search_path(options, svalue);
         case kOptionSimulate:     return options_set_simulate(options, svalue);
 
