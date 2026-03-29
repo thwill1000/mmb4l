@@ -56,6 +56,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 FILE *logger = NULL;
 
+const char *logger_fmt_string(const unsigned char *src, ptrdiff_t src_len) {
+    static const char hex[] = "0123456789abcdef";
+    static const char kNull[] = "<null>";
+    static char buf[4][1024];       // ring buffer of 4 slots
+    static int buf_index = 0;
+
+    buf_index = (buf_index + 1) % 4;
+    char *dst = buf[buf_index];
+    const size_t dst_size = sizeof(buf[0]);
+
+    if (!src) return kNull;
+
+    if (src_len == 0 || src_len < -1) {
+        *dst = '\0';
+        return dst;
+    }
+
+    char *out = dst;
+    const char *const out_end = dst + dst_size - 1;
+    const bool is_cstring = (src_len == -1);
+    for (ptrdiff_t i = 0; out < out_end; i++) {
+        if (!is_cstring && i >= src_len) break;
+        const unsigned char ch = src[i];
+        if (is_cstring && ch == '\0') break;
+
+        if (ch >= 0x20 && ch <= 0x7E) {
+            *out++ = (char) ch;
+        } else {
+            if (out_end - out < 4) break;
+            *out++ = '[';
+            *out++ = hex[(ch >> 4) & 0x0F];
+            *out++ = hex[ch & 0x0F];
+            *out++ = ']';
+        }
+    }
+
+    *out = '\0';
+    return dst;
+}
+
 MmResult logger_init(const char *filename) {
     if (filename && filename[0] != '\0') {
         // Open the specified log file.
