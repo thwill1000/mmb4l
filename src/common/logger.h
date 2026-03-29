@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_LOGGER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "mmresult.h"
 
@@ -73,6 +74,39 @@ MmResult logger_term(void);
 /** Writes a message to the log. */
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
                   const char *format, ...);
+
+/**
+ * Escapes string/byte data for log output using mixed mode:
+ * printable ASCII bytes (0x20-0x7E) are emitted as-is,
+ * other bytes are emitted as [NN].
+ *
+ * Uses an internal 1024-byte static buffer for output.
+ *
+ * @param src      Source bytes/string.
+ * @param src_len  Number of bytes to read, or -1 to treat src as a C-string.
+ * @return         Pointer to internal static buffer containing escaped text.
+ */
+const char *logger_fmt_string(const unsigned char *src, ptrdiff_t src_len);
+
+/**
+ * Formats a C-string (NUL terminated) using mixed escaping.
+ *
+ * @return Pointer to internal static buffer containing escaped text.
+ */
+#define FMT_CSTRING(src) \
+    logger_fmt_string((const unsigned char *)(src), -1)
+
+/**
+ * Formats a Pascal/MMBasic string (length in first byte) using mixed escaping.
+ *
+ * @return Pointer to internal static buffer containing escaped text.
+ */
+static inline const char *logger_fmt_pstring(const unsigned char *src) {
+    return logger_fmt_string(src ? src + 1 : NULL, src ? (ptrdiff_t)src[0] : 0);
+}
+
+#define FMT_PSTRING(src) \
+    logger_fmt_pstring((const unsigned char *)(src))
 
 #define LOG_INFO(...)  logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __func__, __VA_ARGS__)
 #define LOG_WARN(...)  logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __func__, __VA_ARGS__)
