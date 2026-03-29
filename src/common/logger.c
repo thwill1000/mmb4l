@@ -42,10 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
+
+#include "cstring.h"
+#include "file.h"
+#include "mmtime.h"
 
 #if defined(__ANDROID__)
 #include <android/log.h>
@@ -107,8 +111,34 @@ const char *logger_fmt_string(const unsigned char *src, ptrdiff_t src_len) {
 
 MmResult logger_init(const char *filename) {
     if (filename && filename[0] != '\0') {
-        // Open the specified log file.
-        logger = fopen(filename, "a");
+        // If the log file already exists, rotate it by renaming it to
+        // <base>_<last_modified_datetime>.<ext> before opening a fresh one.
+        FileInfo info;
+        if (file_info(filename, &info) == kOk && info.exists) {
+            struct tm *tm_info = localtime(&info.mtime);
+            char ts[20];  // "YYYYMMDD_HHMMSS\0"
+            strftime(ts, sizeof(ts), "%Y%m%d_%H%M%S", tm_info);
+
+            // Split filename into base and extension, being careful to ignore
+            // dots that appear only in directory components of the path.
+            const char *dot = strrchr(filename, '.');
+            const char *slash = strrchr(filename, PATH_SEPARATOR);
+            char rotated[PATH_MAX];
+            if (dot && (!slash || dot > slash)) {
+                // Has an extension: <base>_<timestamp>.<ext>
+                size_t base_len = (size_t)(dot - filename);
+                const char *ext = dot + 1;  // skip the '.'
+                snprintf(rotated, sizeof(rotated), "%.*s_%s.%s",
+                         (int)base_len, filename, ts, ext);
+            } else {
+                // No extension: <filename>_<timestamp>
+                snprintf(rotated, sizeof(rotated), "%s_%s", filename, ts);
+            }
+            file_rename(filename, rotated);
+        }
+
+        // Open a fresh log file.
+        logger = fopen(filename, "w");
         if (!logger) {
             return mmresult_ex(errno, "Failed to open log file '%s': %s\n", filename,
                                strerror(errno));
@@ -159,11 +189,9 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
     }
 
     // Get the last element of the file path to avoid printing the full path.
-    const char *filename = strrchr(file, '/');
-    if (filename == NULL) {
-        filename = file;  // No path, use the full file name.
-    } else {
-        filename++;  // Skip the '/' character.
+    char filename[NAME_MAX];
+    if (file_basename(file, filename, sizeof(filename)) != kOk) {
+        cstring_cpy(filename, file, sizeof(filename));
     }
     
     // Format the message with file, line, and function prefix
@@ -186,22 +214,20 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
     if (level < logger_min_level) return;
 
     // Get a timestamp for the log entry.
-    time_t now = time(NULL);
+    time_t now = (time_t) NANOSECONDS_TO_SECONDS(mmtime_now_ns());
     struct tm *tm_info = localtime(&now);
     char time_buffer[26];
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", tm_info);
     fprintf(logger, "[%s] ", time_buffer);
 
     // Get the last element of the file path to avoid printing the full path.
-    const char *filename = strrchr(file, '/');
-    if (filename == NULL) {
-        filename = file;  // No path, use the full file name.
-    } else {
-        filename++;  // Skip the '/' character.
+    char filename[NAME_MAX];
+    if (file_basename(file, filename, sizeof(filename)) != kOk) {
+        cstring_cpy(filename, file, sizeof(filename));
     }
 
     // Prefix the message with file, line, and function
-    char prefix_buffer[256];
+    char prefix_buffer[NAME_MAX * 2];
     snprintf(prefix_buffer, sizeof(prefix_buffer), "%s:%u:%s  ", filename, line, function);
     fprintf(logger, "%-40s", prefix_buffer);
 
