@@ -55,6 +55,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "logger.h"
 
 FILE *logger = NULL;
+static LoggerLevel logger_min_level = kLoggerLevelNone;
+
+void logger_set_min_level(LoggerLevel level) {
+    if (level < kLoggerLevelDebug || level > kLoggerLevelNone) {
+        logger_min_level = kLoggerLevelNone;
+    } else {
+        logger_min_level = level;
+    }
+}
 
 const char *logger_fmt_string(const unsigned char *src, ptrdiff_t src_len) {
     static const char hex[] = "0123456789abcdef";
@@ -123,6 +132,8 @@ MmResult logger_term(void) {
 
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
                   const char *format, ...) {
+    if (level < logger_min_level) return;
+
     va_list args;
     va_start(args, format);
     int prio;
@@ -172,6 +183,7 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
                   const char *format, ...) {
     if (!logger) return;
+    if (level < logger_min_level) return;
 
     // Get a timestamp for the log entry.
     time_t now = time(NULL);
