@@ -542,6 +542,7 @@ gtest_discover_tests(test_cmd_run)
 add_executable(test_bitset
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/bitset_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_bitset FALSE)
@@ -562,6 +563,7 @@ gtest_discover_tests(test_bitset)
 add_executable(test_cstring
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/cstring_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_cstring FALSE)
@@ -609,6 +611,7 @@ add_executable(test_display
     src/common/termgfx.c
     src/common/gtest/display_test.cxx
     src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/file_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/sdl2_stubs.c
 )
@@ -665,6 +668,7 @@ add_executable(test_funtbl
     ${MMB4L_COMMON_TEST_FILES}
     src/core/funtbl.c
     src/core/gtest/funtbl_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_funtbl FALSE)
@@ -786,6 +790,7 @@ add_executable(test_gpio
     src/common/mmtime.c
     src/common/mmtime_${PLATFORM}.c
     src/common/gtest/gpio_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_gpio FALSE)
@@ -807,6 +812,7 @@ add_executable(test_gamepad
     src/common/events.c
     src/common/gamepad.c
     src/common/gtest/gamepad_test.cxx
+    src/common/gtest/stubs/file_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
     src/common/gtest/stubs/sdl2_stubs.c
 )
@@ -865,6 +871,7 @@ gtest_discover_tests(test_graphics)
 add_executable(test_safe_buffer
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/safe_buffer_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_safe_buffer FALSE)
@@ -884,6 +891,7 @@ gtest_discover_tests(test_safe_buffer)
 add_executable(test_hash
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/hash_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_hash FALSE)
@@ -904,6 +912,7 @@ add_executable(test_keyboard
     ${MMB4L_COMMON_TEST_FILES}
     src/common/keyboard.c
     src/common/gtest/keyboard_test.cxx
+    src/common/gtest/stubs/file_stubs.c
     src/common/gtest/stubs/keybuf_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
 )
@@ -1109,6 +1118,7 @@ gtest_discover_tests(test_prompt)
 add_executable(test_queue
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/queue_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_queue FALSE)
@@ -1129,6 +1139,7 @@ add_executable(test_rx_buf
     ${MMB4L_COMMON_TEST_FILES}
     src/common/rx_buf.c
     src/common/gtest/rx_buf_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_rx_buf FALSE)
@@ -1148,8 +1159,9 @@ gtest_discover_tests(test_rx_buf)
 
 add_executable(test_sha256
     ${MMB4L_COMMON_TEST_FILES}
-    src/common/gtest/sha256_test.cxx
     src/common/sha256.c
+    src/common/gtest/sha256_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_sha256 FALSE)
@@ -1205,6 +1217,7 @@ gtest_discover_tests(test_sprite)
 add_executable(test_stack
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/stack_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_stack FALSE)
@@ -1302,6 +1315,7 @@ add_executable(test_tokentbl
     ${MMB4L_COMMON_TEST_FILES}
     src/core/tokentbl.c
     src/core/gtest/tokentbl_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_tokentbl FALSE)
@@ -1323,6 +1337,7 @@ add_executable(test_vartbl
     ${MMB4L_COMMON_TEST_FILES}
     src/core/vartbl.c
     src/core/gtest/vartbl_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_vartbl FALSE)
@@ -1344,6 +1359,7 @@ add_executable(test_spbmp
     ${MMB4L_COMMON_TEST_FILES}
     src/third_party/spbmp.c
     src/third_party/gtest/spbmp_test.cxx
+    src/common/gtest/stubs/file_stubs.c
 )
 
 configure_sdl2(test_spbmp FALSE)
