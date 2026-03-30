@@ -52,9 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 void cmd_select(void) {
     const char *rp = NULL, *SaveCurrentLinePtr;
-    MMFLOAT f = 0;
+    MMFLOAT f = 0.0;
     MMINTEGER i64 = 0;
-    char s[STRINGSIZE];
+    char s[STRINGSIZE] = { '\0' };
 
     int type = T_NOTYPE;
     void *v = DoExpression(cmdline, &type);                         // evaluate the select case value

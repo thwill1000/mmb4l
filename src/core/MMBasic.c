@@ -757,15 +757,16 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
             }
 
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
-            if(args->type[i] == 0) {
-                MMINTEGER ia;
-                char *s;
-                evaluate(args->v1[i], &args->val[i].f, &ia, &s, &args->type[i], false);  // get the value and type of the argument
-                if(args->type[i] & T_INT)
+            if (args->type[i] == 0) {
+                args->val[i].f = 0.0;
+                MMINTEGER ia = 0;
+                char *sa = NULL;
+                evaluate(args->v1[i], &args->val[i].f, &ia, &sa, &args->type[i], false);  // get the value and type of the argument
+                if (args->type[i] & T_INT) {
                     args->val[i].i = ia;
-                else if(args->type[i] & T_STR) {
+                } else if(args->type[i] & T_STR) {
                     args->val[i].s = GetTempStrMemory();
-                    Mstrcpy(args->val[i].s, s);
+                    Mstrcpy(args->val[i].s, sa);
                 }
             }
         }
@@ -1195,9 +1196,9 @@ void tokenise(int console) {
  *         an error will also have been thrown.
  */
 void *DoExpression(const char *p, int *t) {
-    static MMFLOAT f;
-    static MMINTEGER i64;
-    static char *s;
+    static MMFLOAT f = 0.0;
+    static MMINTEGER i64 = 0;
+    static char *s = NULL;
 
     // LOG_FN_ENTRY("p={%s}, *t=%d", FMT_CSTRING(p), *t);
 
@@ -1256,7 +1257,7 @@ const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *
 
     FunctionToken o;
     int t = *ta;
-    char *s;
+    char *s = NULL;
 
     p = getvalue(p, fa, ia, &s, &o, &t);                            // get the left hand side of the expression, the operator is returned in o
     while(o != E_END) p = doexpr(p, fa, ia, &s, &o, &t);            // get the right hand side of the expression and evaluate the operator in o
@@ -1289,9 +1290,9 @@ const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *
 // evaluate an expression to get a number
 MMFLOAT getnumber(const char *p) {
     int t = T_NBR;
-    MMFLOAT f;
-    MMINTEGER i64;
-    char *s;
+    MMFLOAT f = 0.0;
+    MMINTEGER i64 = 0;
+    char *s = NULL;
 
     evaluate(p, &f, &i64, &s, &t, false);
     if(t & T_INT) return (MMFLOAT)i64;
@@ -1302,9 +1303,9 @@ MMFLOAT getnumber(const char *p) {
 // evaluate an expression and return a 64 bit integer
 MMINTEGER getinteger(const char *p) {
     int t = T_INT;
-    MMFLOAT f;
-    MMINTEGER i64;
-    char *s;
+    MMFLOAT f = 0.0;
+    MMINTEGER i64 = 0;
+    char *s = NULL;
 
     evaluate(p, &f, &i64, &s, &t, false);
     if(t & T_NBR) return FloatToInt64(f);
@@ -1327,9 +1328,9 @@ MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max) {
 // evaluate an expression to get a string
 char *getstring(const char *p) {
     int t = T_STR;
-    MMFLOAT f;
-    MMINTEGER i64;
-    char *s;
+    MMFLOAT f = 0.0;
+    MMINTEGER i64 = 0;
+    char *s = NULL;
 
     evaluate(p, &f, &i64, &s, &t, false);
     return s;
@@ -1406,11 +1407,11 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Functio
     //              *oo, *ta);
     // LOG_DEBUG("sret=p{%s}", FMT_PSTRING(sret));
 
-    MMFLOAT fa1, fa2;
-    MMINTEGER ia1, ia2;
-    FunctionToken o1, o2;
-    int t1, t2;
-    char *sa1, *sa2;
+    MMFLOAT fa1 = 0.0, fa2 = 0.0;
+    MMINTEGER ia1 = 0, ia2 = 0;
+    FunctionToken o1 = 0x0, o2 = 0x0;
+    int t1 = 0, t2 = 0;
+    char *sa1 = NULL, *sa2 = NULL;
 
     fa1 = *fa;
     ia1 = *ia;
@@ -1975,9 +1976,9 @@ void *findvar(const char *p, int action) {
                 return NULL;
             }
             for (int i = 0; i < argc; i += 2) {
-                MMFLOAT f;
-                MMINTEGER in;
-                char *s;
+                MMFLOAT f = 0.0;
+                MMINTEGER in = 0;
+                char *s = NULL;
                 int targ = T_NOTYPE;
                 evaluate(argv[i], &f, &in, &s, &targ, false);       // get the value and type of the argument
                 if (targ == T_STR) dnbr = MAXDIM;                   // force an error to be thrown later (with the correct message)
