@@ -197,7 +197,7 @@ void ExecuteProgram(const char *p) {
     skipspace(p);                                                   // just in case, skip any whitespace
     while(1) {
         if(*p == 0) p++;                                            // step over the zero byte marking the beginning of a new element
-        // LOG_DEBUG("Executing %s", p);
+        // LOG_DEBUG("Executing line %d: %s", CountLines(p), FMT_CSTRING(p));
         if(*p == T_NEWLINE) {
             CurrentLinePtr = p;                                     // and pointer to the line for error reporting
 #if !defined(MX170)
@@ -1199,13 +1199,22 @@ void *DoExpression(const char *p, int *t) {
     static MMINTEGER i64;
     static char *s;
 
+    // LOG_FN_ENTRY("p={%s}, *t=%d", FMT_CSTRING(p), *t);
+
     evaluate(p, &f, &i64, &s, t, false);
-    if(*t & T_INT) return &i64;
-    if(*t & T_NBR) return &f;
-    if(*t & T_STR) return s;
+    if (*t & T_INT) {
+        // LOG_FN_EXIT("*t=%d, result=%" PRId64, *t, i64);
+        return &i64;
+    } else if (*t & T_NBR) {
+        // LOG_FN_EXIT("*t=%d, result=%g", *t, f);
+        return &f;
+    } else if (*t & T_STR) {
+        // LOG_FN_EXIT("*t=%d, result=p{%s}", *t, FMT_PSTRING(s));
+        return s;
+    }
 
     ON_FAILURE_ERROR_EX(INTERNAL_FAULT, NULL);
-    return NULL;                                                    // to keep the compiler happy
+    return NULL;  // To keep the compiler happy
 }
 
 /**
@@ -1241,6 +1250,10 @@ void *DoExpression(const char *p, int *t) {
  *         of the expression, ready to be passed to the next parser call.
  */
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flags) {
+    // LOG_FN_ENTRY("p={%s}, fa=0x%" PRIxPTR ", ia=0x%" PRIxPTR ", sa=0x%" PRIxPTR
+    //              ", *ta=%d, flags=%d",
+    //              FMT_CSTRING(p), (uintptr_t)fa, (uintptr_t)ia, (uintptr_t)sa, *ta, flags);
+
     FunctionToken o;
     int t = *ta;
     char *s;
@@ -1266,6 +1279,9 @@ const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *
             error("Expression syntax");
         }
     }
+
+    // LOG_FN_EXIT("p={%s}, *fa=%g, *ia=%" PRId64 ", *sa=p{%s}, *ta=%d", FMT_CSTRING(p), *fa, *ia,
+    //             FMT_PSTRING(*sa), *ta);
     return p;
 }
 
@@ -1384,7 +1400,12 @@ char *getCstring(const char *p) {
  *         operand and the operator written to @p oo, ready for the next
  *         iteration of evaluate()'s loop or a further recursive call.
  */
-const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *ta) {
+const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo,
+                   int *ta) {
+    // LOG_FN_ENTRY("p={%s}, *fa=%g, *ia=%ld, *sa=p{%s}, *oo=%d, *ta=%d", FMT_CSTRING(p), *fa, *ia, FMT_PSTRING(*sa),
+    //              *oo, *ta);
+    // LOG_DEBUG("sret=p{%s}", FMT_PSTRING(sret));
+
     MMFLOAT fa1, fa2;
     MMINTEGER ia1, ia2;
     FunctionToken o1, o2;
@@ -1422,6 +1443,12 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Functio
             targ = t1;                                              // this is what both args are
             mmresult_clear();
             tokenfunction(o1)();                                    // call the operator function
+
+            if (!(targ & T_STR)) {
+                // sret should not be used, but log it anyway to catch stale values
+                // LOG_DEBUG("after function call: targ=%d sret=p{%s}", targ, FMT_PSTRING(sret));
+            }
+
             *fa = fret;
             *ia = iret;
             *sa = sret;
@@ -1433,6 +1460,9 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Functio
         else
             p = doexpr(p, &fa2, &ia2, &sa2, &o2, &t2);
     }
+
+    // LOG_FN_EXIT("p={%s}, *fa=%g, *ia=%ld, *sa=%s, *oo=%d, *ta=%d", FMT_CSTRING(p), *fa, *ia, FMT_PSTRING(*sa),
+    //          *oo, *ta);
 }
 
 /**
