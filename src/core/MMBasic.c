@@ -758,11 +758,13 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
             if (args->type[i] == 0) {
-                args->val[i].f = 0.0;
+                MMFLOAT fa = 0.0;
                 MMINTEGER ia = 0;
                 char *sa = NULL;
-                evaluate(args->v1[i], &args->val[i].f, &ia, &sa, &args->type[i], false);  // get the value and type of the argument
-                if (args->type[i] & T_INT) {
+                evaluate(args->v1[i], &fa, &ia, &sa, &args->type[i], false);  // get the value and type of the argument
+                if (args->type[i] & T_NBR) {
+                    args->val[i].f = fa;
+                } else if (args->type[i] & T_INT) {
                     args->val[i].i = ia;
                 } else if(args->type[i] & T_STR) {
                     args->val[i].s = GetTempStrMemory();
@@ -1450,11 +1452,12 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Functio
                 // LOG_DEBUG("after function call: targ=%d sret=p{%s}", targ, FMT_PSTRING(sret));
             }
 
-            *fa = fret;
-            *ia = iret;
-            *sa = sret;
             *oo = o2;
             *ta = targ;
+            if (targ & T_NBR) *fa = fret;
+            if (targ & T_INT) *ia = iret;
+            if (targ & T_STR) *sa = sret;
+
             return p;
         }
         // the next operator has a higher precedence, recursive call to evaluate it
@@ -1529,9 +1532,9 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             else
                 error("Expected a number");
             skipspace(p);
-            *fa = f;                                                    // save what we have
-            *ia = i64;
-            *sa = s;
+            if (t & T_NBR) *fa = f;                                     // save what we have
+            if (t & T_INT) *ia = i64;
+            if (t & T_STR) *sa = s;                                     // should never happen but just in case
             *ta = t;
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
@@ -1551,10 +1554,8 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             i64 = (int64_t)ut;
             t = T_INT;
             skipspace(p);
-            *fa = f;                                                    // save what we have
-            *ia = i64;
-            *sa = s;
-            *ta = t;
+            *ta = T_INT;
+            *ia = i64;                                                  // save what we have (always T_INT)
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
         }
@@ -1573,9 +1574,9 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             else
                 error("Expected a number");
             skipspace(p);
-            *fa = f;                                                    // save what we have
-            *ia = i64;
-            *sa = s;
+            if (t & T_NBR) *fa = f;                                     // save what we have
+            if (t & T_INT) *ia = i64;
+            if (t & T_STR) *sa = s;                                     // should never happen but just in case
             *ta = t;
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
@@ -1587,9 +1588,9 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             t = T_NOTYPE;
             p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
             skipspace(p);
-            *fa = f;                                                    // save what we have
-            *ia = i64;
-            *sa = s;
+            if (t & T_NBR) *fa = f;                                     // save what we have
+            if (t & T_INT) *ia = i64;
+            if (t & T_STR) *sa = s;
             *ta = t;
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
@@ -1614,9 +1615,21 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             targ = TypeMask(tokentype(funtok));                         // set the type of the function (which might need to know this)
             tmp = targ;
             tokenfunction(funtok)();                                    // execute the function
-            if ((tmp & targ) == 0) ON_FAILURE_ERROR_EX(INTERNAL_FAULT, NULL); // as a safety check the function must return a type the same as set in the header
-            t = targ;                                                   // save the type of the function
-            f = fret; i64 = iret; s = sret;                             // save the result
+
+            if ((tmp & targ) == 0) {
+                ON_FAILURE_ERROR_EX(
+                    INTERNAL_FAULT_EX("function returned unexpected type: expected=%d, got=%d", tmp,
+                                      targ),
+                    NULL);
+            }
+
+            // Save the type of the function
+            t = targ;
+
+            // Save the result
+            if (targ & T_NBR) f = fret;
+            if (targ & T_INT) i64 = iret;
+            if (targ & T_STR) s = sret;
         }
     }
     else {
@@ -1632,10 +1645,11 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
                 DefinedSubFun(true, p, i, &f, &i64, &s, &t);
             }
             else {
-                s = (char *) findvar(p, V_FIND);                        // if it is a string then the string pointer is automatically set
+                void *val = findvar(p, V_FIND);
                 t = TypeMask(vartbl[VarIndex].type);
-                if (t & T_NBR) f = (*(MMFLOAT *)s);
-                if (t & T_INT) i64 = (*(MMINTEGER *)s);
+                if (t & T_NBR) f = (*(MMFLOAT *)val);
+                if (t & T_INT) i64 = (*(MMINTEGER *)val);
+                if (t & T_STR) s = (char *)val;
             }
             p = skipvar(p, false);
         }
@@ -1738,7 +1752,11 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             ERROR_SYNTAX;
     }
     skipspace(p);
-    *fa = f;                                                            // save what we have
+
+    // Unconditional writes are safe here: f, i64 and s are freshly initialized
+    // locals (0, 0, NULL) and only the active channel was written above, so the
+    // inactive channels carry harmless zero/NULL rather than stale caller state.
+    *fa = f;
     *ia = i64;
     *sa = s;
     *ta = t;
