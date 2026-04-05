@@ -196,6 +196,7 @@ void FreeMemory(void *addr) {
     do {
         if (addr < (void *) MMHeap || addr >= (void *) RAMEND) return;
         bits = MBitsGet(addr);
+        if (!(bits & PUSED)) return; // Address not allocated - nothing to free
         MBitsSet(addr, 0);
         addr = (char *)addr + PAGESIZE;
     } while (bits != (PUSED | PLAST));
