@@ -137,6 +137,11 @@ void op_divint(void) {
  * (tokenfunction()), never directly.
  */
 void op_add(void) {
+    // LOG_FN_ENTRY("targ=%d, farg1=%g, farg2=%g, iarg1=%" PRId64 ", iarg2=%" PRId64
+    //              ", sarg1={%s}, sarg2={%s}",
+    //              targ, farg1, farg2, iarg1, iarg2, FMT_PSTRING(sarg1),
+    //              FMT_PSTRING(sarg2));
+
   if(targ & T_NBR)
       fret = farg1 + farg2;
   else if(targ & T_INT)
@@ -147,6 +152,8 @@ void op_add(void) {
       Mstrcpy(sret, sarg1);
       Mstrcat(sret, sarg2);
   }
+
+    // LOG_FN_EXIT("fret=%g, iret=%" PRId64 ", sret={%s}", fret, iret, FMT_PSTRING(sret));
 }
 
 
