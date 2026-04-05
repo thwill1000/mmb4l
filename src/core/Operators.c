@@ -142,16 +142,16 @@ void op_add(void) {
     //              targ, farg1, farg2, iarg1, iarg2, FMT_PSTRING(sarg1),
     //              FMT_PSTRING(sarg2));
 
-  if(targ & T_NBR)
-      fret = farg1 + farg2;
-  else if(targ & T_INT)
-      iret = iarg1 + iarg2;
-    else {
-      if(*sarg1 + *sarg2 > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
-      sret = GetTempStrMemory();                                    // this will last for the life of the command
-      Mstrcpy(sret, sarg1);
-      Mstrcat(sret, sarg2);
-  }
+    if (targ & T_NBR) {
+        fret = farg1 + farg2;
+    } else if (targ & T_INT) {
+        iret = iarg1 + iarg2;
+    } else {
+        if(*sarg1 + *sarg2 > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
+        sret = GetTempStrMemory();  // This will last for the life of the command
+        Mstrcpy(sret, sarg1);
+        Mstrcat(sret, sarg2);
+    }
 
     // LOG_FN_EXIT("fret=%g, iret=%" PRId64 ", sret={%s}", fret, iret, FMT_PSTRING(sret));
 }
