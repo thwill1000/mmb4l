@@ -50,9 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/tokentbl.h"
 
 static const char *SetValue(const char *p, int t, void *v) {
-    MMFLOAT f;
-    MMINTEGER i64;
-    char *s;
+    MMFLOAT f = 0.0;
+    MMINTEGER i64 = 0;
+    char *s = NULL;
     char TempCurrentSubFunName[MAXVARLEN + 2];                      // requires extra byte to store optional type suffix.
 
     strcpy(TempCurrentSubFunName, CurrentSubFunName);               // save the current sub/fun name
