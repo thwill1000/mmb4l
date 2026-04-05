@@ -50,10 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // it ends up as the place where mistyped commands are discovered.  This is why
 // the error message is "Unknown command"
 void cmd_let(void) {
-    int t, size;
-    MMFLOAT f;
-    MMINTEGER i64;
-    char *s;
+    int t = 0x0;
+    MMFLOAT f = 0.0;
+    MMINTEGER i64 = 0;
+    char *s = NULL;
 
     const char *p1 = cmdline;
 
@@ -70,7 +70,7 @@ void cmd_let(void) {
 
     // create the variable and get the length if it is a string
     char *pvar = findvar(cmdline, V_FIND);
-    size = vartbl[VarIndex].size;
+    int size = vartbl[VarIndex].size;
     if(vartbl[VarIndex].type & T_CONST) error_throw_legacy("Cannot change a constant");
 
     // step over the equals sign, evaluate the rest of the command and save in the variable

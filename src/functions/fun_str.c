@@ -49,9 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Returns a string in the decimal (base 10) representation of  'number'.
 // s$ = STR$( number, m, n, c$ )
 void fun_str(void) {
-    char *s;
-    MMFLOAT f;
-    MMINTEGER i64;
+    MMFLOAT f = 0.0;
+    MMINTEGER i64 = 0;
+    char *s = NULL;
     int t;
     int m, n;
     char ch;

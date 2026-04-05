@@ -51,11 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_print(void) {
     // LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
 
-    char *s;
-    const char *p;
-    MMFLOAT f;
-    MMINTEGER i64;
-    int i, t, fnbr;
+    int i, fnbr;
     bool docrlf = true;                                             // this is used to suppress the cr/lf if needed
 
     const DelimType delim[] = { ';', ',', 0 };
@@ -86,9 +82,13 @@ void cmd_print(void) {
             docrlf = false;                                         // other than suppress cr/lf do nothing for a semicolon
         }
         else {                                                      // we have a normal expression
-            p = argv[i];
+            const char *p = argv[i];
             while (*p) {
-                t = T_NOTYPE;
+                int t = T_NOTYPE;
+                MMFLOAT f = 0.0;
+                MMINTEGER i64 = 0;
+                char *s = NULL;
+
                 p = evaluate(p, &f, &i64, &s, &t, true);            // get the value and type of the argument
                 if (t & T_NBR) {
                     *inpbuf = ' ';                                  // preload a space
