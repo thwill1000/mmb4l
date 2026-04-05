@@ -1100,6 +1100,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
 }
 
 int options_simulate_from_string(const char *s) {
+    if (!s) return -1;
     for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
         if (cstring_casecmp(s, entry->name) == 0) {
             return entry->ordinal;
