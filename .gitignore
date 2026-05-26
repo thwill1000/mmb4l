@@ -6,4 +6,4 @@
 /android/
 
 # Runtime logs
-**/mmb4l.log
+**/mmb4l*.log
