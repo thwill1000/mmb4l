@@ -90,10 +90,10 @@ static bool cmd_run_is_legacy_args(const char *filename, const char *run_args) {
  *
  * Probably it is "overkill".
  */
-static void cmd_run_transform_legacy_args(char *run_args) {
+static void cmd_run_transform_legacy_args(const char *src, char *run_args) {
     char *tmp = (char *) GetTempMemory(STRINGSIZE + 32); // Extra space to avoid string overrun.
     char *ptmp = tmp;
-    for (const char *p = run_args; *p; ) {
+    for (const char *p = src; *p; ) {
         const FunctionToken funtok = tokentbl_read(&p);
         if (funtok >= C_BASETOKEN) {
             // Convert tokens back to literals and try to do sensible things
@@ -205,10 +205,11 @@ MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *file
 
     if (run_args_idx >= 0) {
         if (cmd_run_is_legacy_args(filename, argv[run_args_idx])) {
-            strcpy(run_args, argv[run_args_idx]);
-            cmd_run_transform_legacy_args(run_args);
+            cmd_run_transform_legacy_args(argv[run_args_idx], run_args);
         } else {
-            strcpy(run_args, getCstring(argv[run_args_idx]));
+            if (FAILED(cstring_cpy(run_args, getCstring(argv[run_args_idx]), STRINGSIZE))) {
+                return kStringTooLong;
+            }
         }
     } else {
         *run_args = '\0';

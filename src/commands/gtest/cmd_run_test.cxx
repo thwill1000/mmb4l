@@ -284,9 +284,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
 }
 
 TEST_F(CmdRunTest, ParseArgs_DoesNotOverrunBuffer) {
-    memset(inpbuf, '+', tokensize(tokenADD) == 2 ? 145 : 255);
-    memcpy(inpbuf, "RUN \"foo\", -bar", 15);
-    inpbuf[255] = '\0';
+    const size_t len = tokensize(tokenADD) == 2 ? 145 : 255;
+    const std::string input = std::string("RUN \"foo\", -bar") + std::string(len - 15, '+');
+    strcpy(inpbuf, input.c_str());
     tokenise(1);
     EXPECT_EQ(
         kOk,
