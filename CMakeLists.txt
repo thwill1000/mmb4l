@@ -100,6 +100,12 @@ if (MSVC)
         NOMINMAX                 # Prevent Windows.h from defining min/max macros
         WIN32_LEAN_AND_MEAN      # Exclude rarely-used stuff from Windows headers
     )
+
+    # Disable Identical COMDAT Folding: the linker would otherwise merge all
+    # identical empty stub functions used in unit-tests into a single address,
+    # breaking function pointer comparisons. The main binary is unaffected in
+    # practice since its real function bodies are all distinct.
+    add_link_options(/OPT:NOICF)
 else()
     # GCC/Clang compiler flags (Linux/macOS)
     add_compile_options(

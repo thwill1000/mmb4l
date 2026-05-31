@@ -21,6 +21,12 @@ MmResult prompt_getc(int *ch) {
 
 }
 
+#if defined(_WIN32)
+    #define EXPECTED_DEFAULT_EDITOR "Internal"
+#else
+    #define EXPECTED_DEFAULT_EDITOR "Nano"
+#endif
+
 class OptionsTest : public ::testing::Test {
 
 protected:
@@ -72,7 +78,7 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_EQ(NULL, options->codepage);
     EXPECT_EQ(kSerial, options->console);
     EXPECT_EQ(0x1, options->default_type); // 0x1 = T_NBR
-    EXPECT_STREQ("Nano", options->editor);
+    EXPECT_STREQ(EXPECTED_DEFAULT_EDITOR, options->editor);
     EXPECT_EQ(false, options->explicit_type);
     EXPECT_STREQ("FILES\r\n", options->fn_keys[0]);
     EXPECT_STREQ("RUN\r\n", options->fn_keys[1]);
@@ -661,7 +667,7 @@ TEST_F(OptionsTest, GetDisplayValue) {
     EXPECT_STREQ("Float", svalue);
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionEditor, svalue));
-    EXPECT_STREQ("Nano", svalue);
+    EXPECT_STREQ(EXPECTED_DEFAULT_EDITOR, svalue);
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionExplicitType, svalue));
     EXPECT_STREQ("Off", svalue);

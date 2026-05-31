@@ -50,5 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * a developer to break execution at a precise point in an MMBasic program
  * by inserting a BREAKPOINT statement at the desired line.
  */
-__attribute__((noinline)) void cmd_breakpoint(void) {
-}
+#if defined(_MSC_VER)
+__declspec(noinline) void cmd_breakpoint(void) {}
+#elif defined(__GNUC__)
+__attribute__((noinline)) void cmd_breakpoint(void) {}
+#else
+void cmd_breakpoint(void) {}
+#endif
