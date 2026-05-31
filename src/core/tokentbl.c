@@ -225,6 +225,16 @@ void tokentbl_init() {
 #endif
 }
 
+void tokentbl_dump(void) {
+    printf("tokentbl_size = %d\n", tokentbl_size);
+    for (int i = 0; i < tokentbl_size - 1; i++) {
+        printf("  [%3d] token=0x%03x  fptr=%p  name=\"%s\"\n",
+               i, (unsigned)(i + C_BASETOKEN),
+               (void *) tokentbl[i].fptr,
+               tokentbl[i].name);
+    }
+}
+
 FunctionToken tokentbl_get(const char *s) {
     for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
         if (cstring_casecmp(s, tokentbl[i].name) == 0) {

@@ -56,6 +56,7 @@ typedef struct {
    int y;
    bool requires_sync;
    bool no_title;
+   bool is_tty; // TODO: currently Windows only (?)
 } ConsoleState;
 
 MmResult console_init_platform(ConsoleState *_self);

@@ -27,6 +27,8 @@ ElseIf sys.is_platform%("pm*") Then
 Else
   Const EXPECTED_VERSION$ = "5.0702"
 EndIf
+' "C:" exists without a trailing slash on Windows, it is the current directory on the C drive.
+Const C_WITHOUT_SLASH_EXISTS% = IS_WINDOWS%
 
 add_test("test_arch")
 add_test("test_cputime")
@@ -231,7 +233,7 @@ Sub test_exists()
   assert_int_equals(0, Mm.Info(Exists "B:"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists "B:/"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists "B:\"))
-  assert_int_equals(0, Mm.Info(Exists "C:"))
+  assert_int_equals(C_WITHOUT_SLASH_EXISTS%, Mm.Info(Exists "C:"))
   assert_int_equals(1, Mm.Info(Exists "C:/"))
   assert_int_equals(1, Mm.Info(Exists "C:\"))
   assert_int_equals(1, Mm.Info(Exists "/"))
@@ -289,7 +291,7 @@ Sub test_exists_dir()
     dummy% = Mm.Info(Exists Dir "C:\")
     assert_raw_error("Invalid disk")
   Else
-    assert_int_equals(0, Mm.Info(Exists Dir "C:"))
+    assert_int_equals(C_WITHOUT_SLASH_EXISTS%, Mm.Info(Exists Dir "C:"))
     assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
     assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
   EndIf
@@ -474,7 +476,11 @@ Sub test_filesize_given_directory()
     If B_EXISTS Then expect_filesize_is_dir("B:/") Else expect_filesize_not_found("B:/")
     If B_EXISTS Then expect_filesize_is_dir("B:\") Else expect_filesize_not_found("B:\")
     If sys.is_platform%("mmb4l") Then
-      expect_filesize_not_found("C:")
+      If C_WITHOUT_SLASH_EXISTS% Then
+        expect_filesize_is_dir("C:")
+      Else
+        expect_filesize_not_found("C:")
+      EndIf
       expect_filesize_is_dir("C:/")
       expect_filesize_is_dir("C:\")
     Else
@@ -657,7 +663,7 @@ End Sub
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(658, Val(Field$(line$, 1, ",")))
+    assert_int_equals(664, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
@@ -706,7 +712,11 @@ Sub test_option_editor()
   assert_string_equals("VSCode", Mm.Info(Option Editor))
 
   Option Editor Default
-  assert_string_equals("Nano", Mm.Info(Option Editor))
+  If IS_WINDOWS% Then
+    assert_string_equals("Internal", Mm.Info(Option Editor))
+  Else
+    assert_string_equals("Nano", Mm.Info(Option Editor))
+  EndIf
 
   Option Editor Geany
   assert_string_equals("Geany", Mm.Info(Option Editor))
