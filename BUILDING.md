@@ -101,6 +101,54 @@ cd build/build-release-*/
 ./mmbasic
 ```
 
+## Windows Build
+
+### Prerequisites
+
+- **Visual Studio 2022** with the "Desktop development with C++" workload
+- **CMake** 3.14 or later (included with Visual Studio, or install separately)
+- **SDL2** Windows development libraries:
+  1. Download from https://github.com/libsdl-org/SDL/releases (e.g. `SDL2-devel-2.x.y-VC.zip`)
+  2. Extract to `D:/github/thwill1000/SDL2-2.32.10`
+     (this path is hardcoded in `CMakeLists.txt` line 15 — update it if yours differs)
+- **Git** (for fetching GoogleTest during configure)
+
+### Configure
+
+From the repository root in PowerShell or a Developer Command Prompt:
+
+```powershell
+cmake -B build -S . -G "Visual Studio 17 2022"
+```
+
+> **Note:** Do **not** pass `-A x64` — the existing `build/` cache was configured without a
+> platform flag and adding one will cause a conflict. Delete `build/CMakeCache.txt` first if
+> you need to switch generators.
+
+### Build
+
+```powershell
+# Release build
+cmake --build build --config Release
+
+# Debug build
+cmake --build build --config Debug
+```
+
+Executables land in `build\Release\` or `build\Debug\`. `SDL2.dll` is copied there
+automatically as a post-build step.
+
+### Run Unit Tests
+
+```powershell
+cd build
+ctest -C Release
+# or
+ctest -C Debug
+```
+
+---
+
 ## Cross-Platform Build with Docker
 
 The build script supports cross-compilation for different architectures using Docker.
@@ -230,7 +278,16 @@ The project includes extensive test coverage:
 
 ## Troubleshooting
 
-### SDL2 Not Found
+### Windows: SDL2 Not Found
+
+The SDL2 root path is hardcoded in `CMakeLists.txt` (line 15):
+```cmake
+set(SDL2_ROOT "D:/github/thwill1000/SDL2-2.32.10")
+```
+Download the SDL2 Windows development libraries from https://github.com/libsdl-org/SDL/releases
+and either extract them to that path or update the `SDL2_ROOT` variable to match your location.
+
+### SDL2 Not Found (Linux)
 
 If CMake cannot find SDL2:
 ```bash
