@@ -357,6 +357,7 @@ set(MMB4L_THIRD_PARTY_SOURCE_FILES
     src/third_party/cJSON.c
     src/third_party/dr_audio.c
     src/third_party/hxcmod.c
+    src/third_party/picojpeg.c
     src/third_party/spbmp.c
     src/third_party/upng.c
 )
