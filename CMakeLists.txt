@@ -914,6 +914,57 @@ target_link_libraries(test_hash
 gtest_discover_tests(test_hash)
 
 ################################################################################
+# test_image
+################################################################################
+
+add_executable(test_image
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/image_test.cxx
+    src/common/events.c
+    src/common/features.c
+    src/common/file.c
+    src/common/file_${PLATFORM}.c
+    src/common/fonttbl.c
+    src/common/graphics.c
+    src/common/image.c
+    src/common/memory.c
+    src/common/options.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/sprite.c
+    src/common/streamio.c
+    src/common/system_${PLATFORM}.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
+    src/third_party/picojpeg.c
+    src/third_party/spbmp.c
+    src/third_party/toojpeg_streaming.cpp
+    src/third_party/upng.c
+)
+
+target_compile_definitions(test_image PUBLIC ENABLE_GTEST_EXTRAS)
+
+configure_sdl2(test_image FALSE)
+
+target_link_libraries(test_image
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_image)
+
+################################################################################
 # test_keyboard
 ################################################################################
 
