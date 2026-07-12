@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/features.h"
 #include "../common/graphics.h"
+#include "../common/image.h"
 
 /**
  * SAVE [COMPRESSED|IMAGE|1BPP|24BPP|32BPP|RGB121|RGB121_RLE4|RGB222|
@@ -65,7 +66,7 @@ static MmResult cmd_save_image(const char *p, BmpFormat format) {
     const int w = has_arg(6) ? getinteger(argv[6]) : graphics_current->width;
     const int h = has_arg(8) ? getinteger(argv[8]) : graphics_current->height;
 
-    return graphics_save_bmp(graphics_current, filename, format, x, y, w, h);
+    return image_save_bmp(graphics_current, filename, format, x, y, w, h);
 }
 
 void cmd_save(void) {
