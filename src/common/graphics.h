@@ -546,27 +546,6 @@ MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t t
 MmResult graphics_get_pixel(MmSurface *surface, int x, int y, MmGraphicsColour *colour);
 
 /**
- * Loads a .bmp image.
- *
- * @param  surface   Surface to draw the image on.
- * @param  filename  Name of file to load the image from.
- * @param  x, y      Coordinates of top-left corner to start drawing the image from.
- */
-MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y);
-
-/**
- * Loads a .png image.
- *
- * @param  surface      Surface to draw the image on.
- * @param  filename     Name of file to load the image from.
- * @param  x, y         Coordinates of top-left corner to start drawing the image from.
- * @param  transparent  TODO
- * @param  force        TODO
- */
-MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
-                           int force);
-
-/**
  * Loads a Colour Maximite sprite file.
  *
  * @param  filename         Name of file to load the sprite(s) from.
@@ -576,20 +555,6 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
  */
 MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
                               uint8_t colour_mode);
-
-/**
- * Saves a .bmp image to a file.
- *
- * @param  surface   Surface to read the image from.
- * @param  filename  Name of file to save the image to.
- * @param  format    BMP format to use of the saved image.
- * @param  x         X-coordinate for top left corner of image to save.
- * @param  y         Y-coordinate for top left corner of image to save.
- * @param  width     Width or image to save.
- * @param  height    Height of image to save.
- */
-MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format, int x, int y,
-                           int width, int height);
 
 /**
  * Scrolls surface.

@@ -325,6 +325,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/gamepad.c
     src/common/gpio.c
     src/common/graphics.c
+    src/common/image.c
     src/common/interrupt.c
     src/common/keyboard.c
     src/common/keybuf.c

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_load.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/image.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -63,7 +64,7 @@ static MmResult cmd_load_bmp(const char *p) {
     const int x = has_arg(2) ? getinteger(argv[2]) : 0;
     const int y = has_arg(4) ? getinteger(argv[4]) : 0;
 
-    return graphics_load_bmp(graphics_current, filename, x, y);
+    return image_load_bmp(graphics_current, filename, x, y);
 }
 
 /** LOAD DATA file$, address */
@@ -109,7 +110,7 @@ static MmResult cmd_load_png(const char *p) {
         transparent = 4;
     }
 
-    return graphics_load_png(graphics_current, filename, x, y, transparent, force);
+    return image_load_png(graphics_current, filename, x, y, transparent, force);
 }
 
 /** LOAD file$ */
