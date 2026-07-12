@@ -141,16 +141,16 @@ static const int8 ZAG[] =
 };
 //------------------------------------------------------------------------------
 // 128 bytes
-static int16 gCoeffBuf[8*8];
+static int16 *gCoeffBuf; // [8*8]; // dynamic
 
 // 8*8*4 bytes * 3 = 768
-static uint8 gMCUBufR[256];
-static uint8 gMCUBufG[256];
-static uint8 gMCUBufB[256];
+static uint8 *gMCUBufR;//[256]; // dynamic
+static uint8 *gMCUBufG;//[256]; // dynamic
+static uint8 *gMCUBufB;//[256]; // dynamic
 
 // 256 bytes
-static int16 gQuant0[8*8];
-static int16 gQuant1[8*8];
+static int16 *gQuant0;//[8*8]; // dynamic
+static int16 *gQuant1;//[8*8]; // dynamic
 
 // 6 bytes
 static int16 gLastDC[3];
@@ -172,17 +172,17 @@ static uint8 gHuffVal1[16];
 
 // AC - 672
 static HuffTable gHuffTab2;
-static uint8 gHuffVal2[256];
+static uint8 *gHuffVal2;//[256]; // dynamic
 
 static HuffTable gHuffTab3;
-static uint8 gHuffVal3[256];
+static uint8 *gHuffVal3;//[256]; // dynamic
 
 static uint8 gValidHuffTables;
 static uint8 gValidQuantTables;
 
 static uint8 gTemFlag;
 #define PJPG_MAX_IN_BUF_SIZE 256
-static uint8 gInBuf[PJPG_MAX_IN_BUF_SIZE];
+static uint8 *gInBuf;//[PJPG_MAX_IN_BUF_SIZE]; // dynamic
 static uint8 gInBufOfs;
 static uint8 gInBufLeft;
 
@@ -222,6 +222,43 @@ static pjpeg_need_bytes_callback_t g_pNeedBytesCallback;
 static void *g_pCallback_data;
 static uint8 gCallbackStatus;
 static uint8 gReduce;
+
+/** Dynamically allocate working buffers */
+unsigned char picojpeg_alloc(AllocateFunc alloc_fn, FreeFunc free_fn) {
+    gCoeffBuf = (int16 *)alloc_fn(8 * 8 * sizeof(int16));
+    gMCUBufR = (uint8 *)alloc_fn(256);
+    gMCUBufG = (uint8 *)alloc_fn(256);
+    gMCUBufB = (uint8 *)alloc_fn(256);
+    gQuant0 = (int16 *)alloc_fn(8 * 8 * sizeof(int16));
+    gQuant1 = (int16 *)alloc_fn(8 * 8 * sizeof(int16));
+    gHuffVal2 = (uint8 *)alloc_fn(256);
+    gHuffVal3 = (uint8 *)alloc_fn(256);
+    gInBuf = (uint8 *)alloc_fn(PJPG_MAX_IN_BUF_SIZE);
+
+    if (!gCoeffBuf || !gMCUBufR || !gMCUBufG || !gMCUBufB || !gQuant0 || !gQuant1 || !gHuffVal2 ||
+        !gHuffVal3 || !gInBuf) {
+        picojpeg_free(free_fn);
+        return PJPG_NOTENOUGHMEM;
+    }
+
+    return 0;
+}
+
+#define FREE_AND_NULL(x)  free_fn(x); x = NULL;
+
+/** Free dynamically allocated buffers */
+void picojpeg_free(FreeFunc free_fn) {
+    FREE_AND_NULL(gCoeffBuf);
+    FREE_AND_NULL(gMCUBufR);
+    FREE_AND_NULL(gMCUBufG);
+    FREE_AND_NULL(gMCUBufB);
+    FREE_AND_NULL(gQuant0);
+    FREE_AND_NULL(gQuant1);
+    FREE_AND_NULL(gHuffVal2);
+    FREE_AND_NULL(gHuffVal3);
+    FREE_AND_NULL(gInBuf);
+}
+
 //------------------------------------------------------------------------------
 static void fillInBuf(void)
 {
