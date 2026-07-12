@@ -56,7 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 static MmResult cmd_load_bmp(const char *p) {
     getargs(&p, 5, DELIM_COMMA);
-    if (argc == 0) return kArgumentCount;
+    if (argc < 1 || argc > 5 || (argc % 2 == 0)) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
     ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
@@ -85,10 +85,28 @@ static MmResult cmd_load_gif(const char *p) {
     return kUnimplemented;
 }
 
-/** LOAD JPG file$ [, x] [, y] */
+/** LOAD JPG file$ [, x] [, y] [, mode] [, ximage] [, yimage] */
 static MmResult cmd_load_jpg(const char *p) {
-    ERROR_UNIMPLEMENTED("LOAD JPG");
-    return kUnimplemented;
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
+
+	getargs(&p, 13, DELIM_COMMA);
+    if (argc < 1 || argc > 13 || (argc % 2 == 0)) return kArgumentCount;
+
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
+    const int x = has_arg(2) ? getinteger(argv[2]) : 0;
+    const int y = has_arg(4) ? getinteger(argv[4]) : 0;
+    const int mode = has_arg(6) ? getinteger(argv[6]) : -1;
+    if (mode < -1 || mode > 7) {
+        return mmresult_ex(kInvalidArgument, "Invalid mode: %d; valid modes are -1 to 7", mode);
+    }
+    const int ximage = has_arg(8) ? getinteger(argv[8]) : 0;
+    const int yimage = has_arg(10) ? getinteger(argv[10]) : 0;
+    const int scale = has_arg(12) ? getinteger(argv[12]) : 1;
+
+    return image_load_jpg(graphics_current, filename, x, y, (ImageDitherMode) mode, ximage, yimage,
+                          scale);
 }
 
 /** LOAD PNG file$ [, x] [, y] [, transparency_cut_off] */

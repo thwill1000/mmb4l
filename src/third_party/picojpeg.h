@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
+
 // Error codes
 enum
 {
@@ -112,6 +114,24 @@ typedef struct
 } pjpeg_image_info_t;
 
 typedef unsigned char (*pjpeg_need_bytes_callback_t)(unsigned char* pBuf, unsigned char buf_size, unsigned char *pBytes_actually_read, void *pCallback_data);
+
+/**
+ * @brief Function pointer type for dynamic memory allocation.
+ * Matches the signature of: void* malloc(size_t size);
+ */
+typedef void* (*AllocateFunc)(size_t size);
+
+/**
+ * @brief Function pointer type for freeing allocated memory.
+ * Matches the signature of: void free(void* ptr);
+ */
+typedef void (*FreeFunc)(void* ptr);
+
+/** Dynamically allocate working buffers */
+unsigned char picojpeg_alloc(AllocateFunc alloc_fn, FreeFunc free_fn);
+
+/** Free dynamically allocated buffers */
+void picojpeg_free(FreeFunc free_fn);
 
 // Initializes the decompressor. Returns 0 on success, or one of the above error codes on failure.
 // pNeed_bytes_callback will be called to fill the decompressor's internal input buffer.
