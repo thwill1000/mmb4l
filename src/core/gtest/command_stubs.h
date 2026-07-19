@@ -30,6 +30,7 @@ void cmd_dim() { }
 #if !defined(DO_NOT_STUB_CMD_DO)
 void cmd_do() { }
 #endif
+void cmd_drive() { }
 void cmd_dummy() { }
 void cmd_edit() { }
 void cmd_else() { }
