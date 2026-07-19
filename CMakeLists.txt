@@ -158,6 +158,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_dim.c
     src/commands/cmd_do.c
     src/commands/cmd_dummy.c
+    src/commands/cmd_drive.c
     src/commands/cmd_edit.c
     src/commands/cmd_else.c
     src/commands/cmd_end.c
