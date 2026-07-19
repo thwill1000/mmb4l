@@ -48,6 +48,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "image.h"
 
 /**
+ * Source context for image_jpg_get_row_cb(): identifies which surface,
+ * region, and width a row-fetch callback should read from.
+ */
+typedef struct {
+    MmSurface *surface;
+    int x;
+    int y;
+    int width;
+} ImageJpgRowSource;
+
+/**
+ * Callback matching ToojpegGetRowCb, given to toojpeg_write_streaming().
+ * Fills row_buffer with one row of packed RGB888 pixel data (3 bytes per
+ * pixel, R,G,B order), read directly from userdata->surface at pixel row
+ * (userdata->y + row), columns [userdata->x, userdata->x + userdata->width).
+ *
+ * Pure with respect to its inputs other than the surface read - no
+ * allocation, no file I/O, no encoder state - so it can be unit-tested
+ * directly against a surface fixture without going through TooJpeg at all.
+ *
+ * Pixels outside the surface bounds read as RGB_BLACK (0,0,0), matching
+ * graphics_get_pixel()'s existing out-of-bounds behaviour.
+ *
+ * @param  row        Row index relative to userdata->y (0-based).
+ * @param  row_buffer  Destination buffer, at least userdata->width * 3 bytes.
+ * @param  userdata    Pointer to an ImageJpgRowSource.
+ */
+void image_jpg_get_row_cb(unsigned short row, unsigned char *row_buffer, void *userdata);
+
+/**
  * Bins one output row of pixels by averaging scale x scale blocks of source
  * pixels read from mcu_row_buffer. Pure function - no I/O, no MmSurface.
  *

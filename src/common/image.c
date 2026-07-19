@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"  // for perform_background_tasks()
 #include "../third_party/picojpeg.h"
 #include "../third_party/spbmp.h"
+#include "../third_party/toojpeg_streaming.h"
 #include "../third_party/upng.h"
 
 // TODO: duplicated from graphics.c
@@ -862,4 +863,70 @@ MmResult image_save_bmp(MmSurface *surface, char *filename, BmpFormat format, in
     ON_FAILURE_LOG(streamio_close(fnbr));
 
     return SUCCEEDED(bmp_result) ? kOk : kGraphicsSaveBitmapFailed;
+}
+
+/** Callback given to toojpeg_write_streaming(); writes a chunk of encoded bytes to a FILE*. */
+static int image_jpg_write_cb(const void *buffer, size_t size, void *userdata) {
+    FILE *file = (FILE *) userdata;
+    return fwrite(buffer, 1, size, file) == size;
+}
+
+void image_jpg_get_row_cb(unsigned short row, unsigned char *row_buffer, void *userdata) {
+    const ImageJpgRowSource *src = (const ImageJpgRowSource *) userdata;
+    const int surface_y = src->y + row;
+    unsigned char *dst = row_buffer;
+    for (int col = 0; col < src->width; col++) {
+        MmGraphicsColour colour = RGB_BLACK;
+        (void) graphics_get_pixel(src->surface, src->x + col, surface_y, &colour);
+        // graphics_get_pixel() always returns kOk and instead signals an
+        // out-of-range (x, y) by writing -1 into *colour (see
+        // spbmp_get_pixel_cb() for the same convention) - map that back to
+        // RGB_BLACK rather than encoding 0xFFFFFFFF into the JPEG row.
+        if (colour < 0) colour = RGB_BLACK;
+        *dst++ = (colour >> 16) & 0xFF;  // Red
+        *dst++ = (colour >> 8) & 0xFF;   // Green
+        *dst++ = colour & 0xFF;          // Blue
+    }
+}
+
+MmResult image_save_jpg(MmSurface *surface, char *filename, int x, int y, int width, int height,
+                        int quality) {
+    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
+    if (width <= 0 || height <= 0 || width > 65535 || height > 65535) return kImageTooLarge;
+
+    char _filename[STRINGSIZE];
+    if (FAILED(cstring_cpy(_filename, filename, sizeof(_filename)))) return kFilenameTooLong;
+
+    // If the filename does not already have a ".jpg"/".jpeg" extension then add one.
+    if (cstring_casecmp(path_get_extension(_filename), ".jpg") != 0
+            && cstring_casecmp(path_get_extension(_filename), ".jpeg") != 0) {
+        if (FAILED(cstring_cat(_filename, ".jpg", STRINGSIZE))) return kFilenameTooLong;
+    }
+
+    // Unlike a flat-buffer encoder, TooJpeg's streaming variant only ever
+    // needs a handful of image rows resident at once (8, or 16 if chroma
+    // downsampling is enabled) - it pulls them on demand via
+    // image_jpg_get_row_cb() below, reading straight from the surface.
+    const int downsample = 0;
+    const size_t window_size = toojpeg_row_window_size(width, /* is_rgb */ 1, downsample);
+    unsigned char *row_window = (unsigned char *) image_alloc_mem(window_size);
+    if (!row_window) return kOutOfMemory;
+
+    const int fnbr = streamio_find_free();
+    MmResult result = streamio_open(_filename, "wb", fnbr);
+    if (FAILED(result)) {
+        image_free_mem(row_window);
+        return result;
+    }
+
+    ImageJpgRowSource row_source = { surface, x, y, width };
+    const int ok = toojpeg_write_streaming(
+        width, height, /* is_rgb */ 1, quality, downsample, /* comment */ NULL,
+        image_jpg_get_row_cb, &row_source, row_window, image_jpg_write_cb,
+        file_table[fnbr].file_ptr);
+
+    image_free_mem(row_window);
+    ON_FAILURE_LOG(streamio_close(fnbr));
+
+    return ok ? kOk : kGraphicsSaveBitmapFailed;
 }
