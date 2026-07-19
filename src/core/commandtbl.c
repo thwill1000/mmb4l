@@ -88,6 +88,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Device",      T_CMD,              0, cmd_device   },
     { "Dim",         T_CMD,              0, cmd_dim      },
     { "Do",          T_CMD,              0, cmd_do       },
+    { "Drive",       T_CMD,              0, cmd_drive    },
     { "Edit",        T_CMD,              0, cmd_edit     },
     { "ElseIf",      T_CMD,              0, cmd_else     },
     { "Else If",     T_CMD,              0, cmd_else     },

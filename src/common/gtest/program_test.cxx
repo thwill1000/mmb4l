@@ -78,10 +78,10 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_DATA        "\x97\x80"
 #define CMD_DEFINEFONT  "\x98\x80"
 #define CMD_DIM         "\x9A\x80"
-#define CMD_END         "\xA0\x80"
-#define CMD_LET         "\xC2\x80"
-#define CMD_MMDEBUG     "\xCF\x80"
-#define CMD_PRINT       "\xDE\x80"
+#define CMD_END         "\xA1\x80"
+#define CMD_LET         "\xC3\x80"
+#define CMD_MMDEBUG     "\xD0\x80"
+#define CMD_PRINT       "\xDF\x80"
 #if defined(USE_TWO_BYTE_TOKENS)
 #define OP_EQUALS       "\xF7\x80"
 #else
