@@ -21,6 +21,7 @@ extern "C" {
 #include "../../core/gtest/command_stubs.h"
 #include "../../core/gtest/function_stubs.h"
 #include "../../core/gtest/operation_stubs.h"
+#include "../../third_party/picojpeg.h"
 
 // Defined in "main.c"
 char *CFunctionFlash;
@@ -511,7 +512,7 @@ protected:
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
-        snprintf(filename, sizeof(filename), "/tmp/mmb4l_test_tiny_gradient_%d.jpg", system_getpid());
+        snprintf_nowarn(filename, sizeof(filename), "/tmp/mmb4l_test_tiny_gradient_%d.jpg", system_getpid());
         FILE *f = fopen(filename, "wb");
         ASSERT_NE(nullptr, f);
         ASSERT_EQ(kTinyJpeg16x16Len, fwrite(kTinyJpeg16x16, 1, kTinyJpeg16x16Len, f));
@@ -651,4 +652,432 @@ TEST_F(ImageLoadJpgDecodeTest, GivenXyPlacement_DrawsAtOffsetLeavingRestUntouche
     MmGraphicsColour outside = RGB_BLACK;
     ASSERT_EQ(kOk, graphics_get_pixel(&graphics_surfaces[0], 0, 0, &outside));
     EXPECT_EQ(kSentinel, outside);
+}
+
+// ---------------------------------------------------------------------------
+// image_save_jpg() - argument validation
+// ---------------------------------------------------------------------------
+//
+// Mirrors ImageLoadJpgValidationTest: same surface-fixture pattern, checking
+// the validation paths that reject bad calls before any file I/O or TooJpeg
+// encoding happens. A path under /tmp is used throughout (rather than a
+// nonexistent one) so that tests asserting "validation passes" fail for a
+// distinct file-content reason rather than being masked by a file-open error.
+
+class ImageSaveJpgValidationTest : public ::testing::Test {
+
+protected:
+
+    char filename[STRINGSIZE];
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+        snprintf_nowarn(filename, sizeof(filename), "/tmp/mmb4l_test_save_jpg_validation_%d.jpg",
+                system_getpid());
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+        remove(filename);
+    }
+};
+
+TEST_F(ImageSaveJpgValidationTest, GivenNullSurface_Fails) {
+    EXPECT_EQ(kGraphicsInvalidReadSurface,
+             image_save_jpg(NULL, filename, 0, 0, 8, 8, 90));
+}
+
+TEST_F(ImageSaveJpgValidationTest, GivenSurfaceTypeNone_Fails) {
+    MmSurface surface = {};
+    surface.type = kGraphicsNone;
+
+    EXPECT_EQ(kGraphicsInvalidReadSurface,
+             image_save_jpg(&surface, filename, 0, 0, 8, 8, 90));
+}
+
+TEST_F(ImageSaveJpgValidationTest, GivenNonPositiveWidthOrHeight_Fails) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 8, 8));
+
+    EXPECT_EQ(kImageTooLarge,
+             image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 0, 8, 90));
+    EXPECT_EQ(kImageTooLarge,
+             image_save_jpg(&graphics_surfaces[0], filename, 0, 0, -1, 8, 90));
+    EXPECT_EQ(kImageTooLarge,
+             image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 8, 0, 90));
+    EXPECT_EQ(kImageTooLarge,
+             image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 8, -1, 90));
+}
+
+TEST_F(ImageSaveJpgValidationTest, GivenWidthOrHeightTooLarge_Fails) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 8, 8));
+
+    EXPECT_EQ(kImageTooLarge,
+             image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 65536, 8, 90));
+    EXPECT_EQ(kImageTooLarge,
+             image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 8, 65536, 90));
+}
+
+TEST_F(ImageSaveJpgValidationTest, GivenValidArguments_Succeeds) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 8, 8));
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 8, 8, 90));
+
+    FileInfo info;
+    ASSERT_EQ(kOk, file_info(filename, &info));
+    EXPECT_TRUE(info.exists);
+}
+
+// ---------------------------------------------------------------------------
+// image_save_jpg() - filename extension handling
+// ---------------------------------------------------------------------------
+
+class ImageSaveJpgFilenameTest : public ::testing::Test {
+
+protected:
+
+    char base[STRINGSIZE];
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+        ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 4));
+        snprintf_nowarn(base, sizeof(base), "/tmp/mmb4l_test_save_jpg_filename_%d",
+                        system_getpid());
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
+};
+
+TEST_F(ImageSaveJpgFilenameTest, GivenNoExtension_AppendsDotJpg) {
+    char filename[STRINGSIZE];
+    snprintf_nowarn(filename, sizeof(filename), "%s", base);
+    char expected[STRINGSIZE];
+    snprintf_nowarn(expected, sizeof(expected), "%s.jpg", base);
+    remove(expected);
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 4, 4, 90));
+
+    FileInfo info;
+    ASSERT_EQ(kOk, file_info(expected, &info));
+    EXPECT_TRUE(info.exists);
+
+    remove(expected);
+}
+
+TEST_F(ImageSaveJpgFilenameTest, GivenDotJpgExtension_DoesNotAppendAgain) {
+    char filename[STRINGSIZE];
+    snprintf_nowarn(filename, sizeof(filename), "%s.jpg", base);
+    remove(filename);
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 4, 4, 90));
+
+    FileInfo info;
+    ASSERT_EQ(kOk, file_info(filename, &info));
+    EXPECT_TRUE(info.exists);
+
+    remove(filename);
+}
+
+TEST_F(ImageSaveJpgFilenameTest, GivenDotJpegExtension_DoesNotAppendDotJpg) {
+    char filename[STRINGSIZE];
+    snprintf_nowarn(filename, sizeof(filename), "%s.jpeg", base);
+    remove(filename);
+
+    // Clean up any stale file from a previous run before asserting on its
+    // absence below.
+    char wrong[STRINGSIZE];
+    snprintf_nowarn(wrong, sizeof(wrong), "%s.jpeg.jpg", base);
+    remove(wrong);
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 4, 4, 90));
+
+    FileInfo info;
+    ASSERT_EQ(kOk, file_info(filename, &info));
+    EXPECT_TRUE(info.exists);
+
+    // Must not also have created "<base>.jpeg.jpg". file_info() returns kOk
+    // even when the path doesn't exist (see its .exists field), so the
+    // absence check has to be on info.exists, not on the MmResult.
+    FileInfo wrong_info = {};
+    MmResult wrong_result = file_info(wrong, &wrong_info);
+    EXPECT_FALSE(SUCCEEDED(wrong_result) && wrong_info.exists);
+
+    remove(filename);
+    remove(wrong);
+}
+
+// ---------------------------------------------------------------------------
+// image_save_jpg() - encoding
+// ---------------------------------------------------------------------------
+
+class ImageSaveJpgEncodeTest : public ::testing::Test {
+
+protected:
+
+    char filename[STRINGSIZE];
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+        snprintf_nowarn(filename, sizeof(filename), "/tmp/mmb4l_test_save_jpg_encode_%d.jpg",
+                system_getpid());
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+        remove(filename);
+    }
+
+    /** Reads the whole file back into a heap buffer. */
+    static std::vector<uint8_t> read_file(const char *path) {
+        std::vector<uint8_t> data;
+        FILE *f = fopen(path, "rb");
+        if (!f) return data;
+        fseek(f, 0, SEEK_END);
+        long size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (size > 0) {
+            data.resize((size_t) size);
+            [[maybe_unused]] size_t n = fread(data.data(), 1, (size_t) size, f);
+        }
+        fclose(f);
+        return data;
+    }
+};
+
+TEST_F(ImageSaveJpgEncodeTest, WritesValidJpegStreamMarkers) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 16, 16));
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 16, 16, 90));
+
+    std::vector<uint8_t> data = read_file(filename);
+    ASSERT_GE(data.size(), 4u);
+
+    // SOI marker at the start.
+    EXPECT_EQ(0xFF, data[0]);
+    EXPECT_EQ(0xD8, data[1]);
+
+    // EOI marker at the end.
+    EXPECT_EQ(0xFF, data[data.size() - 2]);
+    EXPECT_EQ(0xD9, data[data.size() - 1]);
+}
+
+// picojpeg callback that reads sequentially from an in-memory buffer.
+struct MemJpegReader {
+    const uint8_t *data;
+    size_t size;
+    size_t offset;
+};
+
+static unsigned char mem_jpeg_need_bytes_cb(unsigned char *buf, unsigned char buf_size,
+                                            unsigned char *bytes_read, void *userdata) {
+    MemJpegReader *reader = (MemJpegReader *) userdata;
+    size_t remaining = reader->size - reader->offset;
+    size_t n = remaining < buf_size ? remaining : buf_size;
+    memcpy(buf, reader->data + reader->offset, n);
+    reader->offset += n;
+    *bytes_read = (unsigned char) n;
+    return 0;
+}
+
+TEST_F(ImageSaveJpgEncodeTest, RoundTripsSolidColourViaPicojpeg) {
+    // Fill an 8x8 surface with a solid, JPEG-friendly colour (avoids
+    // quantization ambiguity for this smoke test).
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 8, 8));
+    const MmGraphicsColour fill = RGB(200, 60, 30, 0xFF);
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
+            graphics_surfaces[0].pixels[y * 8 + x] = fill;
+        }
+    }
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 0, 0, 8, 8, 90));
+
+    std::vector<uint8_t> data = read_file(filename);
+    ASSERT_FALSE(data.empty());
+
+    ASSERT_EQ(0, picojpeg_alloc(malloc, free));
+
+    MemJpegReader reader = { data.data(), data.size(), 0 };
+    pjpeg_image_info_t info;
+    ASSERT_EQ(0, pjpeg_decode_init(&info, mem_jpeg_need_bytes_cb, &reader, 0));
+    EXPECT_EQ(8, info.m_width);
+    EXPECT_EQ(8, info.m_height);
+
+    // Decode every MCU; for a uniform 8x8 image (YH1V1) there's exactly one.
+    uint8_t status;
+    do {
+        status = pjpeg_decode_mcu();
+        ASSERT_TRUE(status == 0 || status == PJPG_NO_MORE_BLOCKS);
+    } while (status == 0);
+
+    // Spot-check the first decoded pixel is close to the source colour.
+    const int kTolerance = 15;
+    EXPECT_NEAR(200, info.m_pMCUBufR[0], kTolerance);
+    EXPECT_NEAR(60, info.m_pMCUBufG[0], kTolerance);
+    EXPECT_NEAR(30, info.m_pMCUBufB[0], kTolerance);
+
+    picojpeg_free(free);
+}
+
+TEST_F(ImageSaveJpgEncodeTest, GivenNonZeroOrigin_SavesCorrectRegion) {
+    // 16x16 surface; fill left half with one colour, right half with
+    // another, then save just the right half via (x, width) offset.
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 16, 16));
+    const MmGraphicsColour left = RGB(0, 0, 0, 0xFF);
+    const MmGraphicsColour right = RGB(255, 255, 255, 0xFF);
+    for (int y = 0; y < 16; y++) {
+        for (int x = 0; x < 16; x++) {
+            graphics_surfaces[0].pixels[y * 16 + x] = (x < 8) ? left : right;
+        }
+    }
+
+    EXPECT_EQ(kOk, image_save_jpg(&graphics_surfaces[0], filename, 8, 0, 8, 8, 90));
+
+    std::vector<uint8_t> data = read_file(filename);
+    ASSERT_FALSE(data.empty());
+
+    ASSERT_EQ(0, picojpeg_alloc(malloc, free));
+    MemJpegReader reader = { data.data(), data.size(), 0 };
+    pjpeg_image_info_t info;
+    ASSERT_EQ(0, pjpeg_decode_init(&info, mem_jpeg_need_bytes_cb, &reader, 0));
+    EXPECT_EQ(8, info.m_width);
+    EXPECT_EQ(8, info.m_height);
+
+    uint8_t status = pjpeg_decode_mcu();
+    ASSERT_TRUE(status == 0 || status == PJPG_NO_MORE_BLOCKS);
+
+    // Whole saved region came from the "right" (white) half.
+    const int kTolerance = 15;
+    EXPECT_NEAR(255, info.m_pMCUBufR[0], kTolerance);
+    EXPECT_NEAR(255, info.m_pMCUBufG[0], kTolerance);
+    EXPECT_NEAR(255, info.m_pMCUBufB[0], kTolerance);
+
+    picojpeg_free(free);
+}
+
+// ---------------------------------------------------------------------------
+// image_jpg_get_row_cb()
+// ---------------------------------------------------------------------------
+//
+// Pure(ish) unit tests against a surface fixture, bypassing TooJpeg/file I/O
+// entirely - same "extract the testable core" approach as ImageBinRowTest.
+
+class ImageJpgGetRowCbTest : public ::testing::Test {
+
+protected:
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
+};
+
+TEST_F(ImageJpgGetRowCbTest, GivenZeroOrigin_ReadsRowDirectlyFromSurface) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 2));
+
+    // Row 0: four distinct colours; row 1: sentinel that must not be read.
+    graphics_surfaces[0].pixels[0] = RGB(10, 20, 30, 0xFF);
+    graphics_surfaces[0].pixels[1] = RGB(40, 50, 60, 0xFF);
+    graphics_surfaces[0].pixels[2] = RGB(70, 80, 90, 0xFF);
+    graphics_surfaces[0].pixels[3] = RGB(100, 110, 120, 0xFF);
+    graphics_surfaces[0].pixels[4] = RGB(255, 255, 255, 0xFF);  // row 1, col 0
+    graphics_surfaces[0].pixels[5] = RGB(255, 255, 255, 0xFF);
+
+    ImageJpgRowSource source = { &graphics_surfaces[0], /* x */ 0, /* y */ 0, /* width */ 4 };
+    uint8_t out[4 * 3];
+
+    image_jpg_get_row_cb(0, out, &source);
+
+    EXPECT_EQ(10, out[0]); EXPECT_EQ(20, out[1]); EXPECT_EQ(30, out[2]);
+    EXPECT_EQ(40, out[3]); EXPECT_EQ(50, out[4]); EXPECT_EQ(60, out[5]);
+    EXPECT_EQ(70, out[6]); EXPECT_EQ(80, out[7]); EXPECT_EQ(90, out[8]);
+    EXPECT_EQ(100, out[9]); EXPECT_EQ(110, out[10]); EXPECT_EQ(120, out[11]);
+}
+
+TEST_F(ImageJpgGetRowCbTest, GivenNonZeroRowIndex_OffsetsFromSourceY) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 3));
+
+    graphics_surfaces[0].pixels[0] = RGB(1, 1, 1, 0xFF);    // (0,0)
+    graphics_surfaces[0].pixels[1] = RGB(1, 1, 1, 0xFF);    // (1,0)
+    graphics_surfaces[0].pixels[2] = RGB(9, 8, 7, 0xFF);    // (0,1) - source y=1
+    graphics_surfaces[0].pixels[3] = RGB(6, 5, 4, 0xFF);    // (1,1)
+    graphics_surfaces[0].pixels[4] = RGB(2, 2, 2, 0xFF);    // (0,2)
+    graphics_surfaces[0].pixels[5] = RGB(2, 2, 2, 0xFF);    // (1,2)
+
+    // source.y = 1, so row index 0 passed to the callback means surface row 1.
+    ImageJpgRowSource source = { &graphics_surfaces[0], /* x */ 0, /* y */ 1, /* width */ 2 };
+    uint8_t out[2 * 3];
+
+    image_jpg_get_row_cb(0, out, &source);
+
+    EXPECT_EQ(9, out[0]); EXPECT_EQ(8, out[1]); EXPECT_EQ(7, out[2]);
+    EXPECT_EQ(6, out[3]); EXPECT_EQ(5, out[4]); EXPECT_EQ(4, out[5]);
+
+    // row index 1 => surface row 2.
+    image_jpg_get_row_cb(1, out, &source);
+
+    EXPECT_EQ(2, out[0]); EXPECT_EQ(2, out[1]); EXPECT_EQ(2, out[2]);
+    EXPECT_EQ(2, out[3]); EXPECT_EQ(2, out[4]); EXPECT_EQ(2, out[5]);
+}
+
+TEST_F(ImageJpgGetRowCbTest, GivenNonZeroXOrigin_OffsetsColumns) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 1));
+
+    graphics_surfaces[0].pixels[0] = RGB(0, 0, 0, 0xFF);
+    graphics_surfaces[0].pixels[1] = RGB(0, 0, 0, 0xFF);
+    graphics_surfaces[0].pixels[2] = RGB(11, 22, 33, 0xFF);
+    graphics_surfaces[0].pixels[3] = RGB(44, 55, 66, 0xFF);
+
+    // Crop starting at surface column 2, width 2.
+    ImageJpgRowSource source = { &graphics_surfaces[0], /* x */ 2, /* y */ 0, /* width */ 2 };
+    uint8_t out[2 * 3];
+
+    image_jpg_get_row_cb(0, out, &source);
+
+    EXPECT_EQ(11, out[0]); EXPECT_EQ(22, out[1]); EXPECT_EQ(33, out[2]);
+    EXPECT_EQ(44, out[3]); EXPECT_EQ(55, out[4]); EXPECT_EQ(66, out[5]);
+}
+
+TEST_F(ImageJpgGetRowCbTest, GivenColumnBeyondSurfaceWidth_ReadsBlack) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 1));
+
+    graphics_surfaces[0].pixels[0] = RGB(255, 255, 255, 0xFF);
+    graphics_surfaces[0].pixels[1] = RGB(255, 255, 255, 0xFF);
+
+    // width=4 but the surface is only 2 pixels wide: columns 2 and 3 are
+    // out of bounds and must come back as RGB_BLACK, not garbage or a crash.
+    ImageJpgRowSource source = { &graphics_surfaces[0], /* x */ 0, /* y */ 0, /* width */ 4 };
+    uint8_t out[4 * 3];
+
+    image_jpg_get_row_cb(0, out, &source);
+
+    EXPECT_EQ(255, out[0]); EXPECT_EQ(255, out[1]); EXPECT_EQ(255, out[2]);
+    EXPECT_EQ(255, out[3]); EXPECT_EQ(255, out[4]); EXPECT_EQ(255, out[5]);
+    EXPECT_EQ(0, out[6]); EXPECT_EQ(0, out[7]); EXPECT_EQ(0, out[8]);
+    EXPECT_EQ(0, out[9]); EXPECT_EQ(0, out[10]); EXPECT_EQ(0, out[11]);
+}
+
+TEST_F(ImageJpgGetRowCbTest, GivenRowBeyondSurfaceHeight_ReadsBlack) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 1));
+
+    graphics_surfaces[0].pixels[0] = RGB(255, 255, 255, 0xFF);
+    graphics_surfaces[0].pixels[1] = RGB(255, 255, 255, 0xFF);
+
+    // y=0, row index 5 => surface row 5, which is out of bounds for a
+    // 1-pixel-tall surface.
+    ImageJpgRowSource source = { &graphics_surfaces[0], /* x */ 0, /* y */ 0, /* width */ 2 };
+    uint8_t out[2 * 3];
+
+    image_jpg_get_row_cb(5, out, &source);
+
+    EXPECT_EQ(0, out[0]); EXPECT_EQ(0, out[1]); EXPECT_EQ(0, out[2]);
+    EXPECT_EQ(0, out[3]); EXPECT_EQ(0, out[4]); EXPECT_EQ(0, out[5]);
 }

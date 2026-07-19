@@ -140,4 +140,21 @@ MmResult image_load_png(MmSurface *surface, char *filename, int x, int y, int tr
 MmResult image_save_bmp(MmSurface *surface, char *filename, BmpFormat format, int x, int y,
                         int width, int height);
 
+/**
+ * Saves a .jpg image to a file.
+ *
+ * @param  surface   Surface to read the image from.
+ * @param  filename  Name of file to save the image to. A ".jpg" extension is
+ *                    appended if it does not already have a ".jpg" or
+ *                    ".jpeg" extension.
+ * @param  x         X-coordinate for top left corner of image to save.
+ * @param  y         Y-coordinate for top left corner of image to save.
+ * @param  width     Width of image to save.
+ * @param  height    Height of image to save.
+ * @param  quality   JPEG quality, clamped to the range 1 (worst) - 100 (best).
+ * @return           kOk on success, or an error code on failure.
+ */
+MmResult image_save_jpg(MmSurface *surface, char *filename, int x, int y, int width, int height,
+                        int quality);
+
 #endif // #if !defined(MMBASIC_IMAGE_H)
