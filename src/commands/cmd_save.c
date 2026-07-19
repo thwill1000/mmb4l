@@ -56,7 +56,7 @@ static MmResult cmd_save_image(const char *p, BmpFormat format) {
     if (!graphics_current) return kGraphicsInvalidReadSurface;
 
     getargs(&p, 9, DELIM_COMMA);
-    if (argc != 1 && argc != 9) return kArgumentCount;
+    if (argc < 1 || argc > 9 || (argc % 2 == 0)) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
     ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
@@ -67,6 +67,26 @@ static MmResult cmd_save_image(const char *p, BmpFormat format) {
     const int h = has_arg(8) ? getinteger(argv[8]) : graphics_current->height;
 
     return image_save_bmp(graphics_current, filename, format, x, y, w, h);
+}
+
+/**
+ * SAVE JPG file$ [, x, y, w, h]
+ */
+static MmResult cmd_save_jpg(const char *p) {
+    if (!graphics_current) return kGraphicsInvalidReadSurface;
+
+    getargs(&p, 9, DELIM_COMMA);
+    if (argc < 1 || argc > 9 || (argc % 2 == 0)) return kArgumentCount;
+
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
+    const int x = has_arg(2) ? getinteger(argv[2]) : 0;
+    const int y = has_arg(4) ? getinteger(argv[4]) : 0;
+    const int w = has_arg(6) ? getinteger(argv[6]) : graphics_current->width;
+    const int h = has_arg(8) ? getinteger(argv[8]) : graphics_current->height;
+
+    return image_save_jpg(graphics_current, filename, x, y, w, h, 100);
 }
 
 void cmd_save(void) {
@@ -104,6 +124,8 @@ void cmd_save(void) {
         result = cmd_save_image(p, kBmpFormat24bpp);
     } else if ((p = checkstring(cmdline, "32BPP"))) {
         result = cmd_save_image(p, kBmpFormat32bpp);
+    } else if ((p = checkstring(cmdline, "JPG"))) {
+        result = cmd_save_jpg(p);
     } else {
         result = mmresult_ex(kSyntax, "Unknown SAVE subcommand: %s", cmdline);
     }
