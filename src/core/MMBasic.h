@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -236,6 +236,7 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);
+MmResult get_current_function_name(char *buf, size_t buf_sz);
 
 /**
  * Peforms "background" tasks:
