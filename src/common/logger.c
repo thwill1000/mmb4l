@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -59,14 +60,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "logger.h"
 
 FILE *logger = NULL;
-static LoggerLevel logger_min_level = kLoggerLevelNone;
+LoggerLevel logger_min_level = kLoggerLevelNone;
 
-void logger_set_min_level(LoggerLevel level) {
-    if (level < kLoggerLevelDebug || level > kLoggerLevelNone) {
-        logger_min_level = kLoggerLevelNone;
-    } else {
-        logger_min_level = level;
+typedef struct {
+    const char *name;
+    int ordinal;
+} NameOrdinalPair;
+
+static const NameOrdinalPair logger_level_map[] = {
+    { "Uninitialised", kLoggerLevelUninitialised },
+    { "Debug", kLoggerLevelDebug },
+    { "Info",  kLoggerLevelInfo },
+    { "Warning", kLoggerLevelWarning },
+    { "Error", kLoggerLevelError},
+    { "Fatal", kLoggerLevelFatal},
+    { "None",  kLoggerLevelNone },
+    { NULL,    -1 }
+};
+
+LoggerLevel logger_level_from_string(const char *s) {
+    assert(s != NULL);
+    for (const NameOrdinalPair *entry = logger_level_map; entry->name; ++entry) {
+        if (cstring_casecmp(s, entry->name) == 0) {
+            return entry->ordinal;
+        }
     }
+    return kLoggerLevelUninitialised;
+}
+
+MmResult logger_level_as_string(LoggerLevel level, char *buf, size_t buf_sz) {
+    if (level < kLoggerLevelUninitialised || level > kLoggerLevelNone) {
+        return mmresult_ex(kInvalidValue, "Invalid logger level: %d", level);
+    }
+    return cstring_cpy(buf, logger_level_map[level].name, buf_sz) == 0
+            ? kOk
+            : kStringTooLong;
+}
+
+MmResult logger_set_min_level(LoggerLevel level) {
+    if (level < kLoggerLevelDebug || level > kLoggerLevelNone) {
+        return mmresult_ex(kInvalidValue, "Invalid logger level: %d", level);
+    }
+    logger_min_level = level;
+    return kOk;
 }
 
 const char *logger_fmt_string(const unsigned char *src, ptrdiff_t src_len) {
@@ -162,7 +198,7 @@ MmResult logger_term(void) {
 
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
                   const char *format, ...) {
-    if (level < logger_min_level) return;
+    if (!logger_will_log(level)) return;
 
     va_list args;
     va_start(args, format);
@@ -211,7 +247,7 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
                   const char *format, ...) {
     if (!logger) return;
-    if (level < logger_min_level) return;
+    if (!logger_will_log(level)) return;
 
     // Get a timestamp for the log entry.
     time_t now = (time_t) NANOSECONDS_TO_SECONDS(mmtime_now_ns());
@@ -232,6 +268,10 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
     fprintf(logger, "%-40s", prefix_buffer);
 
     switch (level) {
+        case kLoggerLevelUninitialised:
+            // A message should never actually be logged with this level
+            fprintf(logger, "UNINITIALISED:   ");
+            break;
         case kLoggerLevelDebug:
             fprintf(logger, "DEBUG:   ");
             break;

@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Configuration.h"
 #include "file.h"
+#include "logger.h"
 #include "mmresult.h"
 
 #include <SDL_atomic.h>
@@ -152,8 +153,6 @@ typedef enum {
 
 typedef enum { kTitle, kLower, kUpper } OptionsListCase;
 
-typedef enum { kLogNone, kLogDebug, kLogInfo, kLogWarning, kLogError } OptionsLog;
-
 typedef struct {
     OptionsAngle angle;
     int autorun;
@@ -168,7 +167,7 @@ typedef struct {
     char explicit_type;
     char fn_keys[OPTIONS_NUM_FN_KEYS][OPTIONS_MAX_FN_KEY_LEN + 1];
     OptionsListCase list_case;
-    OptionsLog log;
+    LoggerLevel log;
     char search_path[STRINGSIZE];
     OptionsSimulate simulate;
     bool syntax_highlight;

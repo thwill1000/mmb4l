@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "features.h"
+#include "logger.h"
 #include "parse.h"
 #include "utility.h"
 
@@ -58,11 +59,10 @@ static int is_prefix(const char *pre, const char *str) {
 }
 
 static int is_valid_log_level(const char *s) {
-    return cstring_casecmp(s, "None") == 0
-           || cstring_casecmp(s, "Debug") == 0
-           || cstring_casecmp(s, "Info") == 0
-           || cstring_casecmp(s, "Warning") == 0
-           || cstring_casecmp(s, "Error") == 0;
+    const LoggerLevel level = logger_level_from_string(s);
+    return level >= kLoggerLevelDebug
+            && level <= kLoggerLevelNone
+            && level != kLoggerLevelFatal;
 }
 
 MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
@@ -101,15 +101,21 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
         } else if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--log") == 0) {
             if (i == argc - 1) return kInvalidCommandLine;
             if (FAILED(cstring_cpy(out->log, argv[++i], sizeof(out->log)))) return kStringTooLong;
-            if (!is_valid_log_level(out->log)) return kInvalidValue;
+            if (!is_valid_log_level(out->log)) {
+                return mmresult_ex(kInvalidValue, "Invalid log level: %s", out->log);
+            }
         } else if (is_prefix("-l=", argv[i])) {
             if (FAILED(cstring_cpy(out->log, argv[i] + strlen("-l="), sizeof(out->log))))
                 return kStringTooLong;
-            if (!is_valid_log_level(out->log)) return kInvalidValue;
+            if (!is_valid_log_level(out->log)) {
+                return mmresult_ex(kInvalidValue, "Invalid log level: %s", out->log);
+            }
         } else if (is_prefix("--log=", argv[i])) {
             if (FAILED(cstring_cpy(out->log, argv[i] + strlen("--log="), sizeof(out->log))))
                 return kStringTooLong;
-            if (!is_valid_log_level(out->log)) return kInvalidValue;
+            if (!is_valid_log_level(out->log)) {
+                return mmresult_ex(kInvalidValue, "Invalid log level: %s", out->log);
+            }
         } else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--simulate") == 0) {
             if (i == argc - 1) return kInvalidCommandLine;
             const int s = options_simulate_from_string(argv[++i]);

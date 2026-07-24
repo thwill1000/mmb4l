@@ -51,7 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 
 typedef enum {
-    kLoggerLevelDebug = 0,
+    kLoggerLevelUninitialised = 0,
+    kLoggerLevelDebug,
     kLoggerLevelInfo,
     kLoggerLevelWarning,
     kLoggerLevelError,
@@ -59,7 +60,34 @@ typedef enum {
     kLoggerLevelNone
 } LoggerLevel;
 
+#if defined(NDEBUG)
+#define LOGGER_DEFAULT_LEVEL  kLoggerLevelNone
+#else
+#define LOGGER_DEFAULT_LEVEL  kLoggerLevelInfo
+#endif
+
+/**
+ * Minimum level a message must have to be emitted; messages below this level
+ * are cheaply filtered by the LOG_* macros before their arguments are even
+ * evaluated, so this is checked outside of logger_write() as well as inside it.
+ *
+ * Set via logger_set_min_level(), normally from the command line (-l/--log)
+ * or the "Log" option once options have been loaded.
+ *
+ * Not synchronised: reads/writes from multiple threads are not atomic. In
+ * practice it is written once early in startup (and occasionally thereafter
+ * from the main thread via OPTION LOG), so a torn or stale read by another
+ * thread could at worst cause a message to be wrongly included/excluded for
+ * one call - not a safety issue, just a note for anyone tempted to rely on
+ * it more strictly.
+ */
+extern LoggerLevel logger_min_level;
+
 static const bool logger_in_function = false;
+
+LoggerLevel logger_level_from_string(const char *s);
+
+MmResult logger_level_as_string(LoggerLevel level, char *buf, size_t buf_sz);
 
 /**
  * Initialises the logger.
@@ -73,7 +101,7 @@ MmResult logger_init(const char *filename);
 MmResult logger_term(void);
 
 /** Sets the minimum log level emitted at runtime. */
-void logger_set_min_level(LoggerLevel level);
+MmResult logger_set_min_level(LoggerLevel level);
 
 /** Writes a message to the log. */
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
@@ -109,19 +137,42 @@ static inline const char *logger_fmt_pstring(const unsigned char *src) {
     return logger_fmt_string(src ? src + 1 : NULL, src ? (ptrdiff_t)src[0] : 0);
 }
 
+static inline bool logger_will_log(LoggerLevel level) {
+    return level >= logger_min_level;
+}
+
 #define FMT_PSTRING(src) \
     logger_fmt_pstring((const unsigned char *)(src))
 
-#define LOG_INFO(...)  logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_WARN(...)  logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_ERROR(...) logger_write(kLoggerLevelError, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_FATAL(...) logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_DEBUG(...) do { \
+    if (logger_will_log(kLoggerLevelDebug)) { \
+        logger_write(kLoggerLevelDebug, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+    } \
+} while (0)
 
-#if defined(NDEBUG)
-#define LOG_DEBUG(...)
-#else
-#define LOG_DEBUG(...) logger_write(kLoggerLevelDebug, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#endif // NDEBUG
+#define LOG_INFO(...) do { \
+    if (logger_will_log(kLoggerLevelInfo)) { \
+        logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+    } \
+} while (0)
+
+#define LOG_WARN(...) do { \
+    if (logger_will_log(kLoggerLevelWarning)) { \
+        logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+    } \
+} while (0)
+
+#define LOG_ERROR(...) do { \
+    if (logger_will_log(kLoggerLevelError)) { \
+        logger_write(kLoggerLevelError, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+    } \
+} while (0)
+
+#define LOG_FATAL(...) do { \
+    if (logger_will_log(kLoggerLevelFatal)) { \
+        logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+    } \
+} while (0)
 
 #define LOG_FN_ENTRY(fmt, ...) \
     const bool logger_in_function = true; \
