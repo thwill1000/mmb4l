@@ -990,6 +990,27 @@ target_link_libraries(test_keyboard
 gtest_discover_tests(test_keyboard)
 
 ################################################################################
+# test_logger
+################################################################################
+
+add_executable(test_logger
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/logger_test.cxx
+    src/common/gtest/stubs/file_stubs.c
+)
+
+configure_sdl2(test_logger FALSE)
+
+target_link_libraries(test_logger
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_logger)
+
+################################################################################
 # test_options
 ################################################################################
 

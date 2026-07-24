@@ -184,6 +184,12 @@ static void init_options() {
     result = path_get_canonical(filename, options_filename, sizeof(options_filename));
     ON_FAILURE_GOTO(result, error);
 
+    // options_init() stomps over `logger_min_level` with its own default,
+    // or any "Log = " read from the options file (there shouldn't be one
+    // as it is a transient option, but best to be defensive). To handle
+    // this make a backup of the value to restore after the call.
+    LoggerLevel old_logger_level = logger_min_level;
+
     options_init(&mmb_options);
 
     result = options_load(&mmb_options, options_filename, init_options_cb);
@@ -198,6 +204,10 @@ static void init_options() {
             goto error;
     }
     init_options_cb("END");
+
+    // Resore logger_min_level and ensure mmb_options.log is consistent.
+    logger_min_level = old_logger_level;
+    mmb_options.log = logger_min_level;
 
     RETURN_VOID();
 
@@ -366,6 +376,29 @@ static void handle_exit(void) {
     ON_FAILURE_LOG(console_term());
 }
 
+MmResult init_log() {
+    if (mmb_args.log[0] == '\0') {
+        ON_FAILURE_RETURN(logger_set_min_level(LOGGER_DEFAULT_LEVEL));
+    } else {
+        // Shouldn't fail as value already validated in cmdline_parse().
+        ON_FAILURE_RETURN(
+                logger_set_min_level(
+                        logger_level_from_string(mmb_args.log)));
+    }
+
+#if !defined(__ANDROID__)
+    if (logger_min_level != kLoggerLevelNone) {
+        ON_FAILURE_RETURN(logger_init("mmb4l.log"));
+    }
+#endif
+
+    char banner[1024];
+    ON_FAILURE_RETURN(get_name_and_version(banner, sizeof(banner)));
+    LOG_INFO("starting %s", banner);
+
+    return kOk;
+}
+
 int main(int argc, char *argv[]) {
 // #ifdef _WIN32
 //     // Attach debugger then set pause=false in the debugger to continue
@@ -375,24 +408,13 @@ int main(int argc, char *argv[]) {
 
     (void) version; // To force the linker to retain it.
 
-#if !defined(__ANDROID__) && !defined(NDEBUG)
-    ON_FAILURE_EXIT(logger_init("mmb4l.log"));
-#endif
-    logger_set_min_level(kLoggerLevelInfo);
-
-    // LOG_FN_ENTRY("argc=%d, argv=0x%" PRIxPTR, argc, (uintptr_t) argv);
-    {
-        char banner[1024];
-        ON_FAILURE_EXIT(get_name_and_version(banner, sizeof(banner)));
-        LOG_INFO("starting %s", banner);
-    }
-
     ON_FAILURE_EXIT(memory_init());
 
 #if defined(__ANDROID__)
     android_init();
 #endif
 
+    // Parse command line arguments
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {
         if (result == kStringTooLong) {
@@ -404,6 +426,9 @@ int main(int argc, char *argv[]) {
         exit(EX_FAIL);
     }
 
+    ON_FAILURE_EXIT(init_log());
+
+    // Show usage instructions and exit, if requested
     if (mmb_args.help) {
         cmdline_print_usage();
         exit(EX_OK);
@@ -428,14 +453,6 @@ int main(int argc, char *argv[]) {
 
     init_mmbasic_config_dir();
     init_options();
-    if (mmb_args.log[0] != '\0') {
-        result = options_set_string_value(&mmb_options, kOptionLog, mmb_args.log);
-        if (FAILED(result)) {
-            fprintf(stderr, "Invalid --log value '%s': %s\n", mmb_args.log, mmresult_to_string(result));
-            cmdline_print_usage();
-            exit(EX_FAIL);
-        }
-    }
 
 #if defined(__ANDROID__)
     mmb_state.default_simulate = kSimulatePicocalc;

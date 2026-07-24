@@ -49,7 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/parse.h"
 
 static MmResult cmd_log_internal() {
-    // TODO: If current log level is NONE then exit early
+    // Short-circuit if even FATAL level won't be logged.
+    if (!logger_will_log(kLoggerLevelFatal)) return kOk;
 
     LoggerLevel log_level = kLoggerLevelInfo;
 
@@ -68,6 +69,9 @@ static MmResult cmd_log_internal() {
     } else {
         p = cmdline;
     }
+
+    // Short-circuit if message won't be logged.
+    if (!logger_will_log(log_level)) return kOk;
 
     char *msg = GetTempMemory(1024);
 

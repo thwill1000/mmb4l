@@ -57,6 +57,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define INVALID_VALUE  "???"
 
+// To match defaults in "logger.h"
+#if defined(NDEBUG)
+#define LOG_DEFAULT_VALUE  "None"
+#else
+#define LOG_DEFAULT_VALUE  "Info"
+#endif
+
 OptionsEditor options_editors[] = {
     { "Atom",    "atom ${file}:${line}",             false },
     { "Geany",   "geany --line=${line} ${file} &",   false },
@@ -120,11 +127,11 @@ static const NameOrdinalPair options_list_case_map[] = {
 };
 
 static const NameOrdinalPair options_log_map[] = {
-    { "None",  kLogNone },
-    { "Debug", kLogDebug },
-    { "Info",  kLogInfo },
-    { "Warning", kLogWarning },
-    { "Error", kLogError },
+    { "None",  kLoggerLevelNone },
+    { "Debug", kLoggerLevelDebug },
+    { "Info",  kLoggerLevelInfo },
+    { "Warning", kLoggerLevelWarning },
+    { "Error", kLoggerLevelError },
     { NULL,    -1 }
 };
 
@@ -172,7 +179,7 @@ OptionsDefinition options_definitions[] = {
     { "F10",         kOptionF10,          kOptionTypeString,  true,  "RUN \"\"\202",            NULL },
     { "F11",         kOptionF11,          kOptionTypeString,  true,  "",                        NULL },
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
-    { "Log",         kOptionLog,          kOptionTypeString,  false, "Info",                    options_log_map },
+    { "Log",         kOptionLog,          kOptionTypeString,  false, LOG_DEFAULT_VALUE,         options_log_map },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
     { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
     { "Syntax Highlight", kOptionSyntaxHighlight, kOptionTypeBoolean, true, "On",               NULL },
@@ -762,7 +769,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             break;
 
         case kOptionLog:
-            assert(options->log >= kLogNone && options->log <= kLogError);
+            assert(options->log >= kLoggerLevelDebug && options->log <= kLoggerLevelNone);
             options_ordinal_to_name(
                 options_definitions[kOptionLog].enum_map,
                 options->log,
@@ -925,21 +932,12 @@ static MmResult options_set_log(Options *options, const char *svalue) {
         if (cstring_casecmp(svalue, entry->name) == 0) {
             options->log = entry->ordinal;
             switch (options->log) {
-                case kLogNone:
-                    logger_set_min_level(kLoggerLevelNone);
-                    break;
-                case kLogDebug:
-                    logger_set_min_level(kLoggerLevelDebug);
-                    break;
-                case kLogInfo:
-                    logger_set_min_level(kLoggerLevelInfo);
-                    break;
-                case kLogWarning:
-                    logger_set_min_level(kLoggerLevelWarning);
-                    break;
-                case kLogError:
-                    logger_set_min_level(kLoggerLevelError);
-                    break;
+                case kLoggerLevelNone:
+                case kLoggerLevelDebug:
+                case kLoggerLevelInfo:
+                case kLoggerLevelWarning:
+                case kLoggerLevelError:
+                    return logger_set_min_level(options->log);
                 default:
                     return kInvalidValue;
             }
