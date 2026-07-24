@@ -189,6 +189,17 @@ TEST_F(CmdLineTest, Parse_GivenLogFlag) {
     EXPECT_STREQ("Error", args.log);
 }
 
+TEST_F(CmdLineTest, Parse_GivenLogFlagFatal_Fails) {
+    int argc = 3;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = "--log";
+    argv[2] = "Fatal";
+    CmdLineArgs args = { 0 };
+
+    EXPECT_EQ(kInvalidValue, cmdline_parse(argc, argv, &args));
+}
+
 TEST_F(CmdLineTest, Parse_GivenLogFlagInvalidValue_Fails) {
     int argc = 3;
     const char *argv[10];
