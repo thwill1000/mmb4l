@@ -63,6 +63,7 @@ void cmd_line() { }
 void cmd_lineinput() { }
 void cmd_list() { }
 void cmd_load() { }
+void cmd_log() { }
 void cmd_loop() { }
 void cmd_longstring() { }
 void cmd_math() { }

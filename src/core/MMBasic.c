@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tokentbl.h"
 #include "vartbl.h"
 #include "../common/audio.h"
+#include "../common/cstring.h"
 #include "../common/console.h"
 #include "../common/display.h"
 #include "../common/events.h"
@@ -3131,4 +3132,19 @@ void perform_background_tasks() {
     events_pump();
     graphics_refresh_windows();
     ON_FAILURE_ERROR(audio_background_tasks());
+}
+
+MmResult get_current_function_name(char *buf, size_t buf_sz) {
+    int result = 0;
+    if (LocalIndex == 0) {
+        // We are at the top-level.
+        result = cstring_cat(buf, "<GLOBAL>", buf_sz);
+    } else if (*CurrentInterruptName) {
+        // We are in an interrupt.
+        result = cstring_cpy(buf, CurrentInterruptName, buf_sz);
+    } else {
+        // We are in a normal sub/fun.
+        result = cstring_cpy(buf, CurrentSubFunName, buf_sz);
+    }
+    return result == 0 ? kOk : kStringTooLong;
 }

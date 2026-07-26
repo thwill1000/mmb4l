@@ -190,6 +190,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_lineinput.c
     src/commands/cmd_list.c
     src/commands/cmd_load.c
+    src/commands/cmd_log.c
     src/commands/cmd_loop.c
     src/commands/cmd_longstring.c
     src/commands/cmd_memory.c
