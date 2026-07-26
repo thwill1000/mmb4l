@@ -124,6 +124,7 @@ void cmd_line(void);
 void cmd_lineinput(void);
 void cmd_list(void);
 void cmd_load(void);
+void cmd_log(void);
 void cmd_longstring(void);
 void cmd_loop(void);
 void cmd_math(void);

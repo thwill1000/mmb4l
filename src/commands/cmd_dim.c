@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_dim.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -121,11 +121,9 @@ void cmd_dim(void) {
             if (cmdtoken == cmdSTATIC) {
                 if (LocalIndex == 0) error_throw_legacy("Invalid here");
                 // Create a unique global name by prefixing variable name with sub/fun name.
-                if (*CurrentInterruptName) {
-                    strcpy(VarName, CurrentInterruptName);          // we must be in an interrupt sub
-                } else {
-                    strcpy(VarName, CurrentSubFunName);             // normal sub/fun
-                }
+                char function_name[MAXVARLEN + 2];
+                ON_FAILURE_ERROR(get_current_function_name(function_name, sizeof(function_name)));
+                if (FAILED(cstring_cpy(VarName, function_name, sizeof(function_name)))) ERROR_LINE_LENGTH;
                 for (k = 1; k <= MAXVARLEN; k++) {
                     if (!isnamechar(VarName[k])) {
                         VarName[k] = 0;                             // terminate the string on a non valid char

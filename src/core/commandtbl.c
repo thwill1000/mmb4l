@@ -132,6 +132,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Line Input",  T_CMD,              0, cmd_lineinput},
     { "List",        T_CMD,              0, cmd_list     },
     { "Load",        T_CMD,              0, cmd_load     },
+    { "Log",         T_CMD,              0, cmd_log      },
     { "Local",       T_CMD,              0, cmd_dim      },
     { "LongString",  T_CMD,              0, cmd_longstring },
     { "Loop",        T_CMD,              0, cmd_loop     },

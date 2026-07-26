@@ -76,7 +76,10 @@ void error_get_line_and_file(int *line, char *file_path) {
     *line = -1;
     memset(file_path, 0, STRINGSIZE);
 
-    if (!CurrentLinePtr) return;
+    if (!CurrentLinePtr) {
+        strcpy(file_path, "<PROMPT>");
+        return;
+    }
 
     assert(CurrentLinePtr < (char *) ProgMemory + PROG_FLASH_SIZE);
 
