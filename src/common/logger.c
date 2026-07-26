@@ -59,13 +59,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "logger.h"
 
-FILE *logger = NULL;
-LoggerLevel logger_min_level = kLoggerLevelNone;
-
 typedef struct {
     const char *name;
     int ordinal;
 } NameOrdinalPair;
+
+LoggerLevel logger_min_level = kLoggerLevelNone;
+
+static FILE *logger = NULL;
 
 static const NameOrdinalPair logger_level_map[] = {
     { "Uninitialised", kLoggerLevelUninitialised },

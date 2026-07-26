@@ -83,10 +83,10 @@ typedef enum {
  */
 extern LoggerLevel logger_min_level;
 
-static const bool logger_in_function = false;
-
+/** Parses a string as a LoggerLevel. */
 LoggerLevel logger_level_from_string(const char *s);
 
+/** Converts a LoggerLevel to a string. */
 MmResult logger_level_as_string(LoggerLevel level, char *buf, size_t buf_sz);
 
 /**
@@ -137,12 +137,12 @@ static inline const char *logger_fmt_pstring(const unsigned char *src) {
     return logger_fmt_string(src ? src + 1 : NULL, src ? (ptrdiff_t)src[0] : 0);
 }
 
+#define FMT_PSTRING(src) \
+    logger_fmt_pstring((const unsigned char *)(src))
+
 static inline bool logger_will_log(LoggerLevel level) {
     return level >= logger_min_level;
 }
-
-#define FMT_PSTRING(src) \
-    logger_fmt_pstring((const unsigned char *)(src))
 
 #define LOG_DEBUG(...) do { \
     if (logger_will_log(kLoggerLevelDebug)) { \
@@ -173,6 +173,23 @@ static inline bool logger_will_log(LoggerLevel level) {
         logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __func__, __VA_ARGS__); \
     } \
 } while (0)
+
+/**
+ * Backing variable for LOG_FN_EXIT()'s decision to log or stay silent.
+ *
+ * This file-scope `static const bool logger_in_function = false` is the
+ * default every function sees. LOG_FN_ENTRY(), if used, declares a *local*
+ * `bool logger_in_function = true` at the top of the function - shadowing
+ * this one for the rest of that function's scope. LOG_FN_EXIT() then just
+ * reads whichever `logger_in_function` is in scope: true (and therefore
+ * logs a "return (...)" message) if LOG_FN_ENTRY() was called earlier in
+ * the same function, false (and stays silent) otherwise.
+ *
+ * This lets LOG_FN_EXIT() be dropped into any function - including ones
+ * that never called LOG_FN_ENTRY() - without needing an #ifdef or an extra
+ * flag threaded through by hand; the shadowing does the switching for it.
+ */
+static const bool logger_in_function = false;
 
 #define LOG_FN_ENTRY(fmt, ...) \
     const bool logger_in_function = true; \
