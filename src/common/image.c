@@ -775,7 +775,7 @@ MmResult image_load_png(MmSurface *surface, char *filename, int x, int y, int tr
     upng_header(upng);
     const int w = upng_get_width(upng);
     const int h = upng_get_height(upng);
-    if (x + w > graphics_current->width || y + h > graphics_current->height) {
+    if (x + w > surface->width || y + h > surface->height) {
         upng_free(upng);
         return kImageTooLarge;
     }
