@@ -1081,3 +1081,232 @@ TEST_F(ImageJpgGetRowCbTest, GivenRowBeyondSurfaceHeight_ReadsBlack) {
     EXPECT_EQ(0, out[0]); EXPECT_EQ(0, out[1]); EXPECT_EQ(0, out[2]);
     EXPECT_EQ(0, out[3]); EXPECT_EQ(0, out[4]); EXPECT_EQ(0, out[5]);
 }
+
+// ---------------------------------------------------------------------------
+// image_load_png() - argument validation
+// ---------------------------------------------------------------------------
+
+class ImageLoadPngValidationTest : public ::testing::Test {
+
+protected:
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
+};
+
+TEST_F(ImageLoadPngValidationTest, GivenNullSurface_Fails) {
+    EXPECT_EQ(kGraphicsInvalidWriteSurface,
+             image_load_png(NULL, (char *) "foo.png", 0, 0, 0, 0));
+}
+
+TEST_F(ImageLoadPngValidationTest, GivenSurfaceTypeNone_Fails) {
+    MmSurface surface = {};
+    surface.type = kGraphicsNone;
+
+    EXPECT_EQ(kGraphicsInvalidWriteSurface,
+             image_load_png(&surface, (char *) "foo.png", 0, 0, 0, 0));
+}
+
+TEST_F(ImageLoadPngValidationTest, GivenFileNotFound_ReturnsErrorNotCrash) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 8, 8));
+
+    const MmResult result =
+        image_load_png(&graphics_surfaces[0], (char *) "does_not_exist.png", 0, 0, 0, 0);
+
+    EXPECT_NE(kOk, result);
+    EXPECT_NE(kGraphicsInvalidWriteSurface, result);
+}
+
+// ---------------------------------------------------------------------------
+// image_load_png() - decoding
+// ---------------------------------------------------------------------------
+//
+// Real (not fabricated) 4x4 PNGs generated with Python's zlib/struct:
+// truecolour (UPNG_RGB8), truecolour-with-alpha (UPNG_RGBA8), and 8-bit
+// grayscale (UPNG_LUMINANCE8, used to exercise the unsupported-format
+// rejection path) - confirmed against upng.h's upng_format enum:
+//   UPNG_BADFORMAT=0, UPNG_RGB8=1, UPNG_RGB16=2, UPNG_RGBA8=3,
+//   UPNG_RGBA16=4, UPNG_LUMINANCE1=5, ..., UPNG_LUMINANCE8=8, ...
+// image_load_png() only accepts format==1 (UPNG_RGB8) or format==3
+// (UPNG_RGBA8), so these fixtures exactly straddle that boundary.
+//
+// RGB fixture:   R(x,y) = min(255, x*80), G(x,y) = min(255, y*80), B = 50
+// RGBA fixture:  same R/G/B, A(x,y) = min(255, (x+y)*30)
+// Gray fixture:  L(x,y) = min(255, (x+y)*30)  (unsupported format)
+
+static const uint8_t kTinyPngRgb4x4[] = {
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0x08, 0x02, 0x00, 0x00, 0x00, 0x26, 0x93, 0x09,
+    0x29, 0x00, 0x00, 0x00, 0x29, 0x49, 0x44, 0x41, 0x54, 0x78, 0xDA, 0x0D, 0xC7, 0x31, 0x01, 0x00,
+    0x00, 0x0C, 0xC2, 0x30, 0x34, 0x55, 0x09, 0x12, 0x2B, 0x11, 0x09, 0x5B, 0xBE, 0x24, 0xA1, 0xC1,
+    0xB0, 0x90, 0x94, 0x16, 0xCB, 0xFA, 0x91, 0x8A, 0x32, 0x3F, 0xA3, 0xC3, 0xB1, 0x71, 0x77, 0xE3,
+    0x12, 0x21, 0xC6, 0xEE, 0x6D, 0x73, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42,
+    0x60, 0x82,
+};
+static const size_t kTinyPngRgb4x4Len = sizeof(kTinyPngRgb4x4);
+
+static const uint8_t kTinyPngRgba4x4[] = {
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0x08, 0x06, 0x00, 0x00, 0x00, 0xA9, 0xF1, 0x9E,
+    0x7E, 0x00, 0x00, 0x00, 0x3B, 0x49, 0x44, 0x41, 0x54, 0x78, 0xDA, 0x05, 0xC1, 0x31, 0x01, 0x00,
+    0x31, 0x0C, 0x03, 0x31, 0x23, 0x29, 0x88, 0x9B, 0x03, 0xC2, 0x73, 0x90, 0x14, 0x49, 0x67, 0x83,
+    0x78, 0x60, 0x86, 0xF0, 0x92, 0x24, 0x64, 0x71, 0x22, 0xA6, 0x62, 0x25, 0x73, 0x6C, 0x26, 0x66,
+    0x6B, 0xAE, 0x14, 0xC6, 0x61, 0x13, 0x6E, 0xC3, 0x93, 0xCA, 0xBA, 0xDC, 0x94, 0xD7, 0xF2, 0xFD,
+    0x78, 0x6A, 0x17, 0xC1, 0x97, 0x54, 0xC7, 0xE3, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44,
+    0xAE, 0x42, 0x60, 0x82,
+};
+static const size_t kTinyPngRgba4x4Len = sizeof(kTinyPngRgba4x4);
+
+static const uint8_t kTinyPngGrayscale4x4[] = {
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x8C, 0x9A, 0xC1,
+    0xA2, 0x00, 0x00, 0x00, 0x16, 0x49, 0x44, 0x41, 0x54, 0x78, 0xDA, 0x63, 0x60, 0x90, 0xB3, 0x89,
+    0x02, 0xE1, 0x0A, 0x06, 0x20, 0x9E, 0xC6, 0x00, 0xC4, 0x5B, 0x00, 0x2A, 0x44, 0x05, 0xA1, 0x59,
+    0x26, 0x80, 0x72, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+};
+static const size_t kTinyPngGrayscale4x4Len = sizeof(kTinyPngGrayscale4x4);
+
+static void expected_png_rgb(int x, int y, int *r, int *g, int *b) {
+    *r = std::min(255, x * 80);
+    *g = std::min(255, y * 80);
+    *b = 50;
+}
+
+class ImageLoadPngDecodeTest : public ::testing::Test {
+
+protected:
+
+    char rgb_filename[STRINGSIZE];
+    char rgba_filename[STRINGSIZE];
+    char gray_filename[STRINGSIZE];
+
+    static void write_fixture(const char *filename, const uint8_t *data, size_t len) {
+        FILE *f = fopen(filename, "wb");
+        ASSERT_NE(nullptr, f);
+        ASSERT_EQ(len, fwrite(data, 1, len, f));
+        fclose(f);
+    }
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+
+        snprintf(rgb_filename, sizeof(rgb_filename), "/tmp/mmb4l_test_tiny_rgb_%d.png",
+                system_getpid());
+        write_fixture(rgb_filename, kTinyPngRgb4x4, kTinyPngRgb4x4Len);
+
+        snprintf(rgba_filename, sizeof(rgba_filename), "/tmp/mmb4l_test_tiny_rgba_%d.png",
+                system_getpid());
+        write_fixture(rgba_filename, kTinyPngRgba4x4, kTinyPngRgba4x4Len);
+
+        snprintf(gray_filename, sizeof(gray_filename), "/tmp/mmb4l_test_tiny_gray_%d.png",
+                system_getpid());
+        write_fixture(gray_filename, kTinyPngGrayscale4x4, kTinyPngGrayscale4x4Len);
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+        remove(rgb_filename);
+        remove(rgba_filename);
+        remove(gray_filename);
+    }
+};
+
+TEST_F(ImageLoadPngDecodeTest, GivenRgbPng_DecodesExactPixels) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 4));
+
+    EXPECT_EQ(kOk, image_load_png(&graphics_surfaces[0], rgb_filename, 0, 0, 0, 0));
+
+    for (int y = 0; y < 4; y++) {
+        for (int x = 0; x < 4; x++) {
+            int er, eg, eb;
+            expected_png_rgb(x, y, &er, &eg, &eb);
+            int ar, ag, ab;
+            get_surface_rgb(&graphics_surfaces[0], x, y, &ar, &ag, &ab);
+            EXPECT_EQ(er, ar) << "at (" << x << "," << y << ") red";
+            EXPECT_EQ(eg, ag) << "at (" << x << "," << y << ") green";
+            EXPECT_EQ(eb, ab) << "at (" << x << "," << y << ") blue";
+        }
+    }
+}
+
+TEST_F(ImageLoadPngDecodeTest, GivenRgbaPng_Decodes) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 4));
+
+    // RGBA truecolour PNGs take the format==3 branch in image_load_png(),
+    // which is distinct code from the plain-RGB (format==1) branch above -
+    // this just confirms it doesn't fail/crash and produces the right RGB
+    // channels; alpha handling specifics are exercised indirectly via
+    // image_draw_buffer()'s skip flags, not re-asserted bit-for-bit here.
+    EXPECT_EQ(kOk, image_load_png(&graphics_surfaces[0], rgba_filename, 0, 0, 0, 0));
+
+    for (int y = 0; y < 4; y++) {
+        for (int x = 0; x < 4; x++) {
+            int er, eg, eb;
+            expected_png_rgb(x, y, &er, &eg, &eb);
+            int ar, ag, ab;
+            get_surface_rgb(&graphics_surfaces[0], x, y, &ar, &ag, &ab);
+            EXPECT_EQ(er, ar) << "at (" << x << "," << y << ") red";
+            EXPECT_EQ(eg, ag) << "at (" << x << "," << y << ") green";
+            EXPECT_EQ(eb, ab) << "at (" << x << "," << y << ") blue";
+        }
+    }
+}
+
+TEST_F(ImageLoadPngDecodeTest, GivenXyOffset_DrawsAtCorrectPosition) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 10, 10));
+
+    const MmGraphicsColour kSentinel = RGB(1, 2, 3, 0xFF);
+    for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < 10; x++) {
+            graphics_surfaces[0].pixels[y * 10 + x] = kSentinel;
+        }
+    }
+
+    EXPECT_EQ(kOk, image_load_png(&graphics_surfaces[0], rgb_filename, 3, 2, 0, 0));
+
+    // (3,2) on the surface should be source (0,0).
+    int ar, ag, ab;
+    get_surface_rgb(&graphics_surfaces[0], 3, 2, &ar, &ag, &ab);
+    EXPECT_EQ(0, ar);
+    EXPECT_EQ(0, ag);
+    EXPECT_EQ(50, ab);
+
+    // (6,5) = (3+3, 2+3) should be source (3,3), the bottom-right corner.
+    get_surface_rgb(&graphics_surfaces[0], 6, 5, &ar, &ag, &ab);
+    EXPECT_EQ(240, ar);
+    EXPECT_EQ(240, ag);
+    EXPECT_EQ(50, ab);
+
+    // A pixel outside the drawn 4x4 region should still be the sentinel.
+    MmGraphicsColour outside = RGB_BLACK;
+    ASSERT_EQ(kOk, graphics_get_pixel(&graphics_surfaces[0], 0, 0, &outside));
+    EXPECT_EQ(kSentinel, outside);
+}
+
+TEST_F(ImageLoadPngDecodeTest, GivenImageTooLargeForSurface_Fails) {
+    // Surface smaller than the 4x4 fixture, with a placement offset that
+    // pushes it past the edge -> should fail with kImageTooLarge rather
+    // than overflowing. This now correctly exercises surface->width/height
+    // rather than graphics_current, and would have crashed before the fix
+    // to image_load_png().
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 4));
+
+    EXPECT_EQ(kImageTooLarge, image_load_png(&graphics_surfaces[0], rgb_filename, 2, 2, 0, 0));
+}
+
+TEST_F(ImageLoadPngDecodeTest, GivenUnsupportedFormat_ReturnsInvalidFormat) {
+    // 8-bit grayscale -> upng reports UPNG_LUMINANCE8 (format value 8),
+    // which falls outside image_load_png()'s accepted
+    // {UPNG_RGB8 (1), UPNG_RGBA8 (3)} set.
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 4));
+
+    EXPECT_EQ(kImageInvalidFormat,
+             image_load_png(&graphics_surfaces[0], gray_filename, 0, 0, 0, 0));
+}
