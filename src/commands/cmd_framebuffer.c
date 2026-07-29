@@ -47,15 +47,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
-/** FRAMEBUFFER CLOSE [{F|L}] */
+/** FRAMEBUFFER CLOSE [ F| L | 2 ] */
 static MmResult cmd_framebuffer_close(const char *p) {
     skipspace(p);
     MmResult result = kOk;
     MmSurface *surfaceF = &graphics_surfaces[GRAPHICS_SURFACE_F];
     MmSurface *surfaceL = &graphics_surfaces[GRAPHICS_SURFACE_L];
+    MmSurface *surfaceF2 = &graphics_surfaces[GRAPHICS_SURFACE_F2];
     if (parse_is_end(p)) {
         result = graphics_surface_destroy(surfaceF);
         if (SUCCEEDED(result)) result = graphics_surface_destroy(surfaceL);
+        if (SUCCEEDED(result)) result = graphics_surface_destroy(surfaceF2);
     } else {
         MmSurfaceId page_id = -1;
         result = parse_page(p, &page_id);
@@ -69,6 +71,9 @@ static MmResult cmd_framebuffer_close(const char *p) {
                     break;
                 case GRAPHICS_SURFACE_L:
                     result = graphics_surface_destroy(surfaceL);
+                    break;
+                case GRAPHICS_SURFACE_F2:
+                    result = graphics_surface_destroy(surfaceF2);
                     break;
                 default:
                     result = INTERNAL_FAULT_EX("invalid page_id: %d", page_id);
@@ -125,12 +130,18 @@ static MmResult cmd_framebuffer_copy(const char *p) {
                          dst_surface, 0x0, -1);
 }
 
-/** FRAMEBUFFER CREATE */
+/** FRAMEBUFFER CREATE [ 2 ] */
 static MmResult cmd_framebuffer_create(const char *p) {
+    MmSurfaceId id = GRAPHICS_SURFACE_F;
+    const char *p2;
+    if ((p2 = checkstring(p, "2"))) {
+        id = GRAPHICS_SURFACE_F2;
+        p = p2;
+    }
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     return graphics_buffer_create(
-        GRAPHICS_SURFACE_F,
+        id,
         graphics_surfaces[GRAPHICS_SURFACE_N].width,
         graphics_surfaces[GRAPHICS_SURFACE_N].height);
 }
