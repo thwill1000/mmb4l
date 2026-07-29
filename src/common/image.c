@@ -682,10 +682,6 @@ cleanup:
 void image_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
                               const unsigned char *buffer, int skip) {
     const unsigned char *psrc = buffer;
-    union colourmap {
-        char rgbbytes[4];
-        uint32_t rgb;
-    } c;
 
     // make sure the coordinates are kept within the display area
     if (x2 <= x1) SWAP(int, x1, x2);
@@ -695,20 +691,20 @@ void image_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
         uint32_t *pdst = surface->pixels + (y * surface->width + x1);
         for (int x = x1; x <= x2; x++) {
             if (x >= 0 && x < surface->width && y >= 0 && y < surface->height) {
+                uint8_t r, g, b, a;
                 if (skip & 2) {
-                    c.rgbbytes[3] = 0xFF;     // assume solid colour
-                    c.rgbbytes[2] = *psrc++;  // this order swaps the bytes to match the .BMP file
-                    c.rgbbytes[1] = *psrc++;
-                    c.rgbbytes[0] = *psrc++;
-                    if (skip & 1) c.rgbbytes[3] = *psrc++;  // ARGB8888 so set transparency
+                    r = *psrc++;
+                    g = *psrc++;
+                    b = *psrc++;
+                    a = (skip & 1) ? *psrc++ : 0xFF;
                 } else {
-                    c.rgbbytes[3] = 0;
-                    c.rgbbytes[0] = *psrc++;  // this order swaps the bytes to match the .BMP file
-                    c.rgbbytes[1] = *psrc++;
-                    c.rgbbytes[2] = *psrc++;
+                    b = *psrc++;
+                    g = *psrc++;
+                    r = *psrc++;
+                    a = 0x00;
                     if (skip & 1) psrc++;
                 }
-                *pdst = c.rgb;
+                *pdst = (uint32_t) RGB(r, g, b, a);
             } else {
                 psrc += (skip & 1) ? 4 : 3;
             }
