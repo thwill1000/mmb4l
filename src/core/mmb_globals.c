@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-Commands.h
+mmb_globals.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,47 +42,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdbool.h>
+#include "Commands.h"
 
-#include "../Configuration.h"
+/** Stack to keep track of nested FOR/NEXT loops */
+struct s_forstack forstack[MAXFORLOOPS + 1];
+int forindex;
 
-struct s_forstack {
-    const char *forptr;                     // pointer to the FOR command in program memory
-    const char *nextptr;                    // pointer to the NEXT command in program memory
-    void *var;                              // value of the FOR variable
-    char vartype;                           // type of the variable
-    char level;                             // the sub/function level that the loop was created
-    union u_totype {
-        MMFLOAT f;                          // the TO value if it is a MMFLOAT
-        long long int i;                    // the TO value if it is an integer
-    } tovalue;
-    union u_steptype {
-        MMFLOAT f;                          // the STEP value if it is a MMFLOAT
-        long long int i;                    // the STEP value if it is an integer
-    } stepvalue;
-};
+/** Stack to keep track of nested DO/LOOP loops */
+struct s_dostack dostack[MAXDOLOOPS];
+int doindex;
 
-extern struct s_forstack forstack[MAXFORLOOPS + 1] ;
-extern int forindex;
+// Stack to keep track of GOSUBs, SUBs and FUNCTIONs
+const char *gosubstack[MAXGOSUB];
+int gosubindex;
 
-struct s_dostack {
-    const char *evalptr;                    // pointer to the expression to be evaluated
-    const char *loopptr;                    // pointer to the loop statement
-    const char *doptr;                      // pointer to the DO statement
-    char level;                             // the sub/function level that the loop was created
-};
+const char *errorstack[MAXGOSUB];
 
-extern struct s_dostack dostack[MAXDOLOOPS];
-extern int doindex;
-
-extern const char *gosubstack[MAXGOSUB];
-extern const char *errorstack[MAXGOSUB];
-extern int gosubindex;
-extern bool DimUsed;
-
-void ListNewLine(int *ListCnt, int all);
-const char *llist(char *b, const char *p);
-
-extern unsigned int BusSpeed;
-extern char *OnKeyGOSUB;
-extern char EchoOption;
+/** Used to catch use of OPTION BASE after DIM has been used */
+bool DimUsed = false;

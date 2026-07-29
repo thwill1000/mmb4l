@@ -67,16 +67,6 @@ MmResult streamio_close_all(void) {
     return kOk;
 }
 
-// Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
-
 } // extern "C"
 
 class CmdDoTest : public ::testing::Test {
