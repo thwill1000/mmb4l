@@ -1083,6 +1083,164 @@ TEST_F(ImageJpgGetRowCbTest, GivenRowBeyondSurfaceHeight_ReadsBlack) {
 }
 
 // ---------------------------------------------------------------------------
+// image_draw_buffer()
+// ---------------------------------------------------------------------------
+
+class ImageDrawBufferTest : public ::testing::Test {
+
+protected:
+
+    void SetUp() override {
+        graphics_init();
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
+};
+
+TEST_F(ImageDrawBufferTest, GivenSkip2_ReadsRgbTripletsWithOpaqueAlpha) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 1));
+
+    // Two RGB triplets, no alpha byte.
+    const unsigned char buffer[6] = {
+        10, 20, 30,   // pixel (0,0)
+        40, 50, 60,   // pixel (1,0)
+    };
+
+    image_draw_buffer(&graphics_surfaces[0], 0, 0, 1, 0, buffer, /* skip */ 2);
+
+    int r, g, b;
+    get_surface_rgb(&graphics_surfaces[0], 0, 0, &r, &g, &b);
+    EXPECT_EQ(10, r); EXPECT_EQ(20, g); EXPECT_EQ(30, b);
+    get_surface_rgb(&graphics_surfaces[0], 1, 0, &r, &g, &b);
+    EXPECT_EQ(40, r); EXPECT_EQ(50, g); EXPECT_EQ(60, b);
+
+    // Alpha defaults to opaque (0xFF) when skip & 1 is clear.
+    MmGraphicsColour colour = RGB_BLACK;
+    ASSERT_EQ(kOk, graphics_get_pixel(&graphics_surfaces[0], 0, 0, &colour));
+    EXPECT_EQ(0xFF, (colour >> 24) & 0xFF);
+}
+
+TEST_F(ImageDrawBufferTest, GivenSkip3_ReadsAlphaFromFourthSourceByte) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 1, 1));
+
+    const unsigned char buffer[4] = { 10, 20, 30, 0x80 };  // R,G,B,A
+
+    image_draw_buffer(&graphics_surfaces[0], 0, 0, 0, 0, buffer, /* skip */ 3);
+
+    int r, g, b;
+    get_surface_rgb(&graphics_surfaces[0], 0, 0, &r, &g, &b);
+    EXPECT_EQ(10, r); EXPECT_EQ(20, g); EXPECT_EQ(30, b);
+
+    MmGraphicsColour colour = RGB_BLACK;
+    ASSERT_EQ(kOk, graphics_get_pixel(&graphics_surfaces[0], 0, 0, &colour));
+    EXPECT_EQ(0x80, (colour >> 24) & 0xFF);
+}
+
+TEST_F(ImageDrawBufferTest, GivenSkip0_ReversesChannelOrderWithZeroAlpha) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 1, 1));
+
+    const unsigned char buffer[3] = { 10, 20, 30 };
+
+    image_draw_buffer(&graphics_surfaces[0], 0, 0, 0, 0, buffer, /* skip */ 0);
+
+    // With skip & 2 clear, channels come out reversed: red=src[2], blue=src[0].
+    int r, g, b;
+    get_surface_rgb(&graphics_surfaces[0], 0, 0, &r, &g, &b);
+    EXPECT_EQ(30, r); EXPECT_EQ(20, g); EXPECT_EQ(10, b);
+
+    MmGraphicsColour colour = RGB_BLACK;
+    ASSERT_EQ(kOk, graphics_get_pixel(&graphics_surfaces[0], 0, 0, &colour));
+    EXPECT_EQ(0, (colour >> 24) & 0xFF);
+}
+
+TEST_F(ImageDrawBufferTest, GivenSkip1_SkipsFourthByteButAlphaStaysZero) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 1));
+
+    // Pixel 0: R,G,B,<skipped>; pixel 1: R,G,B - confirms the 4th byte of
+    // pixel 0 is consumed (not stored) and doesn't throw off pixel 1's read.
+    const unsigned char buffer[7] = {
+        10, 20, 30, 0xFF,  // pixel (0,0) + 1 skipped byte
+        40, 50, 60,        // pixel (1,0)
+    };
+
+    image_draw_buffer(&graphics_surfaces[0], 0, 0, 1, 0, buffer, /* skip */ 1);
+
+    int r, g, b;
+    get_surface_rgb(&graphics_surfaces[0], 0, 0, &r, &g, &b);
+    EXPECT_EQ(30, r); EXPECT_EQ(20, g); EXPECT_EQ(10, b);  // reversed, as skip&2 clear
+
+    get_surface_rgb(&graphics_surfaces[0], 1, 0, &r, &g, &b);
+    EXPECT_EQ(60, r); EXPECT_EQ(50, g); EXPECT_EQ(40, b);
+
+    MmGraphicsColour colour = RGB_BLACK;
+    ASSERT_EQ(kOk, graphics_get_pixel(&graphics_surfaces[0], 0, 0, &colour));
+    EXPECT_EQ(0, (colour >> 24) & 0xFF);
+}
+
+TEST_F(ImageDrawBufferTest, GivenReversedCoordinates_SwapsAndDrawsSameRegion) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 2));
+
+    // 2x2 buffer, raster order regardless of how corners are specified.
+    const unsigned char buffer[12] = {
+        1, 1, 1,     2, 2, 2,    // row 0: (0,0) (1,0)
+        3, 3, 3,     4, 4, 4,    // row 1: (0,1) (1,1)
+    };
+
+    // Pass corners in "reversed" order: (x2,y2) before (x1,y1) in effect.
+    image_draw_buffer(&graphics_surfaces[0], /* x1 */ 1, /* y1 */ 1,
+                      /* x2 */ 0, /* y2 */ 0, buffer, /* skip */ 2);
+
+    int r, g, b;
+    get_surface_rgb(&graphics_surfaces[0], 0, 0, &r, &g, &b);
+    EXPECT_EQ(1, r);
+    get_surface_rgb(&graphics_surfaces[0], 1, 0, &r, &g, &b);
+    EXPECT_EQ(2, r);
+    get_surface_rgb(&graphics_surfaces[0], 0, 1, &r, &g, &b);
+    EXPECT_EQ(3, r);
+    get_surface_rgb(&graphics_surfaces[0], 1, 1, &r, &g, &b);
+    EXPECT_EQ(4, r);
+}
+
+TEST_F(ImageDrawBufferTest, GivenPartiallyOutOfBoundsRegion_ClipsButAdvancesSourceBuffer) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 1, 1));
+
+    // Destination rectangle spans x=-1..0, i.e. column -1 is off-surface and
+    // column 0 is on it. The off-surface pixel must still be skipped over in
+    // the source buffer so column 0 picks up the *second* triplet, not the
+    // first.
+    const unsigned char buffer[6] = {
+        99, 99, 99,   // would-be pixel (-1, 0): off surface, must not be drawn
+        10, 20, 30,   // pixel (0, 0): on surface
+    };
+
+    image_draw_buffer(&graphics_surfaces[0], -1, 0, 0, 0, buffer, /* skip */ 2);
+
+    int r, g, b;
+    get_surface_rgb(&graphics_surfaces[0], 0, 0, &r, &g, &b);
+    EXPECT_EQ(10, r); EXPECT_EQ(20, g); EXPECT_EQ(30, b);
+}
+
+TEST_F(ImageDrawBufferTest, GivenRowFullyOutOfBounds_DoesNotCrash) {
+    ASSERT_EQ(kOk, graphics_buffer_create(0, 2, 1));
+
+    const unsigned char buffer[6] = {
+        1, 1, 1,
+        2, 2, 2,
+    };
+
+    // y=5 is entirely below the 1-pixel-tall surface.
+    image_draw_buffer(&graphics_surfaces[0], 0, 5, 1, 5, buffer, /* skip */ 2);
+
+    // Surface content should be untouched (still whatever graphics_buffer_create
+    // initialised it to); the main assertion is that this didn't crash/corrupt
+    // memory, which ASan/valgrind in CI would otherwise catch.
+    SUCCEED();
+}
+
+// ---------------------------------------------------------------------------
 // image_load_png() - argument validation
 // ---------------------------------------------------------------------------
 

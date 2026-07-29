@@ -152,5 +152,40 @@ void image_bin_row(const uint8_t *mcu_row_buffer, int mcu_row_width, int rows_av
 void image_dither_row(uint8_t *row_buffer, int row_width, int16_t *curr_error,
                       int16_t *next_error, ImageDitherMode mode);
 
+/**
+ * Draws a rectangular block of packed pixel data from `buffer` onto `surface`,
+ * used by image_load_png() to blit a fully-decoded PNG's pixel buffer.
+ *
+ * (x1, y1) and (x2, y2) are the two opposite corners of the destination
+ * rectangle on `surface`; if x2 <= x1 or y2 <= y1 the corresponding pair is
+ * swapped first, so the rectangle can be specified in either orientation.
+ * `buffer` is walked in raster order (left to right, top to bottom)
+ * regardless of the swap.
+ *
+ * Pixels whose destination falls outside the surface bounds are not drawn,
+ * but `buffer` is still advanced by the correct stride so that later,
+ * in-bounds pixels read the correct source bytes.
+ *
+ * `skip` controls the source pixel format and byte order, matching the values
+ * passed by image_load_png():
+ * - bit 1 (skip & 2): if set, source bytes are read in R,G,B order and
+ *   stored so the result is 0xAARRGGBB with alpha defaulting to 0xFF; if
+ *   clear, source bytes are read in the same R,G,B order but stored such
+ *   that R lands in the blue position and B in the red position (i.e.
+ *   effectively B,G,R once reassembled), with alpha defaulting to 0.
+ * - bit 0 (skip & 1): if set, a 4th source byte is consumed per pixel. When
+ *   combined with bit 1 that 4th byte becomes the alpha channel; when bit 1
+ *   is clear the 4th byte is still consumed (to skip past it) but discarded.
+ *
+ * @param  surface  Destination surface.
+ * @param  x1       X-coordinate of one corner of the destination rectangle.
+ * @param  y1       Y-coordinate of one corner of the destination rectangle.
+ * @param  x2       X-coordinate of the opposite corner.
+ * @param  y2       Y-coordinate of the opposite corner.
+ * @param  buffer   Source pixel data, walked sequentially; see `skip` for format.
+ * @param  skip     Format/stride flags; see above.
+ */
+void image_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
+                       const unsigned char *buffer, int skip);
 
 #endif // #if !defined(MMB4L_IMAGE_PRIVATE)
