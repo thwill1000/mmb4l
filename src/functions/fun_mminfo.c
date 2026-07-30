@@ -116,6 +116,30 @@ static void mminfo_current(const char *p) {
     CtoM(g_string_rtn);
 }
 
+static void mminfo_current_function(const char *p) {
+    // char name[MAXVARLEN + 2];
+    // for (int i = 0; i <= gosubindex + 5; ++i) {
+    //     display_puts("> ");
+    //     if (funstack[i]) {
+    //         memset(name, 0, sizeof(name));
+    //         strncpy(name, funstack[i]->name, MAXVARLEN);
+    //         display_puts(name);
+    //     } else {
+    //         display_puts("<GLOBAL>");
+    //     }
+    //     if (i == gosubindex) {
+    //         display_puts(" *");
+    //     }
+    //     display_puts("\r\n");
+    // }
+
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_string_rtn = GetTempStrMemory();
+    g_rtn_type = T_STR;
+    strncpy(g_string_rtn, gosubindex == 0 ? "<GLOBAL>" : funstack[gosubindex]->name, MAXVARLEN);
+    CtoM(g_string_rtn);
+}
+
 MmResult get_mmdevice(char *device) {
     strcpy(device, mmb_features.device);
     return kOk;
@@ -687,6 +711,8 @@ void fun_mminfo(void) {
         mminfo_cpuspeed(p);
     } else if ((p = checkstring(ep, "CPUTIME"))) {
         mminfo_cputime(p);
+    } else if ((p = checkstring(ep, "CURRENT FUNCTION"))) {
+        mminfo_current_function(p);
     } else if ((p = checkstring(ep, "CURRENT"))) {
         mminfo_current(p);
     } else if ((p = checkstring(ep, "DEVICE"))) {

@@ -98,6 +98,26 @@ static int cstring_cmp(const void *a, const void *b)  {
     return cstring_casecmp(*ia, *ib);
 }
 
+/** LIST CALLS */
+static MmResult cmd_list_calls(const char *p) {
+    if (!parse_is_end(p)) return kUnexpectedText;
+    char name[MAXVARLEN + 2];
+    for (int i = 0; i <= gosubindex; ++i) {
+        if (funstack[i]) {
+            memset(name, 0, sizeof(name));
+            strncpy(name, funstack[i]->name, MAXVARLEN);
+            display_puts(name);
+        } else {
+            display_puts("<GLOBAL>");
+        }
+        if (i == gosubindex) {
+            display_puts(" *");
+        }
+        display_puts("\r\n");
+    }
+    return kOk;
+}
+
 static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *primary,
                                 const char **secondary) {
     int width = -1, height = -1;
@@ -355,7 +375,9 @@ void cmd_list(void) {
     skipspace(cmdline);
 
     MmResult result = kOk;
-    if ((p = checkstring(cmdline, "COMMANDS"))) {
+    if ((p = checkstring(cmdline, "CALLS"))) {
+        result = cmd_list_calls(p);
+    } else if ((p = checkstring(cmdline, "COMMANDS"))) {
         result = cmd_list_commands(p);
     } else if ((p = checkstring(cmdline, "CSUB"))) {
         result = cmd_list_csubs(p);
