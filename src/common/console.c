@@ -209,6 +209,8 @@ void console_home_cursor(void) {
 }
 
 void console_set_cursor_pos(int x, int y) {
+    LOG_FN_ENTRY("x=%d, y=%d", x, y);
+
     if (x < 0) {
         x = 0;
     } else if (x >= self.width) {
@@ -226,6 +228,8 @@ void console_set_cursor_pos(int x, int y) {
 
     self.x = x;
     self.y = y;
+
+    RETURN_VOID();
 }
 
 MmResult console_set_size(int width, int height) {

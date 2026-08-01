@@ -111,7 +111,7 @@ static MmResult cmd_log_internal() {
 
 /** LOG [ DEBUG | INFO | WARNING | ERROR | FATAL ]? expression ... */
 void cmd_log(void) {
-    LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
+    // LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
     ON_FAILURE_ERROR(cmd_log_internal());
     RETURN_VOID();
 }
