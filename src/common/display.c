@@ -293,6 +293,7 @@ MmResult display_scroll_up() {
 }
 
 MmResult display_set_cursor_pos(bool pixel, int x, int y) {
+    LOG_FN_ENTRY("pixel=%d, x=%d, y=%d", pixel, x, y);
     if (TTY_TERMINAL_ENABLED()) {
         if (pixel) {
             console_set_cursor_pos(x / font_width(graphics_font), y / font_height(graphics_font));
@@ -305,7 +306,7 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y) {
         ON_FAILURE_RETURN(termgfx_set_cursor_pos(pixel, x, y));
     }
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult display_show_cursor(bool show) {
