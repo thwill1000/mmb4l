@@ -901,10 +901,10 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     // from now on we have a user defined sub or function (not a C routine)
 
     if (gosubindex >= MAXGOSUB) error("Too many nested SUB/FUN");
-    errorstack[gosubindex] = caller_state.line_ptr;
-    gosubstack[gosubindex++] =
-        isfun ? NULL
-              : nextstmt;  // NULL signifies that this is returned to by ending ExecuteProgram()
+    // errorstack[gosubindex] = caller_state.line_ptr;
+    // gosubstack[gosubindex++] =
+    //     isfun ? NULL
+    //           : nextstmt;  // NULL signifies that this is returned to by ending ExecuteProgram()
 
     // allocate memory for processing the arguments
     struct DefinedSubFunArgs *args = GetTempMemory(sizeof(struct DefinedSubFunArgs));
@@ -920,6 +920,15 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         resolve_caller_argument(args, i);
     }
 
+    errorstack[gosubindex] = caller_state.line_ptr;
+    gosubstack[gosubindex++] =
+        isfun ? NULL
+              : nextstmt;  // NULL signifies that this is returned to by ending ExecuteProgram()
+
+    // set the CurrentSubFunName which is used to create static variables
+    strcpy(CurrentSubFunName, fun_name);
+    funstack[gosubindex] = &(funtbl[index]);
+
     // now we step through the parameters in the definition of the sub/fun;
     // for each one we create the local variable and bind the resolved
     // caller argument (if any) to it
@@ -931,8 +940,8 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     // temp memory used in setting up the arguments can be deleted now
     ClearSpecificTempMemory(args);
 
-    // set the CurrentSubFunName which is used to create static variables
-    strcpy(CurrentSubFunName, fun_name);
+    // // set the CurrentSubFunName which is used to create static variables
+    // strcpy(CurrentSubFunName, fun_name);
 
     // if it is a defined command we simply point to the first statement in our command and allow
     // ExecuteProgram() to carry on as before exit from the sub is via cmd_return which will
@@ -2648,6 +2657,7 @@ void ClearStack(void) {
     forindex = 0;
     doindex = 0;
     gosubindex = 0;
+    funstack[0] = NULL;
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
     cmd_read_clear_cache();
@@ -3187,16 +3197,11 @@ void perform_background_tasks() {
 }
 
 MmResult get_current_function_name(char *buf, size_t buf_sz) {
-    int result = 0;
-    if (LocalIndex == 0) {
-        // We are at the top-level.
-        result = cstring_cat(buf, "<GLOBAL>", buf_sz);
-    } else if (*CurrentInterruptName) {
-        // We are in an interrupt.
-        result = cstring_cpy(buf, CurrentInterruptName, buf_sz);
-    } else {
-        // We are in a normal sub/fun.
-        result = cstring_cpy(buf, CurrentSubFunName, buf_sz);
+    if (buf_sz < MAXVARLEN + 2) {
+        return mmresult_ex(kInvalidArgument, "Invalid buffer size: %d bytes; expected at least %d",
+                           buf_sz, MAXVARLEN + 2);
     }
-    return result == 0 ? kOk : kStringTooLong;
+    memset(buf, 0, buf_sz);
+    strncpy(buf, gosubindex == 0 ? "<GLOBAL>" : funstack[gosubindex]->name, MAXVARLEN);
+    return kOk;
 }

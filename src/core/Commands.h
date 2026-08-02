@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 #include "../Configuration.h"
+#include "funtbl.h"
 
 struct s_forstack {
     const char *forptr;                     // pointer to the FOR command in program memory
@@ -77,6 +78,7 @@ extern int doindex;
 
 extern const char *gosubstack[MAXGOSUB];
 extern const char *errorstack[MAXGOSUB];
+extern const struct s_funtbl *funstack[MAXGOSUB];
 extern int gosubindex;
 extern bool DimUsed;
 

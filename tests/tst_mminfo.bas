@@ -33,6 +33,7 @@ Const C_WITHOUT_SLASH_EXISTS% = IS_WINDOWS%
 add_test("test_arch")
 add_test("test_cputime")
 add_test("test_current")
+add_test("test_current_function")
 add_test("test_device")
 add_test("test_directory")
 add_test("test_drive")
@@ -121,6 +122,34 @@ End Sub
 
 Sub test_current()
   assert_string_equals(expected_path$() + "tst_mminfo.bas", Mm.Info(Current))
+End Sub
+
+Sub test_current_function()
+  assert_string_equals("TEST_CURRENT_FUNCTION", Mm.Info(Current Function))
+  sub1()
+  SetTick 1, interrupt1, 1
+  Pause 10
+  SetTick 0, interrupt1, 1
+End Sub
+
+Sub sub1()
+  assert_string_equals("SUB1", Mm.Info(Current Function))
+  assert_int_equals(42, fun2%(fun1%()))
+End Sub
+
+Function fun1%()
+  assert_string_equals("FUN1", Mm.Info(Current Function))
+  fun1% = 21
+End Function
+
+Function fun2%(x%)
+  assert_string_equals("FUN2", Mm.Info(Current Function))
+  fun2% = 2 * x%
+End Function
+
+Sub interrupt1()
+  assert_string_equals("interrupt1", Mm.Info(Current Function))
+  assert_int_equals(42, fun2%(fun1%()))
 End Sub
 
 Function expected_path$()

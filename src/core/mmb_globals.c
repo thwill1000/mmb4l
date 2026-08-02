@@ -58,5 +58,8 @@ int gosubindex;
 
 const char *errorstack[MAXGOSUB];
 
+/** Stack to keep track of SUB/FUNCTION call chain */
+const struct s_funtbl *funstack[MAXGOSUB];
+
 /** Used to catch use of OPTION BASE after DIM has been used */
 bool DimUsed = false;
