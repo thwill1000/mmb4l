@@ -643,6 +643,8 @@ static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) 
         *page_id = GRAPHICS_SURFACE_F;
     } else if ((tp = checkstring(p, "L"))) {
         *page_id = GRAPHICS_SURFACE_L;
+    } else if ((tp = checkstring(p, "2"))) {
+        *page_id = GRAPHICS_SURFACE_F2;
     } else { // Allow string expression.
         const char *s = getCstring(p);
         if (!s) {
@@ -653,6 +655,8 @@ static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) 
             *page_id = GRAPHICS_SURFACE_F;
         } else if (cstring_casecmp(s, "L") == 0) {
             *page_id = GRAPHICS_SURFACE_L;
+        } else if (cstring_casecmp(s, "2") == 0) {
+            *page_id = GRAPHICS_SURFACE_F2;
         } else {
             return kSyntax;
         }

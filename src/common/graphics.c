@@ -2571,6 +2571,8 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
                 (void) snprintf(out, out_sz, "Buffer N");
             } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_F) {
                 (void) snprintf(out, out_sz, "Buffer F");
+            } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_F2) {
+                (void) snprintf(out, out_sz, "Buffer 2");
             } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_L) {
                 (void) snprintf(out, out_sz, "Buffer L");
             } else if (mmb_features.graphics_type == kGraphicsTypeCmm2 && id <= CMM2_BLIT_BASE) {

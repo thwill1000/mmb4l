@@ -288,11 +288,14 @@ TEST_F(GraphicsTest, TypeAsString_GivenSimulatingGamemite) {
     // Buffer with id == 3 is "Buffer L"
     EXPECT_SURFACE_TYPE(3, kGraphicsBuffer, "Buffer L");
 
+    // Buffer with id == 4 is "Buffer 2"
+    EXPECT_SURFACE_TYPE(4, kGraphicsBuffer, "Buffer 2");
+
     // Window with id >= 1 is a "Window"
     EXPECT_SURFACE_TYPE(1, kGraphicsWindow, "Window");
 
-    // Buffer with 4 <= id <= 63 is a "Buffer"
-    EXPECT_SURFACE_TYPE(4, kGraphicsBuffer, "Buffer");
+    // Buffer with 5 <= id <= 63 is a "Buffer"
+    EXPECT_SURFACE_TYPE(5, kGraphicsBuffer, "Buffer");
     EXPECT_SURFACE_TYPE(63, kGraphicsBuffer, "Buffer");
 
     // Buffer with 64 <= id <= 127 is a "Buffer <id - 63>"
@@ -338,11 +341,14 @@ TEST_F(GraphicsTest, TypeAsString_GivenSimulatingPicomiteVga) {
     // Buffer with id == 3 is "Buffer L"
     EXPECT_SURFACE_TYPE(3, kGraphicsBuffer, "Buffer L");
 
+    // Buffer with id == 4 is "Buffer 2"
+    EXPECT_SURFACE_TYPE(4, kGraphicsBuffer, "Buffer 2");
+
     // Window with id >= 1 is a "Window"
     EXPECT_SURFACE_TYPE(1, kGraphicsWindow, "Window");
 
-    // Buffer with 4 <= id <= 63 is a "Buffer"
-    EXPECT_SURFACE_TYPE(4, kGraphicsBuffer, "Buffer");
+    // Buffer with 5 <= id <= 63 is a "Buffer"
+    EXPECT_SURFACE_TYPE(5, kGraphicsBuffer, "Buffer");
     EXPECT_SURFACE_TYPE(63, kGraphicsBuffer, "Buffer");
 
     // Buffer with 64 <= id <= 127 is a "Buffer <id - 63>"

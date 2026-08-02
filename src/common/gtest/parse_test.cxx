@@ -1340,6 +1340,7 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicomite) {
     graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_F2].type = kGraphicsBuffer;
 
     {
         clear_prog_memory();
@@ -1370,6 +1371,16 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicomite) {
         EXPECT_EQ(kOk, parse_page(p, &page_id));
         EXPECT_EQ(3, page_id);
     }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE 2");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(4, page_id);
+    }
 }
 
 TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicomite) {
@@ -1377,6 +1388,7 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicomite) {
     graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_F2].type = kGraphicsBuffer;
 
     {
         clear_prog_memory();
@@ -1406,6 +1418,16 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicomite) {
         MmSurfaceId page_id = -1;
         EXPECT_EQ(kOk, parse_page(p, &page_id));
         EXPECT_EQ(3, page_id);
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE \"2\"");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(4, page_id);
     }
 }
 
