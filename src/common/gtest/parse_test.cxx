@@ -16,7 +16,6 @@ extern "C" {
 #include "../memory.h"
 #include "../parse.h"
 #include "../utility.h"
-#include "../../core/Commands.h"
 #include "../../core/tokentbl.h"
 #include "../../core/MMBasic.h"
 #include "../../core/vartbl.h"
@@ -56,14 +55,6 @@ MmResult prompt_getc(int *ch) {
 }
 
 // Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
 void ListNewLine(int *ListCnt, int all) { }
 
 }

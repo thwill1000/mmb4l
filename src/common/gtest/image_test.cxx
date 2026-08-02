@@ -17,7 +17,6 @@ extern "C" {
 #include "../features.h"
 #include "../system.h"
 #include "../../common/gtest/stubs/error_stubs.h"
-#include "../../core/Commands.h"
 #include "../../core/gtest/command_stubs.h"
 #include "../../core/gtest/function_stubs.h"
 #include "../../core/gtest/operation_stubs.h"
@@ -53,16 +52,6 @@ MmResult prompt_getc(int *ch) {
     *ch = -1;
     return kOk;
 }
-
-// Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
 
 }
 

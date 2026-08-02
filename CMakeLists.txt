@@ -129,6 +129,7 @@ set(MMB4L_CORE_SOURCE_FILES
     src/core/funtbl.c
     src/core/maths.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/Operators.c
     src/core/tokentbl.c
     src/core/vartbl.c
@@ -486,6 +487,7 @@ add_executable(test_cmd_do
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
 )
@@ -528,6 +530,7 @@ add_executable(test_cmd_run
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
     src/functions/fun_mmcmdline.c
@@ -719,6 +722,7 @@ add_executable(test_fun_mminfo
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
     src/functions/fun_hres.c
@@ -770,6 +774,7 @@ add_executable(test_fun_sprite
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
     src/functions/fun_sprite.c
@@ -945,6 +950,7 @@ add_executable(test_image
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
     src/third_party/picojpeg.c
@@ -1072,6 +1078,7 @@ add_executable(test_parse
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
 )
@@ -1149,6 +1156,7 @@ add_executable(test_program
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
 )
@@ -1372,6 +1380,7 @@ add_executable(test_mmbasic_core
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
+    src/core/mmb_globals.c
     src/core/tokentbl.c
     src/core/vartbl.c
     src/core/gtest/mmbasic_core_test.cxx

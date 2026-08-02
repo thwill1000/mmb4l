@@ -20,7 +20,6 @@ extern "C" {
 #include "../../common/sprite.h"
 #include "../../common/gtest/test_helper.h"
 #include "../../common/gtest/stubs/error_stubs.h"
-#include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/tokentbl.h"
 #include "../../core/vartbl.h"
@@ -59,16 +58,6 @@ MmResult prompt_getc(int *ch) {
     *ch = -1;
     return kOk;
 }
-
-// Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
 
 }
 
