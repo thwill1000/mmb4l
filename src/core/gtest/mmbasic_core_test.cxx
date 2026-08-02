@@ -16,7 +16,7 @@ extern "C" {
 #include "../funtbl.h"
 #include "../tokentbl.h"
 #include "../vartbl.h"
-#include "../MMBasic.h"
+#include "../MMBasic_private.h"
 #include "../../common/cstring.h"
 #include "../../common/features.h"
 #include "../../common/graphics.h"
@@ -96,6 +96,10 @@ protected:
 
     char m_program[256];
 };
+
+// =============================================================================
+// findvar()
+// =============================================================================
 
 TEST_F(MmBasicCoreTest, FindVar_GivenNoExplicitType) {
     sprintf(m_program, "foo = 1");
@@ -837,6 +841,10 @@ TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionTooLarge) {
     EXPECT_STREQ("Array bound exceeds maximum: %", error_msg);
 }
 
+// =============================================================================
+// tokenise()
+// =============================================================================
+
 TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
     sprintf(inpbuf, "Dim a = 1");
 
@@ -868,6 +876,10 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
             tokentbl_encoded("="));
     EXPECT_STREQ(expected, tknbuf);
 }
+
+// =============================================================================
+// PrepareProgram()
+// =============================================================================
 
 TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
     TokeniseAndAppend("Sub foo()");
@@ -1106,6 +1118,10 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
         funtbl[4].addr);
 }
 
+// =============================================================================
+// FindSubFun()
+// =============================================================================
+
 TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionNameTooLong) {
     int fun_idx = FindSubFun(MAX_LENGTH_NAME "A", kFunction);
 
@@ -1213,6 +1229,10 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunctionOrSub_ButFindLabel) {
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(-1, fun_idx);
 }
+
+// =============================================================================
+// FindLabel()
+// =============================================================================
 
 TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPresent) {
     TokeniseAndAppend("Print \"Hello\"");
@@ -1416,6 +1436,10 @@ TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundSub) {
     EXPECT_STREQ("Not a label", error_msg);
     EXPECT_EQ(NULL, addr);
 }
+
+// =============================================================================
+// skipvar()
+// =============================================================================
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenStringScalar) {
     TokeniseAndAppend("Print x$");
@@ -1623,6 +1647,10 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenUserFunctionCallInBrackets) {
     EXPECT_EQ(ProgMemory + 14, actual);
 }
 
+// =============================================================================
+// GetIntAddress()
+// =============================================================================
+
 TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenSubroutine) {
     TokeniseAndAppend("foo");
     TokeniseAndAppend("Sub foo()");
@@ -1704,6 +1732,10 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
     EXPECT_STREQ("Label/subroutine name too long", error_msg);
     EXPECT_EQ(NULL, actual);
 }
+
+// =============================================================================
+// makeargs()
+// =============================================================================
 
 TEST_F(MmBasicCoreTest, MakeArgs_GivenIfWithoutElse_Succeeds) {
     TokeniseAndAppend("If foo = -1 Then Error \"bar\"");
@@ -1822,4 +1854,587 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenStringOverflows_Fails) {
 
     EXPECT_STREQ("Argument buffer overflow", error_msg);
     EXPECT_EQ(0x00, argbuf[ARGBUF_SIZE - 1]);
+}
+
+// =============================================================================
+// parse_definition_name()
+// =============================================================================
+
+class ParseDefinitionNameTest : public MmBasicCoreTest {};
+
+TEST_F(ParseDefinitionNameTest, GivenSub_NoTypeSuffix_ParsesName) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *p = "foo()";
+
+    const char *end = parse_definition_name(p, /* isfun */ false, name);
+
+    EXPECT_STREQ("foo", name);
+    EXPECT_EQ(p + 3, end);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseDefinitionNameTest, GivenFunction_WithTypeSuffix_ParsesNameIncludingSuffix) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *p = "foo%()";
+
+    const char *end = parse_definition_name(p, /* isfun */ true, name);
+
+    EXPECT_STREQ("foo%", name);
+    EXPECT_EQ(p + 4, end);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseDefinitionNameTest, GivenFunction_FloatSuffix_ParsesNameIncludingSuffix) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *p = "bar!()";
+
+    const char *end = parse_definition_name(p, /* isfun */ true, name);
+
+    EXPECT_STREQ("bar!", name);
+    EXPECT_EQ(p + 4, end);
+}
+
+TEST_F(ParseDefinitionNameTest, GivenFunction_StringSuffix_ParsesNameIncludingSuffix) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *p = "baz$()";
+
+    const char *end = parse_definition_name(p, /* isfun */ true, name);
+
+    EXPECT_STREQ("baz$", name);
+    EXPECT_EQ(p + 4, end);
+}
+
+TEST_F(ParseDefinitionNameTest, GivenSub_WithTypeSuffix_Errors) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *p = "foo%()";
+
+    (void) parse_definition_name(p, /* isfun */ false, name);
+
+    EXPECT_STREQ("Type specification is invalid: @", error_msg);
+}
+
+TEST_F(ParseDefinitionNameTest, GivenNameWithNoTrailingParens_StopsAtFirstNonNameChar) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *p = "wombat ";
+
+    const char *end = parse_definition_name(p, /* isfun */ false, name);
+
+    EXPECT_STREQ("wombat", name);
+    EXPECT_EQ(p + 6, end);
+}
+
+// =============================================================================
+// validate_caller_type_suffix()
+// =============================================================================
+
+class ValidateCallerTypeSuffixTest : public MmBasicCoreTest {};
+
+TEST_F(ValidateCallerTypeSuffixTest, GivenMatchingNoSuffix_Succeeds) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *def = "foo()";
+    const char *def_end = parse_definition_name(def, false, name); // -> "foo"
+
+    const char *caller = "foo(1,2)";
+    const char *actual = validate_caller_type_suffix(caller, /* isfun */ false, def_end);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(caller + 3, actual); // just past "foo"
+}
+
+TEST_F(ValidateCallerTypeSuffixTest, GivenMatchingIntegerSuffix_Succeeds) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *def = "foo%()";
+    const char *def_end = parse_definition_name(def, true, name); // -> "foo%"
+
+    const char *caller = "foo%(1)";
+    const char *actual = validate_caller_type_suffix(caller, /* isfun */ true, def_end);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(caller + 4, actual); // just past "foo%"
+}
+
+TEST_F(ValidateCallerTypeSuffixTest, GivenMismatchedSuffix_Errors) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *def = "foo%()";
+    const char *def_end = parse_definition_name(def, true, name); // -> "foo%"
+
+    const char *caller = "foo!(1)";
+    (void) validate_caller_type_suffix(caller, /* isfun */ true, def_end);
+
+    EXPECT_STREQ("Inconsistent type suffix", error_msg);
+}
+
+TEST_F(ValidateCallerTypeSuffixTest, GivenCallerSuppliesSuffixForSub_Errors) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *def = "foo()";
+    const char *def_end = parse_definition_name(def, /* isfun */ false, name); // -> "foo"
+
+    const char *caller = "foo%()";
+    (void) validate_caller_type_suffix(caller, /* isfun */ false, def_end);
+
+    // error() doesn't abort execution in this test harness, so the function
+    // continues past the "Type specification" error and the subsequent
+    // suffix-mismatch check overwrites error_msg with its own message.
+    EXPECT_STREQ("Inconsistent type suffix", error_msg);
+}
+
+TEST_F(ValidateCallerTypeSuffixTest, GivenNoSuffixOnEitherSide_Succeeds) {
+    char name[MAXVARLEN + 2] = { 0 };
+    const char *def = "wombat(1)";
+    const char *def_end = parse_definition_name(def, false, name);
+
+    const char *caller = "wombat(2)";
+    const char *actual = validate_caller_type_suffix(caller, false, def_end);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(caller + 6, actual);
+}
+
+// =============================================================================
+// get_function_return_type()
+// =============================================================================
+
+class GetFunctionReturnTypeTest : public MmBasicCoreTest {};
+
+TEST_F(GetFunctionReturnTypeTest, GivenSub_ReturnsNoType) {
+    // Subs never have a return type, regardless of definition_start's content.
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    // definition_start would point at "foo()" in the definition, but for a
+    // sub the function does no parsing at all.
+    int result = get_function_return_type(ProgMemory + 6, /* isfun */ false);
+
+    EXPECT_EQ(T_NOTYPE, result);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(GetFunctionReturnTypeTest, GivenFunctionWithNoAsClause_UsesDefaultTypeFlags) {
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kFunction);
+    ASSERT_GE(fun_idx, 0);
+    const char *definition_start = funtbl[fun_idx].addr + sizeof(CommandToken);
+
+    int result = get_function_return_type(definition_start, /* isfun */ true);
+
+    EXPECT_EQ(T_NOTYPE | V_FIND | V_DIM_VAR | V_LOCAL | V_EMPTY_OK, result);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(GetFunctionReturnTypeTest, GivenFunctionWithAsInteger_ReturnsIntegerType) {
+    TokeniseAndAppend("Function foo() As Integer");
+    TokeniseAndAppend("End Function");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kFunction);
+    ASSERT_GE(fun_idx, 0);
+    const char *definition_start = funtbl[fun_idx].addr + sizeof(CommandToken);
+
+    int result = get_function_return_type(definition_start, /* isfun */ true);
+
+    EXPECT_TRUE(result & T_INT);
+    EXPECT_TRUE(result & V_DIM_VAR);
+    EXPECT_TRUE(result & V_LOCAL);
+    EXPECT_TRUE(result & V_EMPTY_OK);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(GetFunctionReturnTypeTest, GivenFunctionWithAsFloat_ReturnsFloatType) {
+    TokeniseAndAppend("Function foo() As Float");
+    TokeniseAndAppend("End Function");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kFunction);
+    ASSERT_GE(fun_idx, 0);
+    const char *definition_start = funtbl[fun_idx].addr + sizeof(CommandToken);
+
+    int result = get_function_return_type(definition_start, /* isfun */ true);
+
+    EXPECT_TRUE(result & T_NBR);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(GetFunctionReturnTypeTest, GivenFunctionWithAsString_ReturnsStringType) {
+    TokeniseAndAppend("Function foo() As String");
+    TokeniseAndAppend("End Function");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kFunction);
+    ASSERT_GE(fun_idx, 0);
+    const char *definition_start = funtbl[fun_idx].addr + sizeof(CommandToken);
+
+    int result = get_function_return_type(definition_start, /* isfun */ true);
+
+    EXPECT_TRUE(result & T_STR);
+    EXPECT_STREQ("", error_msg);
+}
+
+// =============================================================================
+// split_caller_and_definition_args()
+// =============================================================================
+
+class SplitCallerAndDefinitionArgsTest : public MmBasicCoreTest {};
+
+TEST_F(SplitCallerAndDefinitionArgsTest, GivenSimpleArgsNoConventionKeywords_SplitsBoth) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+
+    const char *caller_args = "1,2";
+    const char *definition_args = "a,b";
+    const char *sub_line_ptr = "Sub foo(a,b)";
+    const char *caller_line_ptr = "foo(1,2)";
+
+    split_caller_and_definition_args(args, &caller_args, &definition_args, sub_line_ptr,
+                                     caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    // makeargs() includes the delimiter itself as its own argv entry, so
+    // "1,2" splits into three elements: "1", ",", "2".
+    ASSERT_EQ(3, args->c1);
+    EXPECT_STREQ("1", args->v1[0]);
+    EXPECT_STREQ(",", args->v1[1]);
+    EXPECT_STREQ("2", args->v1[2]);
+    ASSERT_EQ(3, args->c2);
+    EXPECT_STREQ("a", args->v2[0]);
+    EXPECT_STREQ(",", args->v2[1]);
+    EXPECT_STREQ("b", args->v2[2]);
+    EXPECT_EQ(kParamConventionDefault, args->convention[0]);
+    EXPECT_EQ(kParamConventionDefault, args->convention[2]);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(SplitCallerAndDefinitionArgsTest, GivenByValParameter_StripsPrefixAndSetsConvention) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+
+    const char *caller_args = "1";
+    const char *definition_args = "BYVAL a";
+    const char *sub_line_ptr = "Sub foo(BYVAL a)";
+    const char *caller_line_ptr = "foo(1)";
+
+    split_caller_and_definition_args(args, &caller_args, &definition_args, sub_line_ptr,
+                                     caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    ASSERT_EQ(1, args->c2);
+    EXPECT_STREQ("a", args->v2[0]); // prefix stripped
+    EXPECT_EQ(kParamConventionByVal, args->convention[0]);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(SplitCallerAndDefinitionArgsTest, GivenByRefParameter_StripsPrefixAndSetsConvention) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+
+    const char *caller_args = "1";
+    const char *definition_args = "BYREF a";
+    const char *sub_line_ptr = "Sub foo(BYREF a)";
+    const char *caller_line_ptr = "foo(1)";
+
+    split_caller_and_definition_args(args, &caller_args, &definition_args, sub_line_ptr,
+                                     caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    ASSERT_EQ(1, args->c2);
+    EXPECT_STREQ("a", args->v2[0]);
+    EXPECT_EQ(kParamConventionByRef, args->convention[0]);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(SplitCallerAndDefinitionArgsTest, GivenNoArguments_ProducesEmptyLists) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+
+    const char *caller_args = "";
+    const char *definition_args = "";
+    const char *sub_line_ptr = "Sub foo()";
+    const char *caller_line_ptr = "foo()";
+
+    split_caller_and_definition_args(args, &caller_args, &definition_args, sub_line_ptr,
+                                     caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, args->c1);
+    EXPECT_EQ(0, args->c2);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(SplitCallerAndDefinitionArgsTest, GivenMoreCallerArgsThanDefinitionParams_Errors) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+
+    const char *caller_args = "1,2,3";
+    const char *definition_args = "a";
+    const char *sub_line_ptr = "Sub foo(a)";
+    const char *caller_line_ptr = "foo(1,2,3)";
+
+    split_caller_and_definition_args(args, &caller_args, &definition_args, sub_line_ptr,
+                                     caller_line_ptr);
+
+    EXPECT_STREQ("Argument list", error_msg);
+
+    ClearSpecificTempMemory(args);
+}
+
+// =============================================================================
+// resolve_caller_argument()
+// =============================================================================
+
+class ResolveCallerArgumentTest : public MmBasicCoreTest {};
+
+TEST_F(ResolveCallerArgumentTest, GivenMissingArgument_LeavesTypeAsNoType) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+    args->c1 = 0; // no caller arguments supplied at all
+
+    resolve_caller_argument(args, 0);
+
+    EXPECT_EQ(T_NOTYPE, args->type[0]);
+    EXPECT_STREQ("", error_msg);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(ResolveCallerArgumentTest, GivenLiteralExpression_EvaluatesToValueAndType) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+    args->c1 = 2;
+    args->v1[0] = (char *) "42";
+    args->convention[0] = kParamConventionDefault;
+
+    resolve_caller_argument(args, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_TRUE(args->type[0] & T_INT);
+    EXPECT_EQ(42, args->val[0].i);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(ResolveCallerArgumentTest, GivenExistingVariable_ResolvesAsPointer) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+
+    sprintf(m_program, "existing_var = 99");
+    (void) findvar(m_program, V_FIND);
+
+    args->c1 = 2;
+    args->v1[0] = (char *) "existing_var";
+    args->convention[0] = kParamConventionDefault;
+
+    resolve_caller_argument(args, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_TRUE(args->type[0] & T_PTR);
+    EXPECT_EQ((void *) &vartbl[0].val, (void *) args->val[0].s);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(ResolveCallerArgumentTest, GivenByRefWithNonVariableArgument_Errors) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+    args->c1 = 2;
+    args->v1[0] = (char *) "42"; // literal, not a variable
+    args->convention[0] = kParamConventionByRef;
+
+    resolve_caller_argument(args, 0);
+
+    EXPECT_STREQ("Variable required for BYREF", error_msg);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(ResolveCallerArgumentTest, GivenByValWithVariable_ClearsPointerFlagAndEvaluatesValue) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+
+    sprintf(m_program, "byval_var = 7");
+    void *val = findvar(m_program, V_FIND);
+    // findvar() only finds/creates the variable slot; it does not execute
+    // the "= 7" assignment, so set the value explicitly.
+    *(MMFLOAT *) val = 7;
+
+    args->c1 = 2;
+    args->v1[0] = (char *) "byval_var";
+    args->convention[0] = kParamConventionByVal;
+
+    resolve_caller_argument(args, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_FALSE(args->type[0] & T_PTR);
+    EXPECT_TRUE(args->type[0] & T_NBR);
+    EXPECT_EQ(7, args->val[0].f);
+
+    ClearSpecificTempMemory(args);
+}
+
+// =============================================================================
+// bind_parameter_to_local()
+// =============================================================================
+
+class BindParameterToLocalTest : public MmBasicCoreTest {};
+
+TEST_F(BindParameterToLocalTest, GivenScalarFloatParameter_CreatesLocalAndCopiesValue) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+
+    args->c1 = 2;
+    args->v1[0] = (char *) "5";
+    args->c2 = 2;
+    args->v2[0] = (char *) "p";
+    args->convention[0] = kParamConventionDefault;
+    resolve_caller_argument(args, 0);
+
+    LocalIndex = 1;
+    const char *sub_line_ptr = "Sub foo(p)";
+    const char *caller_line_ptr = "foo(5)";
+
+    bind_parameter_to_local(args, 0, sub_line_ptr, caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    ASSERT_EQ(0, VarIndex);
+    EXPECT_STREQ("P", vartbl[0].name);
+    EXPECT_EQ(1, vartbl[0].level);
+    EXPECT_TRUE(vartbl[0].type & T_NBR);
+    EXPECT_EQ(5, vartbl[0].val.f);
+
+    ClearSpecificTempMemory(args);
+}
+
+TEST_F(BindParameterToLocalTest, GivenByRefParameterOfSameType_PointsAtCallerVariable) {
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+
+    sprintf(m_program, "caller_var = 123");
+    (void) findvar(m_program, V_FIND); // vartbl[0], global
+
+    args->c1 = 2;
+    args->v1[0] = (char *) "caller_var";
+    args->c2 = 2;
+    args->v2[0] = (char *) "p";
+    args->convention[0] = kParamConventionByRef;
+    resolve_caller_argument(args, 0);
+
+    LocalIndex = 1;
+    const char *sub_line_ptr = "Sub foo(BYREF p)";
+    const char *caller_line_ptr = "foo(caller_var)";
+
+    bind_parameter_to_local(args, 0, sub_line_ptr, caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_TRUE(vartbl[VarIndex].type & T_PTR);
+    EXPECT_EQ((void *) &vartbl[0].val.f, (void *) vartbl[VarIndex].val.s);
+}
+
+TEST_F(BindParameterToLocalTest, GivenExplicitTypeDeclaration_UsesDeclaredType) {
+    TokeniseAndAppend("Sub foo(p As Integer)");
+    TokeniseAndAppend("End Sub");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kSub);
+    ASSERT_GE(fun_idx, 0);
+    const char *sub_line_ptr = funtbl[fun_idx].addr;
+    const char *definition_start = sub_line_ptr + sizeof(CommandToken);
+    char fun_name[MAXVARLEN + 2];
+    const char *definition_args = parse_definition_name(definition_start, /* isfun */ false,
+                                                         fun_name);
+
+    struct DefinedSubFunArgs *args =
+        (struct DefinedSubFunArgs *) GetTempMemory(sizeof(struct DefinedSubFunArgs));
+    memset(args, 0, sizeof(*args));
+
+    const char *caller_args = "5";
+    const char *caller_line_ptr = "foo(5)";
+    const char *def_args_cursor = definition_args;
+
+    split_caller_and_definition_args(args, &caller_args, &def_args_cursor, sub_line_ptr,
+                                     caller_line_ptr);
+    ASSERT_EQ(1, args->c2);
+    resolve_caller_argument(args, 0);
+
+    LocalIndex = 1;
+    bind_parameter_to_local(args, 0, sub_line_ptr, caller_line_ptr);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_TRUE(vartbl[VarIndex].type & T_INT);
+    EXPECT_EQ(5, vartbl[VarIndex].val.i);
+
+    ClearSpecificTempMemory(args);
+}
+
+// =============================================================================
+// invoke_function_body()
+// =============================================================================
+
+class InvokeFunctionBodyTest : public MmBasicCoreTest {};
+
+TEST_F(InvokeFunctionBodyTest, GivenSimpleFloatFunction_ReturnsAssignedValue) {
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("foo = 42");
+    TokeniseAndAppend("End Function");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kFunction);
+    ASSERT_GE(fun_idx, 0);
+
+    // definition_args points just past "foo(" ")" in the definition, i.e. at
+    // the (empty) parameter list; invoke_function_body() skips over it via
+    // skipelement() to reach the body.
+    const char *definition_args = funtbl[fun_idx].addr + sizeof(CommandToken) + 3; // past "FOO"
+
+    MMFLOAT fa = 0.0;
+    MMINTEGER i64a = 0;
+    char *sa = NULL;
+    int typ = 0;
+
+    LocalIndex++;
+    invoke_function_body(definition_args, (char *) "foo", T_NBR | V_FIND | V_DIM_VAR | V_LOCAL,
+                         &fa, &i64a, &sa, &typ);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_TRUE(typ & T_NBR);
+    EXPECT_EQ(42, fa);
+}
+
+TEST_F(InvokeFunctionBodyTest, GivenStringFunction_ReturnsAssignedString) {
+    TokeniseAndAppend("Function foo$()");
+    TokeniseAndAppend("foo$ = \"bar\"");
+    TokeniseAndAppend("End Function");
+    ASSERT_EQ(kOk, PrepareProgram(true));
+
+    int fun_idx = FindSubFun("foo", kFunction);
+    ASSERT_GE(fun_idx, 0);
+
+    const char *definition_args = funtbl[fun_idx].addr + sizeof(CommandToken) + 4; // past "FOO$"
+
+    MMFLOAT fa = 0.0;
+    MMINTEGER i64a = 0;
+    char *sa = NULL;
+    int typ = 0;
+
+    LocalIndex++;
+    invoke_function_body(definition_args, (char *) "foo$", T_STR | V_FIND | V_DIM_VAR | V_LOCAL,
+                         &fa, &i64a, &sa, &typ);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_TRUE(typ & T_STR);
+    ASSERT_NE(nullptr, sa);
+    EXPECT_EQ(3, (unsigned char) sa[0]); // MMBasic string length byte
+    EXPECT_EQ(0, memcmp(sa + 1, "bar", 3));
 }
