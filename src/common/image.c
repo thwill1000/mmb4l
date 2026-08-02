@@ -680,87 +680,41 @@ cleanup:
 }
 
 static void image_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
-                              const unsigned char* buffer, int skip) {
+                              const unsigned char *buffer, int skip) {
     const unsigned char *psrc = buffer;
-    union colourmap
-    {
+    union colourmap {
         char rgbbytes[4];
         uint32_t rgb;
     } c;
-    int scale = 1; // (PageTable[WritePage].expand ? 2 : 1);
-    //if (optiony)y1=maxH-1-y1;
-    //if (optiony)y2=maxH-1-y2;
+
     // make sure the coordinates are kept within the display area
     if (x2 <= x1) SWAP(int, x1, x2);
     if (y2 <= y1) SWAP(int, y1, y2);
-    // int cursorhidden=0;
-    // if (cursoron)
-    //     if ( !(xcursor + wcursor < x1 ||
-    //         xcursor > x2 ||
-    //         ycursor + hcursor < y1 ||
-    //         ycursor > y2)){
-    //     hidecursor(0);
-    //     cursorhidden=1;
-    //     }
-    if (scale==1){
-        for (int y = y1; y <= y2; y++){
-            // routinechecks(1);
-            uint32_t *pdst = surface->pixels + (y * surface->width + x1);
-            for (int x = x1; x <= x2; x++){
-                if (x >= 0 && x < surface->width && y >= 0 && y < surface->height) {
-                    if (skip & 2) {
-                        c.rgbbytes[3] = 0xFF; //assume solid colour
-                        c.rgbbytes[2] = *psrc++; //this order swaps the bytes to match the .BMP file
-                        c.rgbbytes[1] = *psrc++;
-                        c.rgbbytes[0] = *psrc++;
-                        if (skip & 1) c.rgbbytes[3] = *psrc++; //ARGB8888 so set transparency
-                    } else {
-                        c.rgbbytes[3] = 0;
-                        c.rgbbytes[0] = *psrc++; //this order swaps the bytes to match the .BMP file
-                        c.rgbbytes[1] = *psrc++;
-                        c.rgbbytes[2] = *psrc++;
-                        if (skip & 1) psrc++;
-                    }
-                    *pdst = c.rgb;
+
+    for (int y = y1; y <= y2; y++) {
+        uint32_t *pdst = surface->pixels + (y * surface->width + x1);
+        for (int x = x1; x <= x2; x++) {
+            if (x >= 0 && x < surface->width && y >= 0 && y < surface->height) {
+                if (skip & 2) {
+                    c.rgbbytes[3] = 0xFF;     // assume solid colour
+                    c.rgbbytes[2] = *psrc++;  // this order swaps the bytes to match the .BMP file
+                    c.rgbbytes[1] = *psrc++;
+                    c.rgbbytes[0] = *psrc++;
+                    if (skip & 1) c.rgbbytes[3] = *psrc++;  // ARGB8888 so set transparency
                 } else {
-                    psrc += (skip & 1) ? 4 : 3;
+                    c.rgbbytes[3] = 0;
+                    c.rgbbytes[0] = *psrc++;  // this order swaps the bytes to match the .BMP file
+                    c.rgbbytes[1] = *psrc++;
+                    c.rgbbytes[2] = *psrc++;
+                    if (skip & 1) psrc++;
                 }
-                pdst++;
+                *pdst = c.rgb;
+            } else {
+                psrc += (skip & 1) ? 4 : 3;
             }
+            pdst++;
         }
     }
-    // } else {
-    //     uint32_t *s1;
-    //     for(y=y1*2;y<=y2*2;y+=2){
-    //         routinechecks(1);
-    //         sc=(uint32_t *)((y * maxW + x1) * 4 + wpa);
-    //         s1=(uint32_t *)(((y+1) * maxW + x1) * 4 + wpa);
-    //         for(x=x1;x<=x2;x++){
-    //             if (x>=0 && x<maxW && y>=0 && y<maxH*2){
-    //                 if (skip & 2){
-    //                     c.rgbbytes[3]=0xFF;
-    //                     c.rgbbytes[2]=*p++; //this order swaps the bytes to match the .BMP file
-    //                     c.rgbbytes[1]=*p++;
-    //                     c.rgbbytes[0]=*p++;
-    //                     if (skip & 1)c.rgbbytes[3]=*p++; //ARGB8888 so set transparency
-    //                 } else {
-    //                     c.rgbbytes[3]=0;
-    //                     c.rgbbytes[0]=*p++; //this order swaps the bytes to match the .BMP file
-    //                     c.rgbbytes[1]=*p++;
-    //                     c.rgbbytes[2]=*p++;
-    //                     if (skip & 1)p++;
-    //                 }
-    //                 *sc=c.rgb;
-    //                 *s1=*sc;
-    //             } else {
-    //                 p+=(skip & 1) ? 4 : 3;
-    //             }
-    //             sc++;
-    //             s1++;
-    //         }
-    //     }
-    // }
-    // if (cursorhidden)showcursor(0, xcursor,ycursor);
 }
 
 MmResult image_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
