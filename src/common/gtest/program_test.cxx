@@ -22,7 +22,6 @@ extern "C" {
 #include "../options.h"
 #include "../program.h"
 #include "../utility.h"
-#include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/tokentbl.h"
 #include "../../core/vartbl.h"
@@ -62,14 +61,6 @@ MmResult prompt_save_history(const char *filepath) {
 }
 
 // Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
 void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"

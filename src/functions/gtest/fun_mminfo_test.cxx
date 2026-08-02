@@ -13,7 +13,6 @@ extern "C" {
 #include "../../common/features.h"
 #include "../../common/memory.h"
 #include "../../common/gtest/stubs/error_stubs.h"
-#include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/tokentbl.h"
 #include "../../core/vartbl.h"
@@ -61,16 +60,6 @@ MmResult prompt_getc(int *ch) {
 
 // Defined in "common/system.c"
 int system_getpid() { return 0; }
-
-// Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
 
 // Defined in "common/gtest/stubs/display_stubs.c"
 extern MmResult (*mock_display_get_cursor_pos)(bool pixel, int *width, int *height);

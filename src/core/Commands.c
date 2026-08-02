@@ -50,21 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Commands.h"
 #include "tokentbl.h"
 
-// stack to keep track of nested FOR/NEXT loops
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int forindex;
-
-// stack to keep track of nested DO/LOOP loops
-struct s_dostack dostack[MAXDOLOOPS];
-int doindex;                                                        // counts the number of nested DO/LOOP loops
-
-// stack to keep track of GOSUBs, SUBs and FUNCTIONs
-const char *gosubstack[MAXGOSUB];
-const char *errorstack[MAXGOSUB];
-int gosubindex;
-
-char DimUsed = false;  // used to catch OPTION BASE after DIM has been used
-
 void ListNewLine(int *ListCnt, int all) {
     ON_FAILURE_ERROR(display_puts("\r\n"));
     (*ListCnt)++;

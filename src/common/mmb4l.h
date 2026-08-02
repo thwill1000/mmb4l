@@ -83,7 +83,7 @@ extern Options mmb_options;
 extern Features mmb_features;
 
 extern char *CFunctionFlash;
-extern char DimUsed;
+extern bool DimUsed;
 extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
 extern const char *gosubstack[MAXGOSUB];

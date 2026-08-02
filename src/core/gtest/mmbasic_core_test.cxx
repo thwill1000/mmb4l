@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025 Thomas Hugo Williams
+ * Copyright (c) 2022-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -12,7 +12,6 @@
 
 extern "C" {
 
-#include "../Commands.h"
 #include "../commandtbl.h"
 #include "../funtbl.h"
 #include "../tokentbl.h"
@@ -57,14 +56,6 @@ MmResult prompt_getc(int *ch) {
 }
 
 // Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
 void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"
