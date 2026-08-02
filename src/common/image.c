@@ -679,7 +679,7 @@ cleanup:
     return result;
 }
 
-static void image_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
+void image_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
                               const unsigned char *buffer, int skip) {
     const unsigned char *psrc = buffer;
     union colourmap {
