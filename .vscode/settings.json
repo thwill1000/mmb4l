@@ -122,6 +122,7 @@
         "features.h": "c",
         "inttypes.h": "c",
         "keybuf_private.h": "c",
-        "csignal": "cpp"
+        "csignal": "cpp",
+        "inconsola.h": "c"
     }
 }
