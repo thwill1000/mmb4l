@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdint.h>
 
-#define FONT_BUILTIN_NBR  7
+#define FONT_BUILTIN_NBR  9
 #define FONT_TABLE_SIZE   16
 
 extern unsigned char* FontTable[];
