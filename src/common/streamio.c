@@ -167,11 +167,13 @@ int streamio_getc(int fnbr) {
 }
 
 bool streamio_is_file(int fnbr) {
+    if (fnbr == 0) return false; // The console is not a regular file
     ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), false);
     return file_table[fnbr].type == fet_file;
 }
 
 bool streamio_is_serial(int fnbr) {
+    if (fnbr == 0) return false; // The console is not a "serial port"
     ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), false);
     return file_table[fnbr].type == fet_serial;
 }
