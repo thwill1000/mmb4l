@@ -38,9 +38,6 @@ extern char cmd_run_args[STRINGSIZE];
 MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
                             char *run_args);
 
-// Defined in "common/keybuf.c"
-void keybuf_pump_tty(void) { }
-
 // Defined in "common/events.c"
 void events_pump() { }
 
