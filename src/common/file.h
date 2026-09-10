@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PATH_MAX 260
 #define NAME_MAX 255
 #endif
+#elif defined(__APPLE__)
+#include <sys/syslimits.h> // PATH_MAX
 #else
 #include <linux/limits.h>
 #endif

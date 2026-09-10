@@ -102,6 +102,8 @@ static speed_t serial_int_to_speed(int64_t i) {
         case   57600: return   B57600;
         case  115200: return  B115200;
         case  230400: return  B230400;
+#if !defined(__APPLE__)
+        // macOS termios only knows baud rates up to B230400.
         case  460800: return  B460800;
         case  500000: return  B500000;
         case  576000: return  B576000;
@@ -114,6 +116,7 @@ static speed_t serial_int_to_speed(int64_t i) {
         case 3000000: return B3000000;
         case 3500000: return B3500000;
         case 4000000: return B4000000;
+#endif
     }
 
     return 0;
@@ -139,6 +142,7 @@ static int32_t serial_speed_to_int(speed_t s) {
         case   B57600: return   57600;
         case  B115200: return  115200;
         case  B230400: return  230400;
+#if !defined(__APPLE__)
         case  B460800: return  460800;
         case  B500000: return  500000;
         case  B576000: return  576000;
@@ -151,6 +155,7 @@ static int32_t serial_speed_to_int(speed_t s) {
         case B3000000: return 3000000;
         case B3500000: return 3500000;
         case B4000000: return 4000000;
+#endif
     }
 
     return 0;

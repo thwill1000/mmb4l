@@ -161,7 +161,7 @@ OptionsDefinition options_definitions[] = {
     { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    codepage_name_to_ordinal_map },
     { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
     { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
-#if defined(__ANDROID__) || defined(_WIN32)
+#if defined(__ANDROID__) || defined(_WIN32) || defined(__APPLE__)
     { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Internal",                options_editor_map },
 #else
     { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Nano",                    options_editor_map },
@@ -884,7 +884,7 @@ static MmResult options_set_editor(Options *options, const char *svalue) {
     if (cstring_casecmp(svalue, "code") == 0) {
         strcpy(options->editor, "VSCode");
     } else if (cstring_casecmp(svalue, "default") == 0) {
-#if defined(__ANDROID__) || defined(_WIN32)
+#if defined(__ANDROID__) || defined(_WIN32) || defined(__APPLE__)
         strcpy(options->editor, "Internal");
 #else
         strcpy(options->editor, "Nano");

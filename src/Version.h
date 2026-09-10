@@ -66,6 +66,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #else
         #error This architecture is not supported
     #endif
+#elif defined(__APPLE__)
+    #define __mmb4l__
+    #if defined(__aarch64__)
+        #define MM_ARCH  "macOS arm64"
+        #define ENV64BIT
+    #elif defined(__x86_64)
+        #define MM_ARCH  "macOS x86_64"
+        #define ENV64BIT
+    #else
+        #error This architecture is not supported
+    #endif
 #elif defined(__riscos__)
     #define __mmb4l__
     #define MM_ARCH "RISC OS"
