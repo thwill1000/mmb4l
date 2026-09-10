@@ -53,6 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "utility.h"
 
+#define PROMPT_PATH  "<PROMPT>"
+
 typedef struct {
    MmResult code;
    char file[STRINGSIZE];     // File that error was reported from.

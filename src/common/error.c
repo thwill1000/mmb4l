@@ -77,7 +77,7 @@ void error_get_line_and_file(int *line, char *file_path) {
     memset(file_path, 0, STRINGSIZE);
 
     if (!CurrentLinePtr) {
-        strcpy(file_path, "<PROMPT>");
+        strcpy(file_path, PROMPT_PATH);
         return;
     }
 

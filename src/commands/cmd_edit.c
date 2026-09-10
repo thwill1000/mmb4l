@@ -159,7 +159,11 @@ void cmd_edit(void) {
 
     int line = 1;
     if (*fname == '\0') {
-        if (!current && *mmb_error_state_ptr->file != '\0') {
+        // PROMPT_PATH is the dummy value that error.c uses when there is no
+        // program running, not the name of a file that can be edited.
+        if (!current
+                && *mmb_error_state_ptr->file != '\0'
+                && strcmp(mmb_error_state_ptr->file, PROMPT_PATH) != 0) {
             strcpy(fname, mmb_error_state_ptr->file);
             line = mmb_error_state_ptr->line;
         } else if (*CurrentFile == '\0') {
