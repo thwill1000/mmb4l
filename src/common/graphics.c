@@ -660,6 +660,18 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
     return result;
 }
 
+/**
+ * Event filter that drops queued events belonging to one window.
+ *
+ * SDL_DestroyWindow() does not empty the queue, so events posted for a window
+ * before it was destroyed are still delivered afterwards, carrying an id that
+ * no surface answers to any more.
+ */
+static int graphics_drop_window_events(void *userdata, SDL_Event *event) {
+    const Uint32 window_id = *((Uint32 *) userdata);
+    return (event->type == SDL_WINDOWEVENT && event->window.windowID == window_id) ? 0 : 1;
+}
+
 MmResult graphics_surface_destroy(MmSurface *surface) {
     assert(surface);
 
@@ -670,9 +682,14 @@ MmResult graphics_surface_destroy(MmSurface *surface) {
     //       is currently rendered to a surface other than 'graphic_current'.
     if (surface->type == kGraphicsSprite) (void) sprite_hide(surface);
 
+    // Read while the window still exists; needed to clear its queued events.
+    Uint32 window_id = surface->window ? SDL_GetWindowID((SDL_Window *) surface->window) : 0;
+
     SDL_DestroyTexture((SDL_Texture *) surface->texture);
     SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
     SDL_DestroyWindow((SDL_Window *) surface->window);
+
+    if (window_id) SDL_FilterEvents(graphics_drop_window_events, &window_id);
 
     free(surface->pixels);
     free(surface->background);
