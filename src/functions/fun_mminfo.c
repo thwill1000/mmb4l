@@ -98,6 +98,7 @@ static void mminfo_cpuspeed(const char *p) {
 
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
     strcpy(g_string_rtn, "378000000");
     CtoM(g_string_rtn);
 }
@@ -147,6 +148,7 @@ static void mminfo_drive(const char *p) {
 
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
     strcpy(g_string_rtn, "A:");
     CtoM(g_string_rtn);
 }
@@ -505,6 +507,7 @@ static void mminfo_ps2(const char *p) {
 static void mminfo_sdcard(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
     strcpy(g_string_rtn, "READY");
     CtoM(g_string_rtn);
 }
