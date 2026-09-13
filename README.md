@@ -6,17 +6,18 @@
 3. [How do I run it ?](#3-how-do-i-run-it-)
     * [Where are the games?](#where-are-the-games-)
     * [Start with a shebang #!](#start-with-a-shebang-)
-5. [How do I use it ?](#4-how-do-i-use-it-)
-6. [The EDITor](#5-the-editor)
+4. [How do I use it ?](#4-how-do-i-use-it-)
+5. [The EDITor](#5-the-editor)
     * [Configuring GNU nano](#configuring-gnu-nano)
     * [Using GNU nano](#using-gnu-nano)
-7. [Predefined Read Only Variables](#6-predefined-read-only-variables)
+    * [Using the internal 'PicoMite' editor](#using-the-internal-picomite-editor)
+6. [Predefined Read Only Variables](#6-predefined-read-only-variables)
     * [MM.INFO()](#mminfo)
     * [MM.INFO$()](#mminfo)
     * [MM.HRES](#mmhres)
     * [MM.VER](#mmver)
     * [MM.VRES](#mmvres)
-8. [Options](#7-options)
+7. [Options](#7-options)
     * [OPTION AUDIO](#option-audio)
     * [OPTION AUTOSCALE](#option-autoscale)
     * [OPTION CODEPAGE](#option-codepage)
@@ -24,39 +25,45 @@
     * [OPTION F\<num>](#option-fnum)
     * [OPTION LIST](#option-list)
     * [OPTION LOAD](#option-load)
+    * [OPTION LOG](#option-log)
     * [OPTION RESET](#option-reset)
     * [OPTION RESOLUTION](#option-resolution)
     * [OPTION SAVE](#option-save)
     * [OPTION SIMULATE](#option-simulate)
-9. [Commands](#8-commands)
+8. [Commands](#8-commands)
+    * [BREAKPOINT](#breakpoint)
     * [CLS](#cls)
     * [CONSOLE](#console)
     * [DEVICE GAMEPAD](#device-gamepad)
     * [END](#end)
     * [ERROR](#error)
     * [GRAPHICS](#graphics)
+    * [LIST VARIABLES](#list-variables)
+    * [LOG](#log)
+    * [MKFILE](#mkfile)
     * [OPEN](#open)
     * [POKE](#poke)
-    * [PRINT](#print)
+    * [PRINT @C](#print-c)
     * [QUIT](#quit)
     * [RESTORE](#restore)
     * [RUN](#run)
+    * [SAVE](#save)
     * [SETENV](#setenv)
     * [SYSTEM](#system)
     * [XMODEM](#xmodem)
-10. [Functions](#9-functions)
+9. [Functions](#9-functions)
     * [CHR$](#chr)
     * [DEVICE](#device)
     * [JSON$](#json)
     * [PEEK](#peek)
-11. [Miscellaneous differences from MMBasic 6.0 for the PicoMite + PicoMite VGA](#10-miscellaneous-differences-from-mmbasic-60-for-the-picomite--picomite-vga)
+10. [Miscellaneous differences from MMBasic 6.0 for the PicoMite + PicoMite VGA](#10-miscellaneous-differences-from-mmbasic-60-for-the-picomite--picomite-vga)
     * [The "current program file"](#the-current-program-file)
     * [Automatic path completion](#automatic-path-completion)
     * [The "bang" command !](#the-bang-command-)
     * [Other limitations](#other-limitations)
-12. [How do I build MMB4L from source ?](#12-how-do-i-build-mmb4l-from-source-)
-13. [Credits](#13-credits)
-14. [FAQ](#14-faq)
+11. [How do I build MMB4L from source ?](#11-how-do-i-build-mmb4l-from-source-)
+12. [Credits](#12-credits)
+13. [FAQ](#13-faq)
 
 ## 1. Introduction
 
@@ -64,23 +71,23 @@ MMB4L is a port of Geoff Graham's [MMBasic](https://mmbasic.com/) interpreter to
 
 It was originally derived with permission from:
  * [MMBasic for DOS](https://geoffg.net/WindowsMMBasic.html)
-     * Copyright 2011-2025 Geoff Graham
+     * Copyright 2011-2026 Geoff Graham
 
 But also incorporates code and ideas from several other MMBasic ports:
  * [MMBasic for the PicoMite](https://geoffg.net/picomite.html) and [PicoMite VGA](https://geoffg.net/picomitevga.html)
-     * Copyright 2011-2025 Geoff Graham
-     * Copyright 2016-2025 Peter Mather
+     * Copyright 2011-2026 Geoff Graham
+     * Copyright 2016-2026 Peter Mather
      * https://github.com/UKTailwind/PicoMiteAllVersions
  * [MMBasic for the Colour Maximite 2](https://geoffg.net/maximite.html)
-     * Copyright 2011-2025 Geoff Graham
-     * Copyright 2016-2025 Peter Mather
+     * Copyright 2011-2026 Geoff Graham
+     * Copyright 2016-2026 Peter Mather
  * MMBasic for Windows
-     * Copyright 2011-2025 Geoff Graham
-     * Copyright 2016-2025 Peter Mather
+     * Copyright 2011-2026 Geoff Graham
+     * Copyright 2016-2026 Peter Mather
      * https://github.com/UKTailwind/MMB4W
  * Mothballed Pi-cromite project by Peter Mather.
 
-What little MMB4L specific code there is, is Copyright 2021-2025 Thomas Hugo Williams.
+MMB4L specific code is Copyright 2021-2026 Thomas Hugo Williams.
 
 MMB4L is an open-source project distributed under a modified 4-clause BSD license, see the [LICENSE.MMBasic](LICENSE.MMBasic) file for details.
 
@@ -112,6 +119,8 @@ To configure this you need to set the `SDL_AUDIODRIVER` environment variable, e.
 export SDL_AUDIODRIVER=alsa
 ```
 
+If you want to run MMB4L without any audio support at all (e.g. inside a Docker container where configuring SDL audio is more trouble than it is worth) set `OPTION AUDIO OFF`.
+
 ## 3. How do I run it ?
 
  * Type `mmbasic` at the Linux shell and it should show the start banner and display a BASIC command prompt:
@@ -130,6 +139,15 @@ export SDL_AUDIODRIVER=alsa
          *  `mmbasic -d ~/mmbasic-workspace`
      * or set the MMDIR environment variable:
          *  `export MMDIR=~/mmbasic-workspace`
+
+ * To start MMB4L simulating a specific device use the `-s`, `--simulate` command-line option, or supply the device name as the first command-line argument, e.g.
+     * `mmbasic -s CMM2`
+     * `mmbasic PicoMiteVGA myprogram.bas`
+     * See [OPTION SIMULATE](#option-simulate) for the full list of supported devices.
+     * A device given via the command-line becomes the default platform that `NEW` and `RUN` (without an explicit `AS <device>`) return to.
+
+ * To set the initial logging level use the `-l`, `--log` command-line option, see [OPTION LOG](#option-log) and the [LOG](#log) command for details:
+     * `mmbasic -l Debug`
 
  * To see other MMB4L command-line options use the `-h`, `--help` command-line option:
      * `mmbasic -h`
@@ -172,7 +190,7 @@ Perhaps one day there will be a user manual specific to MMB4L, until then you ar
 
 ## 5. The EDITor
 
-Unlike other MMBasic platforms the ```EDIT``` command for MMB4L does not use a bespoke editor but instead relies on a third-party editor being installed. By default this is [GNU nano](https://www.nano-editor.org/), but this can be changed using the the [OPTION EDITOR](#option-editor) command.
+Unlike other MMBasic platforms the ```EDIT``` command for MMB4L does not, by default, use a bespoke editor but instead relies on a third-party editor being installed. By default this is [GNU nano](https://www.nano-editor.org/), but this can be changed using the the [OPTION EDITOR](#option-editor) command, and MMB4L now also ships with its own [internal editor](#using-the-internal-picomite-editor) ported/rewritten from the PicoMite.
 
 ### Configuring GNU nano
 
@@ -245,6 +263,17 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
  1. Unlike other MMBasic version there is no key combination to automatically **RUN** a program from the editor.
  2. If you rename a file whilst saving it MMB4L will not update its "current program file" state and will still be using the previous file.
 
+### Using the internal 'PicoMite' editor
+
+As of v0.8 MMB4L includes an internal editor ported/rewritten from the PicoMite, as an alternative to relying on a third-party editor such as nano.
+
+ * To use the internal editor for a single edit without changing your default editor:
+    * `EDIT INTERNAL "helloworld.bas"`
+ * To persistently switch your default editor to the internal one:
+    * `OPTION EDITOR INTERNAL`
+
+**Note:** the internal editor is still under active development; it has some known bugs and is not yet feature-complete compared to the very latest PicoMite editor.
+
 ## 6. Predefined Read Only Variables
 
 ### MM.INFO()
@@ -304,14 +333,17 @@ MMB4L supports reading these additional properties:
      * If no controller is attached then returns the empty string.
 
   * `MM.INFO(HPOS)`
-     * Gets the current horizontal position (in characters) following the last `PRINT` command.
-         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+     * Gets the cursor horizontal position in pixels following the last `PRINT` command.
+     * If no graphics window is selected then the returned value is computed from the terminal cursor position and the currently selected MMBasic font.
      * Unlike the PicoMite, drawing graphics and using the TEXT command does not change the reported position.
+
+  * `MM.INFO(HPOS C)`
+     * Gets the cursor horizontal position in character-cells following the last `PRINT` command.
 
  * `MM.INFO(HRES)`
      * Gets the height of the current graphics window in pixels.
-     * If no graphics window is selected then returns the height of the console in characters.
-         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+     * If no graphics window is selected then the returned value is computed from the terminal size and the currently selected MMBasic font.
+     * Disallowed (throws an error) when a simulated platform is active via `OPTION SIMULATE`; use the simulated platform's MM.HRES built-in variable.
 
  * `MM.INFO(LINE)`
      *  Gets the current MMBasic line number being executed.
@@ -331,17 +363,20 @@ MMB4L supports reading these additional properties:
              * 2 - RC (release candidate)
              * 3 .. 9 - release, in which case the "real" MICRO version is the 3-digit number minus 300.
          * The BUILD number has 4 digits but is currently unused and always returns 0.
-     * Without the additional argument it returns an integer = MAJOR * 100,000,000 + MINOR * 1,000,000 + MICRO * 10000 + BUILD, e.g. 5,000,000 for version 0.5.
+     * Without the additional argument it returns an integer = MAJOR * 100,000,000 + MINOR * 1,000,000 + MICRO * 10000 + BUILD, e.g. 8,000,000 for version 0.8.
 
   * `MM.INFO(VPOS)`
-     * Gets the current vertical position (in characters) following the last `PRINT` command.
-         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+     * Gets the cursor vertical position in pixels following the last `PRINT` command.
+     * If no graphics window is selected then the returned value is computed from the terminal cursor position and the currently selected MMBasic font.
      * Unlike the PicoMite, drawing graphics and using the TEXT command does not change the reported position.
 
- * `MM.INFO(VRES)`
+  * `MM.INFO(VPOS C)`
+     * Gets the cursor vertical position in character-cells following the last `PRINT` command.
+
+  * `MM.INFO(VRES)`
      * Gets the width of the current graphics window in pixels.
-     * If no graphics window is selected then returns the width of the console in characters.
-         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+     * If no graphics window is selected then the returned value is computed from the terminal size and the currently selected MMBasic font.
+     * Disallowed (throws an error) when a simulated platform is active via `OPTION SIMULATE`; use the simulated platform's MM.VRES built-in variable.
 
 ### MM.HRES
 
@@ -353,7 +388,7 @@ In MMB4L this inbuilt constant is an `INTEGER` value insted of a `FLOAT`, it has
 
 ### MM.VRES
 
-See `MM.INFO$(VRES)`.
+See `MM.INFO(VRES)`.
 
 ## 7. Options
 
@@ -401,6 +436,7 @@ Supported editors are:
  * `DEFAULT`  (synonym for `NANO`)
  * `GEANY`
  * `EDIT`
+ * `INTERNAL` (MMB4L's own [internal editor](#using-the-internal-picomite-editor), ported/rewritten from the PicoMite)
  * `LEAFPAD`
  * `NANO`
  * `SUBLIME`
@@ -440,6 +476,16 @@ Lists values of current options (permanent and non-permanent).
 Loads permanent options from the named file and where possible applies them immediately.
    * If they can not be applied immediately then they will be applied when MMB4L is restarted.
 
+### OPTION LOG
+
+`OPTION LOG [NONE | DEBUG | INFO | WARNING | ERROR]`
+
+Non-persistent option that sets the minimum severity of message that will be written to the interpreter's internal debug log ("mmb4l.log" in the directory MMB4L was started from).
+
+ * Default is `INFO` in debug builds and `NONE` in release builds.
+ * This is primarily intended to help diagnose problems with MMB4L itself rather than for use by BASIC programs, but see also the [LOG](#log) command which allows a BASIC program to write its own messages to the same log.
+ * The initial log level can also be set from the Linux command line with `-l`/`--log`, see [How do I run it?](#3-how-do-i-run-it-).
+
 ### OPTION RESET
 
 `OPTION RESET {ALL | <option>}`
@@ -447,15 +493,6 @@ Loads permanent options from the named file and where possible applies them imme
 Resets options to their default values.
    * If `ALL` is specified then all options are reset.
    * Otherwise only the named option is reset.
-
-### OPTION RESOLUTION
-
-`OPTION RESOLUTION {PIXEL|CHARACTER}`
-
-Controls the resolution used for the return values of `HRES`, `VRES`, `MM.INFO(HPOS)`, `MM.INFO(HRES)`, `MM.INFO(VPOS)` and `MM.INFO(VRES)` when no graphics surface is selected, i.e. when writing to the console.
-
- * Default `CHARACTER`.
- * If `PIXEL` then the returned values are based on a nominal 8x12 font.
 
 ### OPTION SAVE
 
@@ -467,17 +504,22 @@ Saves permanent options that have been changed from their default values to the 
 
 `OPTION SIMULATE device$`
 
-Non-permanent option that configures MMB4L to attempt to "simulate" the behaviour of a given MMBasic `device$` which must be one of the following:
+Non-permanent option that configures MMB4L to attempt "simulation" of a given MMBasic `device$` which must be one of the following:
  * "Colour Maximite 2" or "CMM2"
  * "Game*Mite"
  * "MMB4L" to restore default MMB4L behaviour.
- * "PicoMiteVGA"
  * "MMBasic for Windows" or "MMB4W"
- 
+ * "PicoCalc"
+ * "PicoMiteHDMI"
+ * "PicoMiteVGA"
+ * "PicoMiteVGAUSB"
+
+The device to simulate can also be set from the Linux command line, see [How do I run it?](#3-how-do-i-run-it-), or for a single execution with the [RUN](#run) command.
+
 #### What is simulated for each device ?
 
  * `MM.DEVICE$`, `MM.INFO$(DEVICE)` and `MM.INFO$(PLATFORM)` will return the appropriate values for the simulated device.
-     * _Whilst "simulating" use `MM.INFO$(DEVICE X)` can be used to retrieve the real device name, i.e. "MMB4L"._
+     * _Whilst "simulating" you can use `MM.INFO$(DEVICE X)` to retrieve the real device name, i.e. "MMB4L"._
 
 ##### Colour Maximite 2
  * Simulates USB controllers 1-3 being read as if they were Wii Classic controllers attached to I2C channels 1-3:
@@ -485,29 +527,49 @@ Non-permanent option that configures MMB4L to attempt to "simulate" the behaviou
      * USB2 = I2C1
      * USB3 = I2C2.
  * Simulates commands:
-     * `CONTROLLER CLASSIC { CLOSE | OPEN }`, `MODE`, `PAGE { COPY | SCROLL | WRITE }`
+     * `CONTROLLER CLASSIC {CLOSE | OPEN}`, `MODE`, `PAGE {COPY | SCROLL | WRITE}`
  * Simulates functions:
      * `CLASSIC()`
 
-##### Game*Mite (RP2040):
+##### Game*Mite and PicoCalc (RP2040):
  * Simulates sufficient GPIO to support USB controller 1 being read using `SETPIN` and `PORT()` as if it were the 8-button Game*Mite controller.
  * Simulates commands:
-     * `FRAMEBUFFER`, `BLIT FRAMEBUFFER`, `FLASH DISK LOAD`, `SETPIN`
+     * `BLIT FRAMEBUFFER`, `DRIVE` (as no-op), `FLASH DISK LOAD`, `FRAMEBUFFER`, `IN` (as no-op), `OUT` (as no-op) and `SETPIN`.
  * Simulates functions:
-     * `MM.INFO(CPUSPEED)`, `MM.INFO(DRIVE)`, `MM.INFO(FLASH ADDRESS)`, `MM.INFO(PINNO)`, `PORT()`
+     * `MM.INFO(CPUSPEED)`, `MM.INFO(DRIVE)`, `MM.INFO(FLASH ADDRESS)`, `MM.INFO(PINNO)` and `PORT()`
+ * No `KEYDOWN()` function.
 
 ##### MMBasic for Windows:
  * As "Colour Maximite 2" except supports a single USB controller being read with the `GAMEPAD` command and function.
 
-##### PicoMiteVGA (RP2040):
+##### PicoMiteHDMI and PicoMiteVGA (RP2040):
  * Simulates sufficient GPIO to support USB controllers 1 & 2 being read using `PIN()`, `PULSE` and `SETPIN` as if they were 12-button SNES controllers wired according to the PicoGAME VGA 2.0 schematic.
  * Simulates commands:
-     * `FRAMEBUFFER`, `BLIT FRAMEBUFFER`, `FLASH DISK LOAD`, `MODE`, `PIN`, `PULSE`, `SETPIN`
+     * `BLIT FRAMEBUFFER`, `DRIVE` (as no-op), `FLASH DISK LOAD`, `FRAMEBUFFER`, `IN` (as no-op), `MODE`, `OUT` (as no-op), `PIN`, `PULSE` and `SETPIN`.
  * Simulates functions:
-     * `MM.INFO(CPUSPEED)`, `MM.INFO(DRIVE)`, `MMM.INFO(FLASH ADDRESS)`, `MM.INFO(PINNO)`, `PIN()`
- * _Note that `MODE 1` coloured tiles are not currently supported._
+     * `MM.INFO(CPUSPEED)`, `MM.INFO(DRIVE)`, `MM.INFO(FLASH ADDRESS)`, `MM.INFO(PINNO)`, `MM.INFO(PS2)` and `PIN()`
+
+#### PicoMiteVGAUSB (RP2040):
+ * Simulates commands:
+     * `BLIT FRAMEBUFFER`, `GAMEPAD {COLOUR | HAPTIC | INTERRUPT}`, `DRIVE` (as no-op), `FLASH DISK LOAD`, `FRAMEBUFFER`, `IN` (as no-op), `MODE` and `OUT` (as no-op).
+ * Simulates functions:
+     * `DEVICE(GAMEPAD)`, `MM.INFO(CPUSPEED)`, `MM.INFO(DRIVE)`, `MM.INFO(FLASH ADDRESS)`, `MM.INFO(PINNO)` and `MM.INFO(USB)`.
+
+### What is not simulated?
+
+ * Real-hardware graphics surface depths; all simulated surfaces are 32-bit.
+ * Coloured tiles, e.g. in PicoMiteVGA MODE 1.
 
 ## 8. Commands
+
+### BREAKPOINT
+
+`BREAKPOINT`
+
+A no-op statement intended purely to assist debugging the MMB4L interpreter itself (not the BASIC program).
+
+ * Placing a `BREAKPOINT` statement in an MMBasic program gives a developer a named, stable symbol at which a `gdb` breakpoint can be set, allowing execution to be paused at a precise MMBasic line when debugging MMB4L's C code.
+ * It has no effect on the running BASIC program.
 
 ### CLS
 
@@ -528,9 +590,17 @@ Clears the console using the current background colour AND moves the cursor to t
 
 The CONSOLE commands manipulate the console/terminal using ANSI escape-codes.
 
+**Note:** MMB4L now also supports directing console I/O to a graphics surface instead of (or as well as) the terminal, see [OPTION CONSOLE](#option-console-target) below, e.g.:
+```
+OPTION CONSOLE BOTH  ' or OPTION CONSOLE SCREEN
+GRAPHICS WINDOW 0, 300, 300
+GRAPHICS WRITE 0
+PRINT "Hello World"
+```
+
 #### CONSOLE BACKGROUND
 
-`CONSOLE BACKGROUND {<colour_name>|colour%} `
+`CONSOLE BACKGROUND {<colour_name> | colour%}`
 
 Sets the background colour for future `PRINT` commands.
  * Allowed colours and equivalent integers are:
@@ -643,6 +713,14 @@ Sets the console window title.
 
 Shows or hides the cursor; without any argument this shows the cursor.
 
+#### OPTION CONSOLE (target)
+
+`OPTION CONSOLE {NONE | SERIAL | SCREEN | BOTH}`
+
+Controls whether console I/O is handled by the serial/terminal connection, or a selected graphics window (`SCREEN`), or both (`BOTH`), or is suppressed (`NONE`).
+ * A graphics window must be selected with `GRAPHICS WRITE` before console output can be directed to or console input read from it.
+ * Certain simulated platforms enable this automatically as appropriate; see [OPTION SIMULATE](#option-simulate).
+
 ### DEVICE GAMEPAD
 
 The DEVICE GAMEPAD commands configure attached game controllers.
@@ -666,19 +744,42 @@ Opens/initialises a game controller.
    export SDL_GAMECONTROLLERCONFIG=0300c2f8830500006020000010010000,iBuffalo SNES Controller,a:b0,b:b1,back:b6,dpdown:+a1,dpleft:-a0,dpright:+a0,dpup:-a1,leftshoulder:b4,rightshoulder:b5,start:b7,x:b2,y:b3,hint:SDL_GAMECONTROLLER_USE_BUTTON_LABELS:=1,platform:Linux
    ```
 
- #### DEVICE GAMEPAD VIBRATE
+#### DEVICE GAMEPAD INTERRUPT
 
-`DEVICE GAMEPAD VIBRATE id% [, low_freq%] [, high_freq%] [, duration_ms%]`
+`DEVICE GAMEPAD INTERRUPT ENABLE id%, interrupt [, bitmask%]`  
+`DEVICE GAMEPAD INTERRUPT DISABLE id%`
 
- Causes a game controller to vibrate.
+Enables or disables the digital-button interrupt for an already-open game controller without having to close and reopen it.
+ * `interrupt` and `bitmask%` have the same meaning as the equivalent parameters of `DEVICE GAMEPAD OPEN`.
+
+#### DEVICE GAMEPAD LED
+
+`DEVICE GAMEPAD LED id%, red%, green%, blue%`
+
+Sets the colour of a game controller's LED, if it has one (e.g. many DualShock/DualSense-style controllers).
+ * `red%`, `green%` and `blue%` are each 0-255.
+ * _Currently untested as the author doesn't have compatible hardware._
+
+#### DEVICE GAMEPAD RUMBLE
+
+`DEVICE GAMEPAD RUMBLE id% [, low_freq%] [, high_freq%] [, duration_ms%]`  
+`DEVICE GAMEPAD RUMBLE id%, OFF`
+
+Causes a game controller to vibrate.
  * `low_freq%` and `high_freq%` are the intensity of the low and high frequency vibrations from 0 to &hFFFF. They default to &hFFFF.
  * `duration_ms%` is the duration of the vibration in milliseconds. It defaults to 10,000 ms.
-  * _Note this may not be available on all platforms._
+ * `DEVICE GAMEPAD RUMBLE id%, OFF` stops a game controller from vibrating.
+ * _Note this may not be available on all platforms._
+ * **This command was previously named `DEVICE GAMEPAD VIBRATE`; that name is no longer supported.**
 
- To stop a game controller from vibrating use:
- 
-`DEVICE GAMEPAD VIBRATE id% OFF`
- 
+#### DEVICE GAMEPAD RUMBLE TRIGGERS
+
+`DEVICE GAMEPAD RUMBLE TRIGGERS id% [, left%] [, right%] [, duration_ms%]`  
+`DEVICE GAMEPAD RUMBLE TRIGGERS id%, OFF`
+
+As `DEVICE GAMEPAD RUMBLE` above but controls independent vibration of the left and right trigger motors on controllers that support it (e.g. DualSense adaptive triggers).
+ * _Currently untested as the author doesn't have compatible hardware._
+
 ### END
 
 ```END [exit_code%]```
@@ -712,7 +813,8 @@ The GRAPHICS commands are used to create, destroy and manipulate MMB4L's graphic
      * Sprites that are created with `GRAPHICS SPRTE` or `SPRITE READ`. Sprites are manipulated by the `SPRITE` commands.
  * Surfaces are created with ids 0-255, but surface 0 can only be a window surface.
  * The MMBasic graphics primitive commands can write to ANY of these surface types and you may `BLIT` to and from any of these surface types.
- * *Note that the `PRINT` command cannot be used to print to a graphics surface, it always prints to the console. This restriction even applies when using `OPTION SIMULATE`.*
+ * Console I/O can now be directed to a selected graphics surface, see [CONSOLE](#console) and `OPTION CONSOLE` above.
+     * When console I/O is directed to a graphics surface (`OPTION CONSOLE SCREEN` or `OPTION CONSOLE BOTH`) the `PRINT` command will write to that surface as well as/instead of the terminal.
 
 #### GRAPHICS BUFFER
 
@@ -737,16 +839,17 @@ Copies one graphics surface to another.
  * If the `transparent%` parameter is set to `T` or `1` then BLACK pixels on the source surface are considered transparent when copying. Other values are ignored.
  * The `when%` parameter is currently ignored. 
  * Copying between surfaces of different sizes is supported. The source surface is always copied to the top left (0, 0) of the destination surface and will either be clipped (if larger) or leave the destination pixels untouched (if smaller).
+ * To also resize the copied region see `BLIT RESIZE` documented in the PicoMite manual.
 
 #### GRAPHICS DESTROY
 
-`GRAPHICS DESTROY { id% | ALL }`
+`GRAPHICS DESTROY {id% | ALL}`
 
 Destroys a graphics surface, or all graphics surface if `ALL` is specified.
 
 #### GRAPHICS INTERRUPT
 
-`GRAPHICS INTERRUPT id%, { interrupt | 0 }`
+`GRAPHICS INTERRUPT id%, {interrupt | 0}`
 
 Sets or clears the interrupt subroutine for a window surface.
 
@@ -791,9 +894,37 @@ Creates a window graphics surface.
 
 #### GRAPHICS WRITE
 
-`GRAPHICS WRITE { id% | NONE }`
+`GRAPHICS WRITE {id% | NONE}`
 
 Selects the surface to direct other graphics commands, e.g. `LINE`, to.
+ * When `OPTION CONSOLE SCREEN` or `BOTH` is in effect this is also the surface console output is written to and input read from.
+
+### LIST VARIABLES
+
+`LIST VARIABLES [ALL | GLOBAL | LOCAL | level%]`
+
+Lists currently declared variables and their values to the console.
+ * `GLOBAL` lists only global variables.
+ * `LOCAL` lists only local variables at the current scope.
+ * `level%` lists local variables at a specific scope level.
+ * `ALL` (the default if no qualifier is given) lists every variable regardless of scope.
+
+### LOG
+
+`LOG [DEBUG | INFO | WARNING | ERROR | FATAL]? expression [, expression ...]`
+
+Writes a message to MMB4L's internal debug log ("mmb4l.log"), the same log written to by the interpreter's own diagnostic messages.
+
+ * The optional leading level keyword (default `INFO`) sets the severity of the message.
+ * The message is only actually written if the current log level (set via [OPTION LOG](#option-log) or the `-l`/`--log` command-line option) is at or below the message's level.
+ * This is primarily a debugging aid for BASIC programs, distinct from `PRINT`, which writes to the console rather than to the log file.
+
+### MKFILE
+
+`MKFILE filename$`
+
+Creates a new, empty file at `filename$`.
+ * Mainly useful for testing; it probably has limited use in production BASIC programs.
 
 ### OPEN
 
@@ -855,15 +986,13 @@ Note that this change requires the user to logout and then login again to take e
 Sets the value of the "virtual pointer" used to track where the `READ` command reads `DATA` from.
  * Only values of `ptr%` previously retrieved by calling `PEEK(DATAPTR)` should be passed to this command.
 
-### PRINT
+### PRINT @C
 
-`PRINT @(x%, y%) expression`
+`PRINT @C(x%, y%) expression`
 
-Outputs text to the console/terminal at a given character position followed by a carriage return/newline pair.
- * Unlike the PicoMite `x%` and `y%` are both obligatory and in character (not pixel) coordinates. There is no `mode` parameter.
- * It is equivalent to `CONSOLE SETCURSOR x, y : PRINT expression`
+As `PRINT @(x%, y%)` uses character coordinates instead of pixel coordinates; see also `MM.INFO(HPOS C)` etc.
 
-_Note that the `PRINT` command cannot be used to print to a graphics surface, it always prints to the console. This restriction even applies when using `OPTION SIMULATE`._
+_Note that `PRINT` writes to the console (terminal and/or a selected graphics window when `OPTION CONSOLE SCREEN`/`BOTH` is enabled); it cannot otherwise be used to print directly to an unselected graphics surface._
 
 ### QUIT
 
@@ -887,7 +1016,7 @@ Resets the "virtual pointer" (line and position counters) for the `READ` stateme
 
 ### RUN
 
-`RUN [file$] [, cmdline$]`
+`RUN [file$] [, cmdline$] [AS {<device> | device$}]`
 
 Runs a program.
  * Both `file$` and `cmdline$` can be string expressions instead of the legacy behaviour where the command line argument was "not processed" by MMBasic and was copied verbatim into the `MM.CMDLINE$` of the new program.
@@ -900,6 +1029,34 @@ Runs a program.
         ```
         RUN "foo", "a$ + b$"
         ```
+ * The optional `AS {<device> | device$}` clause runs the program simulating a specific platform for that run, e.g.:
+     ```
+     RUN "foo.bas", "wombat" AS CMM2
+     ```
+     The `*` command has equivalent syntax, e.g.
+     ```
+     *CMM2 foo --wom --bat
+     ````
+ * _Since v0.8 the `NEW` and `RUN` commands do not destroy existing graphics surfaces unless the platform is actually being switched to a different one._
+
+### SAVE
+
+The `SAVE` command saves the contents of a graphics surface to a file.
+
+`SAVE {COMPRESSED | IMAGE | 1BPP | 24BPP | 32BPP | RGB121 | RGB121_RLE4 | RGB222 | RGB222_RLE8 | RGB332 | RGB332_RLE8 | RGB555 | RGB565} file$ [, x%, y%, w%, h%]`
+
+Saves (a region of) the currently selected graphics surface as a `.bmp` file in the given pixel format.
+ * `x%`, `y%`, `w%`, `h%` (default: the whole surface) select the region of the surface to save.
+ * `COMPRESSED` is a synonym for `RGB121_RLE4`.
+ * `IMAGE` uses `RGB121` on PicoMite-family simulated platforms and `24BPP` otherwise.
+
+#### SAVE JPG
+
+`SAVE JPG file$ [, x%, y%, w%, h%]`
+
+Saves (a region of) the currently selected graphics surface as a `.jpg` file.
+ * `x%`, `y%`, `w%`, `h%` (default: the whole surface) select the region of the surface to save.
+ * A `.jpg` extension is appended to `file$` automatically if it does not already end in `.jpg` or `.jpeg`.
 
 ### SETENV
 
@@ -1014,7 +1171,8 @@ Gets the current value of the "virtual pointer" used to track where the `READ` c
 ### The "current program file"
 
 Similarly to the Colour Maximite 2, MMB4L always has the concept of a "current program file" which is set by the `LOAD <filename>` and `RUN <filename>` commands and cleared by the `NEW` command.
- * When you call `EDIT` without an explicit filename you are editing the actual file and not some representation in "flash" (as happens with the PicoMite) and any changes you make will be written to the file when the editor is exited, you do not need to explicitly use the `SAVE` command to persist the file from "flash" to the disk, infact MMB4L currently does not have a `SAVE` command.
+ * When you call `EDIT` without an explicit filename you are editing the actual file and not some representation in "flash" (as happens with the PicoMite) and any changes you make will be written to the file when the editor is exited, you do not need to explicitly use the `SAVE` command to persist the file from "flash" to the disk.
+     * _Note: MMB4L's [SAVE](#save) command is for saving graphics surfaces as image files, not for persisting the current program - program source is always written directly to disk by the editor._
  * Any command that operates on the "current program file" automatically reloads that program from disk before executing, i.e. `LIST`, `EDIT`, `RUN`. MMB4L never operates on a program that differs from that on disk.
  * When the source of an error is in a .INC file the `EDIT` command will open that file instead of the current .BAS file.
      * To explicitly open the current .BAS file use `EDIT CURRENT`
@@ -1050,6 +1208,7 @@ _Note that the command string is passed verbatim as the first argument to the `S
 ### Other limitations
 
  * No GPIO commands/functions; this is only applicable to Raspberry Pi.
+     * `IN` and `OUT` are treated as no-ops for source compatibility with PicoMite programs but do not actually access any hardware.
  * Supports `SETTICK` but not `SETTICK FAST`.
  * Since Linux is not a Real Time Operating System all timing commands such as `PAUSE` and `SETTICK` are subject to more error and variation than on microcontroller MMBasic implementations.
  * Paths are limited to 255 characters.
@@ -1067,8 +1226,9 @@ Obviously MMB4L would not have been possible without the work and generosity of 
 The code was originally ported and is maintained by Thomas Hugo Williams.
 
 Credit is also due to the denizens of [The Back Shed](https://www.thebackshed.com/forum/ViewForum.php?FID=16) forum including, but not limited to:
- * @Volhout - for test code for the MATH command/function.
  * @Mixtel90 - for coining the name MMB4L.
+ * @TomSchimana - for various fixes he made when [porting to macOS](https://github.com/TomSchimana/mmb4m).
+ * @Volhout - for test code for the `MATH` command/function.
 
 ## 13. FAQ
 
