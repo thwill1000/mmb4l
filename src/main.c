@@ -79,7 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/tokentbl.h"
 
 #define MM_VERSION_STR  xstringify(MM_MAJOR) "." xstringify(MM_MINOR) "." xstringify(MM_MICRO)
-static const char version[] = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
+__attribute__((used)) static const char version[] = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
@@ -405,8 +405,6 @@ int main(int argc, char *argv[]) {
 //     volatile bool pause = true;
 //     while (pause) mmtime_sleep_ns(SECONDS_TO_NANOSECONDS(100));
 // #endif
-
-    (void) version; // To force the linker to retain it.
 
     ON_FAILURE_EXIT(memory_init());
 
