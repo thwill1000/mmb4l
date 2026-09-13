@@ -40,9 +40,9 @@ function docker_create_image() {
 
 function docker_run_command() {
   if [ "$DOCKER_PLATFORM" == "linux/arm/v6" ]; then
-    docker run -it --rm -e DISPLAY=$DISPLAY $DOCKER_EXTRA --net=host --rm -v /home/$USER:/home/$USER $DOCKER_IMAGE $1
+    docker run -it --rm -e DISPLAY=$DISPLAY -e SDL_VIDEODRIVER=dummy -e SDL_AUDIODRIVER=dummy $DOCKER_EXTRA --net=host --rm -v /home/$USER:/home/$USER $DOCKER_IMAGE $1
   else
-    docker run -it --rm -e DISPLAY=$DISPLAY $DOCKER_EXTRA --platform $DOCKER_PLATFORM --net=host --rm -v /home/$USER:/home/$USER $DOCKER_IMAGE $1
+    docker run -it --rm -e DISPLAY=$DISPLAY -e SDL_VIDEODRIVER=dummy -e SDL_AUDIODRIVER=dummy $DOCKER_EXTRA --platform $DOCKER_PLATFORM --net=host --rm -v /home/$USER:/home/$USER $DOCKER_IMAGE $1
   fi
 }
 
