@@ -125,13 +125,13 @@ void cmd_files_internal(const char *p) {
                 (void) snprintf(size_buf, 32, "%.1fK",
                                 (double) file->info.size / 1024.0);
             } else {
-                (void) snprintf(size_buf, 32, "%ld ", file->info.size);
+                (void) snprintf(size_buf, 32, "%" PRId64 " ", file->info.size);
             }
             (void) snprintf(buf, STRINGSIZE, "%s %6s %s", time_buf, size_buf,
                             file->name);
         } else {
             strftime(time_buf, 32, "%d/%m/%Y  %H:%M:%S", tm_info);
-            (void) snprintf(buf, STRINGSIZE, "%s  %8ld  %s", time_buf, file->info.size,
+            (void) snprintf(buf, STRINGSIZE, "%s  %8" PRId64 "  %s", time_buf, file->info.size,
                             file->name);
         }
         display_puts(buf);
