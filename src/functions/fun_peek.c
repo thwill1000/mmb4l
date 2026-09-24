@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_peek.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,14 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/memory.h"
 #include "../common/utility.h"
 #include "../core/commandtbl.h"
 #include "../core/funtbl.h"
-
-#include <assert.h>
 
 /** PEEK(BYTE addr%) */
 static void peek_byte(int argc, char **argv, const char *p) {
@@ -96,7 +96,7 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
 
     // Or a string expression evaluating to a function / sub name.
     if (idx == -1) {
-        getargs(&p, 1, ",");
+        getargs(&p, 1, DELIM_COMMA);
         if (argc != 1) ERROR_ARGUMENT_COUNT;
         char *s = getCstring(argv[0]);
         idx = FindSubFun(s, kFunction | kSub);
@@ -111,13 +111,11 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
     // the function being called.
     char *addr = GetCFunAddr(CFunctionFlash, idx);
     // if (!addr) addr = GetCFunAddr(CFunctionLibrary, idx);
-    if (!addr) ERROR_INTERNAL_FAULT;
+    if (!addr) ON_FAILURE_ERROR(INTERNAL_FAULT);
 
     g_rtn_type = T_INT;
     g_integer_rtn = (uintptr_t) addr;
 }
-
-#include <stdio.h>
 
 /** PEEK(DATAPTR) */
 static void peek_dataptr(int argc, char **argv, const char *p) {
@@ -218,7 +216,7 @@ static void peek_word(int argc, char **argv, const char *p) {
 }
 
 void fun_peek(void) {
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
 
     const char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {

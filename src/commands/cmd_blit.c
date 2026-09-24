@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_blit.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** BLIT CLOSE [#]id */
 static MmResult cmd_blit_close(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     MmSurfaceId blit_id = -1;
     MmResult result = parse_blit_id(p, true, &blit_id);
@@ -70,10 +70,10 @@ static MmResult cmd_blit_close_all(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     MmResult result = kOk;
-    const MmSurfaceId start_id = (mmb_options.simulate == kSimulateMmb4l)
+    const MmSurfaceId start_id = (mmb_features.graphics_type == kGraphicsTypeMmb4l)
             ? 0
             : CMM2_BLIT_BASE + 1; // 64
-    const MmSurfaceId end_id = (mmb_options.simulate == kSimulateMmb4l)
+    const MmSurfaceId end_id = (mmb_features.graphics_type == kGraphicsTypeMmb4l)
             ? GRAPHICS_MAX_ID
             : CMM2_BLIT_BASE + CMM2_BLIT_COUNT; // 127
     for (MmSurfaceId surface_id = start_id; surface_id <= end_id; ++surface_id) {
@@ -88,7 +88,7 @@ static MmResult cmd_blit_close_all(const char *p) {
 
 /** BLIT COMPRESSED address, x, y [, transparent] */
 MmResult cmd_blit_compressed(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
     char *data = (char *) get_peek_addr(argv[0]);
     const int x = getint(argv[2], INT32_MIN, INT32_MAX);
@@ -105,11 +105,9 @@ MmResult cmd_blit_compressed(const char *p) {
 
 /** BLIT FRAMEBUFFER from, to, x1, y1, x2, y2, w, h [, transparent] */
 MmResult cmd_blit_framebuffer(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
-        return kUnsupportedOnCurrentDevice;
-    }
+    if (!mmb_features.has_cmd_framebuffer) return kUnsupportedOnCurrentDevice;
 
-    getargs(&p, 17, ",");
+    getargs(&p, 17, DELIM_COMMA);
     if (argc < 15) return kArgumentCount;
 
     MmSurfaceId src_id = -1;
@@ -140,7 +138,7 @@ MmResult cmd_blit_framebuffer(const char *p) {
 
 /** BLIT MEMORY address, x, y [, transparent] */
 MmResult cmd_blit_memory(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
     char *data = (char *) get_peek_addr(argv[0]);
     const int x = getint(argv[2], INT32_MIN, INT32_MAX);
@@ -165,11 +163,12 @@ MmResult cmd_blit_memory(const char *p) {
  * @param  sprite  If true then parse as SPRITE READ instead of BLIT READ.
  */
 MmResult cmd_blit_read(const char *p, bool sprite) {
-    getargs(&p, 11, ",");
+    getargs(&p, 11, DELIM_COMMA);
     if (argc != 9 && argc != 11) return kArgumentCount;
 
-    if (has_arg(10) && (mmb_options.simulate == kSimulateGameMite
-            || mmb_options.simulate == kSimulatePicoMiteVga)) {
+    if (has_arg(10) && (
+               mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+            || mmb_features.graphics_type == kGraphicsTypePicomiteVga)) {
         return kUnsupportedParameterOnCurrentDevice;
     }
 
@@ -231,6 +230,57 @@ MmResult cmd_blit_read(const char *p, bool sprite) {
 }
 
 /**
+ * BLIT RESIZE src_id, dst_id, sx, sy, sw, sh, dx, dy, dw, dh [, transparent]
+ *
+ * Scales a rectangular source region into a destination rectangle using fast
+ * nearest-neighbour sampling.
+ */
+MmResult cmd_blit_resize(const char *p) {
+    getargs(&p, 21, DELIM_COMMA);
+    if (argc != 19 && argc != 21) RETURN_RESULT(kSyntax);
+
+    MmSurface *src_surface = NULL;
+    {
+        MmSurfaceId src_id = -1;
+        MmResult result = parse_page(argv[0], &src_id);
+        if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidReadSurface;
+        ON_FAILURE_RETURN(result);
+        src_surface = &graphics_surfaces[src_id];
+    }
+
+    MmSurface *dst_surface = NULL;
+    {
+        MmSurfaceId dst_id = -1;
+        MmResult result = parse_page(argv[2], &dst_id);
+        if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidWriteSurface;
+        ON_FAILURE_RETURN(result);
+        dst_surface = &graphics_surfaces[dst_id];
+    }
+
+    const int sx = getint(argv[4], 0, src_surface->width - 1);
+    const int sy = getint(argv[6], 0, src_surface->height - 1);
+    const int sw = getint(argv[8], 1, src_surface->width - sx);
+    const int sh = getint(argv[10], 1, src_surface->height - sy);
+    const int dx = getint(argv[12], INT32_MIN, dst_surface->width - 1);
+    const int dy = getint(argv[14], INT32_MIN, dst_surface->height - 1);
+    const int dw = getint(argv[16], 1, dst_surface->width - dx);
+    const int dh = getint(argv[18], 1, dst_surface->height - dy);
+    MmGraphicsColour transparent = NO_TRANSPARENCY;
+    if (has_arg(20)) {
+        if (mmb_features.uses_4bit_colour) {
+            const int t4bit = getint(argv[20], -1, 15);
+            if (t4bit != -1) transparent = GRAPHICS_RGB121_COLOURS[t4bit];
+        } else {
+            transparent = getint(argv[20], -1, UINT32_MAX);
+        }
+    }
+
+    return graphics_blit_resize(src_surface, sx, sy, sw, sh,
+                                dst_surface, dx, dy, dw, dh,
+                                transparent);
+}
+
+/**
  * BLIT WRITE [#]src_id, x, y [, flags]
  *
  * 'flags' is a Bitwise AND of:
@@ -243,7 +293,7 @@ MmResult cmd_blit_read(const char *p, bool sprite) {
  *                 in which case the default for flags is 0x04.
  */
 MmResult cmd_blit_write(const char *p, bool sprite) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
 
     MmSurface *src_surface = NULL;
@@ -278,7 +328,7 @@ MmResult cmd_blit_write(const char *p, bool sprite) {
 static MmResult cmd_blit_default(const char *p) {
     if (!graphics_current) return kGraphicsInvalidWriteSurface;
 
-    getargs(&p, 15, ",");
+    getargs(&p, 15, DELIM_COMMA);
     if (argc < 11 || argc > 15) return kArgumentCount;
     const int x1 = getinteger(argv[0]);
     const int y1 = getinteger(argv[2]);
@@ -288,7 +338,8 @@ static MmResult cmd_blit_default(const char *p) {
     const int height = getinteger(argv[10]);
     MmSurface *src_surface = graphics_current;
     if (argc >= 13) {
-        if (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga) {
+        if (mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+                || mmb_features.graphics_type == kGraphicsTypePicomiteVga) {
             return kUnsupportedParameterOnCurrentDevice;
         }
         MmSurfaceId src_id = -1;
@@ -316,6 +367,8 @@ void cmd_blit(void) {
         result = cmd_blit_memory(p);
     } else if ((p = checkstring(cmdline, "READ"))) {
         result = cmd_blit_read(p, false);
+    } else if ((p = checkstring(cmdline, "RESIZE"))) {
+        result = cmd_blit_resize(p);
     } else if ((p = checkstring(cmdline, "WRITE"))) {
         result = cmd_blit_write(p, false);
     } else {

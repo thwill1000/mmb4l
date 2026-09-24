@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 console.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -43,38 +43,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
-#include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 
-#include "mmb4l.h"
 #include "console.h"
+#include "console_private.h"
 #include "error.h"
 #include "interrupt.h"
+#include "keybuf.h"
+#include "logger.h"
+#include "keycodes.h"
+#include "mmb4l.h"
 #include "mmtime.h"
 #include "utility.h"
-#include "rx_buf.h"
 
-#define CONSOLE_RX_BUF_SIZE 256
-
-static struct termios orig_termios;
-static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
-static RxBuf console_rx_buf;
-static bool console_no_title = false;
+static ConsoleState self;
 
 int ListCnt = 0;
-int MMCharPos = 0;
 
-void console_init(bool no_title) {
-    rx_buf_init(
-            &console_rx_buf,
-            console_rx_buf_data,
-            sizeof(console_rx_buf_data));
-    console_no_title = no_title;
+MmResult console_init(bool no_title) {
+    // LOG_FN_ENTRY();
+
+    self.no_title = no_title;
+    self.requires_sync = true;
+
+    RETURN_RESULT(console_init_platform(&self));
+}
+
+MmResult console_term(void) {
+    // LOG_FN_ENTRY();
+
+    RETURN_RESULT(console_term_platform());
 }
 
 void console_bell(void) {
@@ -87,212 +86,69 @@ void console_clear(void) {
     console_home_cursor();  // Which will also call fflush().
 }
 
-void console_cursor_up(int i) {
-    assert(i > 0);
-    printf("\033[%dA", i);
-    fflush(stdout);
-}
+MmResult console_cursor_left(int count, bool wrap) {
+    // LOG_FN_ENTRY("count=%d, wrap=%d, self.x=%d, self.y=%d", count, wrap, self.x, self.y);
+    assert(count > 0);
 
-void console_disable_raw_mode(void) {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
-}
-
-void console_enable_raw_mode(void) {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    // atexit(console_disable_raw_mode); - done in main.c
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 0; // 1;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-
-    //fcntl(STDIN_FILENO, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
-}
-
-void console_pump_input(void) {
-    char ch;
-    errno = 0;
-    ssize_t result = read(STDIN_FILENO, &ch, 1);
-    switch (result) {
-        case -1:
-            error_throw(errno);
-        case 0:
-            return;
-        case 1:
-            // Read one character, drop out of the switch.
-            // printf("<%d>", (int) ch);
-            break;
-        default:
-            assert(false);
-            break;
-    }
-
-    console_put_keypress(ch);
-}
-
-void console_put_keypress(char ch) {
-    // Support for ON KEY ascii_code%, handler_sub().
-    // Note that 'ch' does not get added to the buffer.
-    if (interrupt_check_key_press(ch)) return;
-
-    if (ch == mmb_options.break_key) {
-        // User wishes to stop the program.
-        // Set the abort flag so the interpreter will halt and empty the console buffer.
-        MMAbort = 1;
-        rx_buf_clear(&console_rx_buf);
-    } else {
-        // If the buffer is full then this will throw away ch.
-        rx_buf_put(&console_rx_buf, ch);
-    }
-}
-
-int console_kbhit(void) {
-    return rx_buf_size(&console_rx_buf);
-}
-
-char KEY_TO_STRING_MAP[] = {
-    0x20,   'S', 'P',  'A',  'C',  'E', '\0', '\0',
-    TAB,    'T', 'A',  'B', '\0', '\0', '\0', '\0',
-    BKSP,   'B', 'K',  'S',  'P', '\0', '\0', '\0',
-    ENTER,  'E', 'N',  'T',  'E',  'R', '\0', '\0',
-    ESC,    'E', 'S',  'C', '\0', '\0', '\0', '\0',
-    F1,     'F', '1', '\0', '\0', '\0', '\0', '\0',
-    F2,     'F', '2', '\0', '\0', '\0', '\0', '\0',
-    F3,     'F', '3', '\0', '\0', '\0', '\0', '\0',
-    F4,     'F', '4', '\0', '\0', '\0', '\0', '\0',
-    F5,     'F', '5', '\0', '\0', '\0', '\0', '\0',
-    F6,     'F', '6', '\0', '\0', '\0', '\0', '\0',
-    F7,     'F', '7', '\0', '\0', '\0', '\0', '\0',
-    F8,     'F', '8', '\0', '\0', '\0', '\0', '\0',
-    F9,     'F', '9', '\0', '\0', '\0', '\0', '\0',
-    F10,    'F', '1',  '0', '\0', '\0', '\0', '\0',
-    F11,    'F', '1',  '1', '\0', '\0', '\0', '\0',
-    F12,    'F', '1',  '2', '\0', '\0', '\0', '\0',
-    UP,     'U', 'P', '\0', '\0', '\0', '\0', '\0',
-    DOWN,   'D', 'O',  'W',  'N', '\0', '\0', '\0',
-    LEFT,   'L', 'E',  'F',  'T', '\0', '\0', '\0',
-    RIGHT,  'R', 'I',  'G',  'H',  'T', '\0', '\0',
-    INSERT, 'I', 'N',  'S',  'E',  'R',  'T', '\0',
-    DEL,    'D', 'E',  'L', '\0', '\0', '\0', '\0',
-    HOME,   'H', 'O',  'M',  'E', '\0', '\0', '\0',
-    END,    'E', 'N',  'D', '\0', '\0', '\0', '\0',
-    PUP,    'P', 'U',  'P', '\0', '\0', '\0', '\0',
-    PDOWN,  'P', 'D',  'O',  'W',  'N', '\0', '\0',
-    SLOCK,  'S', 'L',  'O',  'C',  'K', '\0', '\0',
-    ALT,    'A', 'L',  'T', '\0', '\0', '\0', '\0',
-    0xFF
-};
-
-void console_key_to_string(int ch, char *buf) {
-    char *p = KEY_TO_STRING_MAP;
-    while (*p != 0xFF) {
-        if (*p == ch) {
-            sprintf(buf, "[%s]", p + 1);
-            return;
-        }
-        p += 8;
-    }
-    sprintf(buf, "'%c'", ch);
-}
-
-void console_ungetc(char ch) {
-    rx_buf_unget(&console_rx_buf, ch);
-}
-
-int console_match_chars(char *pattern) {
-    if (*pattern == '\0') return 1;
-
-    if (rx_buf_size(&console_rx_buf) == 0) CheckAbort(); // Which calls console_pump_input();
-
-    int ch = rx_buf_get(&console_rx_buf);
-    if (ch == -1) {
-        return 0;
-    } else if (ch == *pattern && console_match_chars(++pattern)) {
-        return 1;
-    } else {
-        console_ungetc(ch);
-        return 0;
-    }
-}
-
-static char ESCAPE_MAP[] = {
-         'O',   'P', '\0', '\0', '\0', F1,
-         'O',   'Q', '\0', '\0', '\0', F2,
-         'O',   'R', '\0', '\0', '\0', F3,
-         'O',   'S', '\0', '\0', '\0', F4,
-         '[',   '1',  '5',  '~', '\0', F5,
-         '[',   '1',  '7',  '~', '\0', F6,
-         '[',   '1',  '8',  '~', '\0', F7,
-         '[',   '1',  '9',  '~', '\0', F8,
-         '[',   '2',  '0',  '~', '\0', F9,
-         // F10 - is captured by the Gnome WM
-         // F11 - is captured by the Gnome WM
-         '[',   '2',  '4',  '~', '\0', F12,
-         '[',   '2',  '~', '\0', '\0', INSERT,
-         '[',   '3',  '~', '\0', '\0', DEL,
-         '[',   '5',  '~', '\0', '\0', PUP,
-         '[',   '6',  '~', '\0', '\0', PDOWN,
-         '[',   'A', '\0', '\0', '\0', UP,
-         '[',   'B', '\0', '\0', '\0', DOWN,
-         '[',   'C', '\0', '\0', '\0', RIGHT,
-         '[',   'D', '\0', '\0', '\0', LEFT,
-         '[',   'F', '\0', '\0', '\0', END,
-         '[',   'H', '\0', '\0', '\0', HOME,
-         0xFF };
-
-int console_getc(void) {
-
-    CheckAbort(); // Which calls console_pump_input();
-    int ch = rx_buf_get(&console_rx_buf);
-
-    switch (ch) {
-        // case 0x0A:
-        //     ch = ENTER;
-        //     break;
-
-        case ESC: {
-            char *p = ESCAPE_MAP;
-            while (*p != 0xFF) {
-                if (console_match_chars(p)) {
-                    ch = *(p + 5);
-                    break;
-                }
-                p += 6;
+    if (self.requires_sync) console_sync();
+    for (; count > 0; count--) {
+        self.x--;
+        if (self.x < 0) {
+            if (wrap) {
+                self.x = self.width - 1;
+                self.y--;
+                if (self.y < 0) self.y = 0;
+            } else {
+                self.x = 0;
             }
-            break;
         }
-
-        case DEL:
-            ch = '\b';
-            break;
-
-        default:
-            break;
     }
 
-    return ch;
+    printf("\033[%d;%dH", self.y + 1, self.x + 1); // VT100 origin is (1,1) not (0,0).
+    fflush(stdout);
+
+    RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
 }
 
-static char console_putc_noflush(char c) {
+MmResult console_cursor_up(int count) {
+    // LOG_FN_ENTRY("count=%d", count);
+    assert(count > 0);
+
+    if (self.requires_sync) console_sync();
+    self.y -= count;
+    if (self.y < 0) self.y = 0;
+
+    printf("\033[%d;%dH", self.y + 1, self.x + 1); // VT100 origin is (1,1) not (0,0).
+    fflush(stdout);
+
+    RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
+}
+
+char console_putc(char c) {
+    // LOG_FN_ENTRY("c='%c'", c);
+    bool printable = false; // Is 'c' a printable character?
+
     if (mmb_options.codepage && c > 127) {
         const char *ptr = mmb_options.codepage + 4 * (c - 128);
-        putc(*ptr++, stdout);           // 1st byte.
-        if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
-        if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
-        if (ptr) putc(*ptr++, stdout);  // Optional 4th byte.
-        MMCharPos++;
+        // Count how many bytes to write (up to 4, stopping at '\0')
+        int count = 0;
+        while (count < 4 && ptr[count]) count++;
+        if (count > 0) console_putc_raw_n(ptr, count);
+        printable = true;
     } else {
-        putc(c, stdout);
-        if (isprint(c))
-            MMCharPos++;
-        else {
+        console_putc_raw(c);
+        if (isprint(c)) {
+            printable = true;
+        } else {
             switch (c) {
                 case '\b':
-                    MMCharPos--;
+                    if (self.x > 0) self.x--;
                     break;
                 case '\r':
+                    self.x = 0;
+                    break;
                 case '\n':
-                    MMCharPos = 1;
+                    self.y++;
                     ListCnt++;
                     break;
                 default:
@@ -300,135 +156,79 @@ static char console_putc_noflush(char c) {
             }
         }
     }
+
+    if (printable) {
+        if (self.x >= self.width) {
+            // Handle "pending wrap".
+            self.x = 0;
+            self.y++;
+        }
+        self.x++;
+        // If x == self.width we have a "pending wrap".
+    }
+
+    if (self.y >= self.height) {
+        self.y = self.height - 1;
+    }
+
+    // LOG_FN_EXIT("c='%c'(0x%2x), self.x=%d, self.y=%d", printable ? c : '?', c, self.x, self.y);
+
     return c;
 }
 
-char console_putc(char c) {
-    char rval = console_putc_noflush(c);
-    fflush(stdout);
-    return rval;
-}
-
 void console_puts(const char *s) {
-    while (*s) (void) console_putc_noflush(*s++);
-    fflush(stdout);
+    // LOG_FN_ENTRY("s=\"%s\"", s);
+    while (*s) (void) console_putc(*s++);
 }
 
 void console_set_title(const char *title, bool command) {
-    if (!command && console_no_title) return;
+    if (!command && self.no_title) return;
     printf("\x1b]0;%s\x7", title);
     fflush(stdout);
 }
 
-enum ReadCursorPositionState {
-        EXPECTING_ESCAPE,
-        EXPECTING_SQUARE_BRACKET,
-        EXPECTING_ROWS,
-        EXPECTING_COLS,
-        EXPECTING_FINISHED };
-
-int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
-
-    rx_buf_clear(&console_rx_buf);
-
-    // Send escape code to report cursor position.
-    printf("\033[6n");
-    fflush(stdout);
-
-    // Read characters one at a time to match the expected pattern ESC[n;mR
-    // - fails if the pattern has not been matched within the timeout.
-    // - will sleep briefly if there is nothing to read.
-    int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
-    enum ReadCursorPositionState state = EXPECTING_ESCAPE;
-    char buf[32] = { 0 };
-    char *p = NULL;
-    while (mmtime_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
-        if (state == EXPECTING_ESCAPE) p = buf;
-        int ch = console_getc();
-        if (ch == -1) {
-            nanosleep(&ONE_MICROSECOND, NULL);
-            continue;
-        }
-        *(p++) = (char) ch;
-
-        switch (state) {
-            case EXPECTING_ESCAPE:
-                state = (ch == 0x1B ? EXPECTING_SQUARE_BRACKET : EXPECTING_ESCAPE);
-                break;
-            case EXPECTING_SQUARE_BRACKET:
-                state = (ch == '[' ? EXPECTING_ROWS : EXPECTING_ESCAPE);
-                break;
-            case EXPECTING_ROWS:
-                state = (ch == ';'
-                        ? EXPECTING_COLS
-                        : (isdigit(ch) ? EXPECTING_ROWS : EXPECTING_ESCAPE));
-                break;
-            case EXPECTING_COLS:
-                state = (ch == 'R'
-                        ? EXPECTING_FINISHED
-                        : (isdigit(ch) ? EXPECTING_COLS : EXPECTING_ESCAPE));
-                break;
-            case EXPECTING_FINISHED:
-                assert(0);  // Loop should have already exited.
-                break;
-        }
-    }
-
-    if (state == EXPECTING_FINISHED) {
-        // Parse output, rows (y) then columns (x).
-        *p++ = '\0';
-        sscanf(buf, "\033[%d;%dR", y, x);
-        (*x)--; // adjust to account for VT100 origin being (1,1) not (0,0).
-        (*y)--;
-        return 0; // Success
-    } else {
-        *x = 0;
-        *y = 0;
-        return -1; // Failure
-    }
+MmResult console_get_cursor_pos(int *x, int *y) {
+    if (self.requires_sync) ON_FAILURE_RETURN(console_sync());
+    *x = self.x;
+    *y = self.y;
+    return kOk;
 }
 
-int console_get_size(int *width, int *height, int timeout_ms) {
-    static int safe_width = 80;
-    static int safe_height = 40;
-    struct winsize ws= { 0 };
-    int fd = open("/dev/tty", O_RDWR);
-    if (fd >= 0) {
-        int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
-        do {
-            // Alternatively consider: ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)
-            if (SUCCEEDED(ioctl(fd, TIOCGWINSZ, &ws)) && ws.ws_col > 0) break;
-            nanosleep(&ONE_MICROSECOND, NULL);
-        } while (mmtime_now_ns() < timeout_ns);
-        close(fd);
-    }
-
-    if (ws.ws_col > 0) {
-        // Success.
-        safe_width = ws.ws_col;
-        safe_height = ws.ws_row;
-    }
-
-    // NOTE: Previously when the console size could not be determined this
-    //       function would return -1 and "all hell would break loose" with
-    //       endless "Cannot determine terminal size" errors being reported.
-    //       Now we return the last successful values determined, or 80x40.
-    *width = safe_width;
-    *height = safe_height;
-    return 0;
+MmResult console_get_size(int *width, int *height) {
+    if (self.requires_sync) ON_FAILURE_RETURN(console_sync());
+    *width = self.width;
+    *height = self.height;
+    return kOk;
 }
 
 void console_home_cursor(void) {
-    printf("\x1b[H");
+    printf("\033[H");
     fflush(stdout);
+    self.x = 0;
+    self.y = 0;
 }
 
 void console_set_cursor_pos(int x, int y) {
+    if (x < 0) {
+        x = 0;
+    } else if (x >= self.width) {
+        x = self.width - 1;
+    }
+
+    if (y < 0) {
+        y = 0;
+    } else if (y >= self.height) {
+        y = self.height - 1;
+    }
+
     printf("\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
     fflush(stdout);
+
+    self.x = x;
+    self.y = y;
 }
 
-int console_set_size(int width, int height) {
+MmResult console_set_size(int width, int height) {
     printf("\033[8;%d;%dt", height, width);
     fflush(stdout);
 
@@ -438,13 +238,12 @@ int console_set_size(int width, int height) {
     // if it does not represent reality.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(250));
 
-    int new_height = 0;
-    int new_width = 0;
-    if (SUCCEEDED(console_get_size(&new_width, &new_height, 0))
-            && (new_width == width)
-            && (new_height == height)) return 0; // Success
-
-    return -1; // Failure
+    ON_FAILURE_RETURN(console_sync());
+    if (self.width == width && self.height == height) {
+        return kOk;
+    } else {
+        return mmresult_ex(kError, "Failed to set TTY size");
+    }
 }
 
 const int ANSI_COLOURS[] = { 0, 4, 2, 6, 1, 5, 3, 7, 10, 14, 12, 16, 11, 15, 13, 17 };
@@ -461,25 +260,135 @@ void console_foreground(int colour) {
     fflush(stdout);
 }
 
-void console_invert(int invert) {
-    printf(invert ? "\033[7m" : "\033[27m");
+MmResult console_clear_to_end_of_line() {
+    printf("\033[K");
     fflush(stdout);
+    return kOk;
 }
 
-void console_reset() {
+MmResult console_clear_to_end_of_screen() {
+    printf("\033[J");
+    fflush(stdout);
+    return kOk;
+}
+
+static int argb_to_ansi(MmGraphicsColour argb) {
+    switch (argb) {
+        case RGB_ANSI_DEFAULT:        return 39;
+        case RGB_ANSI_BLACK:          return 30;
+        case RGB_ANSI_RED:            return 31;
+        case RGB_ANSI_GREEN:          return 32;
+        case RGB_ANSI_YELLOW:         return 33;
+        case RGB_ANSI_BLUE:           return 34;
+        case RGB_ANSI_MAGENTA:        return 35;
+        case RGB_ANSI_CYAN:           return 36;
+        case RGB_ANSI_WHITE:          return 37;
+        case RGB_ANSI_BRIGHT_BLACK:   return 90;
+        case RGB_ANSI_BRIGHT_RED:     return 91;
+        case RGB_ANSI_BRIGHT_GREEN:   return 92;
+        case RGB_ANSI_BRIGHT_YELLOW:  return 93;
+        case RGB_ANSI_BRIGHT_BLUE:    return 94;
+        case RGB_ANSI_BRIGHT_MAGENTA: return 95;
+        case RGB_ANSI_BRIGHT_CYAN:    return 96;
+        case RGB_ANSI_BRIGHT_WHITE:   return 97;
+        default:                      return -1;
+    }
+}
+
+MmResult console_colour(MmGraphicsColour fg, MmGraphicsColour bg) {
+    const int ansi_fg = argb_to_ansi(fg);
+    const int ansi_bg = argb_to_ansi(bg);
+    if (ansi_fg == -1 || ansi_bg == -1) return kUnsupportedTerminalColour;
+    printf("\033[%d;%dm", ansi_fg, ansi_bg + 10);
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_colour_bg(MmGraphicsColour argb) {
+    const int ansi_colour = argb_to_ansi(argb);
+    if (ansi_colour == -1) return kUnsupportedTerminalColour;
+    printf("\033[%dm", ansi_colour + 10);
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_colour_fg(MmGraphicsColour argb) {
+    const int ansi_colour = argb_to_ansi(argb);
+    if (ansi_colour == -1) return kUnsupportedTerminalColour;
+    printf("\033[%dm", ansi_colour);
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_flush() {
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_inverse(bool inverse) {
+    printf(inverse ? "\033[7m" : "\033[27m");
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_reset() {
     printf("\033[0m");
     fflush(stdout);
+    return kOk;
 }
 
-void console_show_cursor(bool show) {
+MmResult console_scroll_down() {
+    printf("\033[1T");
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_scroll_up() {
+    printf("\033[1S");
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);
+    return kOk;
+}
+
+MmResult console_sync() {
+    // LOG_FN_ENTRY();
+    ON_FAILURE_RETURN(console_sync_size(100));
+    ON_FAILURE_RETURN(console_sync_cursor_pos(10000));
+    self.requires_sync = false;
+    RETURN_RESULT_EX(kOk, "self.width=%d, self.height=%d, self.x=%d, self.y=%d", self.width,
+                     self.height, self.x, self.y);
+}
+
+MmResult console_underline(bool underline) {
+    if (underline) {
+        printf("\033[4m"); // Enable underline.
+    } else {
+        printf("\033[24m"); // Disable underline.
+    }
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_wrapline() {
+    // LOG_FN_ENTRY();
+    // LOG_DEBUG("self.requires_sync=%d, self.x=%d, self.y=%d, self.width=%d, self.height=%d", self.requires_sync, self.x, self.y, self.width, self.height);
+    if (self.requires_sync) {
+        ON_FAILURE_RETURN(console_sync());
+    }
+    if (self.x >= self.width) {
+        console_puts("\r\n");
+    }
+    RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
 }
 
 size_t console_write(const char *buf, size_t sz) {
     for (size_t idx = 0; idx < sz; ++idx) {
-        console_putc_noflush(buf[idx]);
+        (void) console_putc(buf[idx]);
     }
-    fflush(stdout);
     return sz;
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_memory.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,13 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/console.h"
-#include "../common/utility.h"
-#include "../core/vartbl.h"
-
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "../common/mmb4l.h"
+#include "../common/display.h"
+#include "../common/utility.h"
+#include "../core/vartbl.h"
 
 #define ERROR_ADDRESS_NOT_DIVISIBLE_BY(i)      error_throw_ex(kError, "Address not divisible by %", i)
 #define ERROR_DST_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Destination address not divisible by %", i)
@@ -58,11 +59,7 @@ static int64_t getint64(const char *p, int64_t min, int64_t max) {
     int64_t i = getinteger(p);
     if (i < min || i > max) {
         char buf[STRINGSIZE];
-#if defined(ENV64BIT)
-        sprintf(buf, "%ld is invalid (valid is %ld to %ld)", i, min, max);
-#else
-        sprintf(buf, "%lld is invalid (valid is %lld to %lld)", i, min, max);
-#endif
+        sprintf(buf, "%" PRId64 " is invalid (valid is %" PRId64 " to %" PRId64 ")", i, min, max);
         error_throw_ex(kError, buf);
     }
     return i;
@@ -75,7 +72,7 @@ static int64_t getint64(const char *p, int64_t min, int64_t max) {
 //   WORD    - 4 bytes
 
 static void memory_copy_internal(const char *p, size_t element_size) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t src = get_poke_addr(argv[0]);
     if (src % element_size) ERROR_SRC_ADDRESS_NOT_DIVISIBLE_BY(element_size);
@@ -129,7 +126,7 @@ static void memory_copy(const char *p) {
 }
 
 static void memory_set_internal(const char *p, size_t element_size, int64_t min, int64_t max) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t to = get_poke_addr(argv[0]);
     if ((uintptr_t) to % element_size) ERROR_ADDRESS_NOT_DIVISIBLE_BY(element_size);
@@ -151,7 +148,7 @@ static void memory_set_byte(const char *p) {
 
 /** MEMORY SET FLOAT address, float_value, number_of_floats */
 static void memory_set_float(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t to = get_poke_addr(argv[0]);
     if ((uintptr_t) to % 8) ERROR_ADDRESS_NOT_DIVISIBLE_BY(8);
@@ -240,42 +237,53 @@ static void memory_report(const char *unused) {
     count_program_size_and_lines(&num_bytes, &num_lines);
     sprintf(
             inpbuf,
-            "    Program:%4dK (%2d%%) used %3dK free (%d line%s)\r\n",
+            "  Program: %4dK (%2d%%) used %4dK free (%d line%s)\r\n",
             (num_bytes + 512) / 1024,
             (num_bytes * 100) / PROG_FLASH_SIZE,
             (PROG_FLASH_SIZE - num_bytes + 512) / 1024,
             num_lines,
             num_lines == 1 ? "" : "s");
-    console_puts(inpbuf);
+    display_puts(inpbuf);
 
-    int32_t vcnt = count_variables();
-    int32_t size = sizeof(struct s_vartbl);
+    const int fcnt = funtbl_count;
+    const int fsize = sizeof(struct s_funtbl);
     sprintf(
             inpbuf,
-            "  Variables:%4dK (%2d%%) used %3dK free (%d variables)\r\n",
-            (int32_t) ((vcnt * size + 512) / 1024),
-            (int32_t) (vcnt * 100 / MAXVARS),
-            (int32_t) (((MAXVARS * size + 512) / 1024) - ((vcnt * size + 512) / 1024)),
-            vcnt);
-    console_puts(inpbuf);
+            "Functions: %4dK (%2d%%) used %4dK free (%d of %d functions)\r\n",
+            (int) ((fcnt * fsize + 512) / 1024),
+            (int) (fcnt * 100 / MAXSUBFUN),
+            (int) (((MAXSUBFUN * fsize + 512) / 1024) - ((fcnt * fsize + 512) / 1024)),
+            (int) fcnt,
+            MAXSUBFUN);
+    display_puts(inpbuf);
 
-    int ram_used = (UsedHeap() + 512) / 1024;
-    int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
+    const int vcnt = count_variables();
+    const int vsize = sizeof(struct s_vartbl);
     sprintf(
             inpbuf,
-            "General RAM:%4dK (%2d%%) used %3dK free\r\n",
+            "Variables: %4dK (%2d%%) used %4dK free (%d of %d variables)\r\n",
+            (int) ((vcnt * vsize + 512) / 1024),
+            (int) (vcnt * 100 / MAXVARS),
+            (int) (((MAXVARS * vsize + 512) / 1024) - ((vcnt * vsize + 512) / 1024)),
+            vcnt,
+            MAXVARS);
+    display_puts(inpbuf);
+
+    const int ram_used = (UsedHeap() + 512) / 1024;
+    const int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
+    const int pages_used = UsedHeap() / PAGESIZE;
+    sprintf(
+            inpbuf,
+            "     Heap: %4dK (%2d%%) used %4dK free (%d of %d pages)\r\n",
             ram_used,
             percent_used,
-            (HEAP_SIZE / 1024) - ram_used);
-    console_puts(inpbuf);
+            (HEAP_SIZE / 1024) - ram_used,
+            pages_used,
+            HEAP_SIZE / PAGESIZE);
+    display_puts(inpbuf);
 }
 
 void cmd_memory(void) {
-    // getargs(&cmdline, 10, ",");
-    // for (int i = 0; i < argc; ++i) {
-    //     printf("%d: %s, ", i, argv[i]);
-    // }
-    // printf("\n");
     const char *p;
     if ((p = checkstring(cmdline, "COPY"))) {
         memory_copy(p);

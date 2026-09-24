@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,8 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EDIT_BUFFER_SIZE  512 * 1024
 
 extern char CurrentFile[STRINGSIZE];
-
-void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
 
 /** @brief Dumps contents of \p ProgMemory to STDOUT. */
 void program_dump_memory();

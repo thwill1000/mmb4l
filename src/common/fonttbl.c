@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fonttbl.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../fonts/Hom_16x24_LE.h"
 #include "../fonts/Inconsola.h"
 #include "../fonts/Misc_12x20_LE.h"
+#include "../fonts/smallfont.h"
+#include "../fonts/font_8x10.h"
 
 #include <stddef.h>
 
@@ -58,13 +60,13 @@ unsigned char* FontTable[FONT_TABLE_SIZE + 1] = {
     NULL, // Element 0 unused.
     (unsigned char *) font1,
     (unsigned char *) Misc_12x20_LE,
-    (unsigned char *) Hom_16x24_LE,
+    (unsigned char *) Hom_16x24_LE, // This is "arial_bold" on the non-HDMI PicoMiteVGA
     (unsigned char *) Fnt_10x16,
     (unsigned char *) Inconsola,
     (unsigned char *) ArialNumFontPlus,
     (unsigned char *) F_6x8_LE,
-    NULL,
-    NULL,
+    (unsigned char *) TinyFont,
+    (unsigned char *) font8x10,
     NULL,
     NULL,
     NULL,

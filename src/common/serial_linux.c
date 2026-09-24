@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-serial.c
+serial_linux.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,9 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -54,9 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "cstring.h"
 #include "error.h"
-#include "file.h"
+#include "file_private.h"
 #include "interrupt.h"
 #include "serial.h"
+#include "serial_private.h"
 #include "utility.h"
 
 #define	COM_DEFAULT_SPEED            B9600
@@ -101,6 +102,8 @@ static speed_t serial_int_to_speed(int64_t i) {
         case   57600: return   B57600;
         case  115200: return  B115200;
         case  230400: return  B230400;
+#if !defined(__APPLE__)
+        // macOS termios only knows baud rates up to B230400.
         case  460800: return  B460800;
         case  500000: return  B500000;
         case  576000: return  B576000;
@@ -113,6 +116,7 @@ static speed_t serial_int_to_speed(int64_t i) {
         case 3000000: return B3000000;
         case 3500000: return B3500000;
         case 4000000: return B4000000;
+#endif
     }
 
     return 0;
@@ -138,6 +142,7 @@ static int32_t serial_speed_to_int(speed_t s) {
         case   B57600: return   57600;
         case  B115200: return  115200;
         case  B230400: return  230400;
+#if !defined(__APPLE__)
         case  B460800: return  460800;
         case  B500000: return  500000;
         case  B576000: return  576000;
@@ -150,6 +155,7 @@ static int32_t serial_speed_to_int(speed_t s) {
         case B3000000: return 3000000;
         case B3500000: return 3500000;
         case B4000000: return 4000000;
+#endif
     }
 
     return 0;
@@ -159,13 +165,8 @@ static void serial_dump_spec(ComSpec *comspec) {
     printf("Device:             %s\n", comspec->device);
     printf("Speed:              %d\n", serial_speed_to_int(comspec->speed));
     printf("Bufsize:            %d\n", comspec->bufsize);
-#if defined(ENV64BIT)
-    printf("RX interrupt:       0x%8lx\n", (uintptr_t) comspec->rx_interrupt_addr);
-    printf("RX interrupt count: %ld\n", comspec->rx_interrupt_count);
-#else
-    printf("RX interrupt:       0x%8ix\n", (uintptr_t) comspec->rx_interrupt_addr);
-    printf("RX interrupt count: %lld\n", comspec->rx_interrupt_count);
-#endif
+    printf("RX interrupt:       0x%8" PRIxPTR "\n", (uintptr_t) comspec->rx_interrupt_addr);
+    printf("RX interrupt count: %" PRId64 "\n", comspec->rx_interrupt_count);
     printf("B7:                 %s\n", comspec->b7 ? "true" : "false");
     printf("Parity:             %d\n", comspec->parity);
     printf("RTS/CTS:            %s\n", comspec->rtscts ? "true" : "false");
@@ -173,8 +174,9 @@ static void serial_dump_spec(ComSpec *comspec) {
     printf("XON/XOFF:           %s\n", comspec->xonxoff ? "true" : "false");
 }
 
-void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
-    getargs(&comspec_str, 21, ":,");
+static void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
+    const DelimType delim[] = { ':', ',', 0 };
+    getargs(&comspec_str, 21, delim);
     if (argc != 2 && (argc & 0x01) == 0) ERROR_COM_SPECIFICATION;
 
     memset(comspec, 0, sizeof(ComSpec));
@@ -184,50 +186,50 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     strcpy(comspec->device, argv[0]);
 
     for (int i = 0; i < 6; i++) {
-        if (strcasecmp(argv[argc - 1], "OC") == 0) { // Open collector option.
+        if (cstring_casecmp(argv[argc - 1], "OC") == 0) { // Open collector option.
             ERROR_UNSUPPORTED_FLAG("OC");
         }
 
-        else if (strcasecmp(argv[argc - 1], "DEP") == 0) { // Data enable option.
+        else if (cstring_casecmp(argv[argc - 1], "DEP") == 0) { // Data enable option.
             ERROR_UNSUPPORTED_FLAG("DEP");
         }
 
-        else if (strcasecmp(argv[argc - 1], "DEN") == 0) { // Data enable option.
+        else if (cstring_casecmp(argv[argc - 1], "DEN") == 0) { // Data enable option.
             ERROR_UNSUPPORTED_FLAG("DEN");
         }
 
-        else if (strcasecmp(argv[argc - 1], "EVEN") == 0) { // Even parity.
+        else if (cstring_casecmp(argv[argc - 1], "EVEN") == 0) { // Even parity.
             if (comspec->parity != PARITY_NONE) ERROR_SYNTAX;
             comspec->parity = PARITY_EVEN;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "ODD") == 0) { // Odd parity.
+        else if (cstring_casecmp(argv[argc - 1], "ODD") == 0) { // Odd parity.
             if (comspec->parity != PARITY_NONE) ERROR_SYNTAX;
             comspec->parity = PARITY_EVEN;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "S2") == 0) { // Two stop bit option.
+        else if (cstring_casecmp(argv[argc - 1], "S2") == 0) { // Two stop bit option.
             comspec->s2 = true;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "7BIT") == 0) { // 7 bit byte option.
+        else if (cstring_casecmp(argv[argc - 1], "7BIT") == 0) { // 7 bit byte option.
             comspec->b7 = true;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "INV") == 0) { // Invert option.
+        else if (cstring_casecmp(argv[argc - 1], "INV") == 0) { // Invert option.
             ERROR_UNSUPPORTED_FLAG("INV");
         }
 
-        else if (strcasecmp(argv[argc - 1], "RTSCTS") == 0) { // Hardware flow control RTS/CTS option.
+        else if (cstring_casecmp(argv[argc - 1], "RTSCTS") == 0) { // Hardware flow control RTS/CTS option.
             comspec->rtscts = true;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "XONXOFF") == 0) { // Software flow control option.
+        else if (cstring_casecmp(argv[argc - 1], "XONXOFF") == 0) { // Software flow control option.
             comspec->xonxoff = true;
             argc -= 2;
         }
@@ -265,7 +267,8 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
 }
 
 MmResult serial_open(const char *comspec_str, int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+
     FileEntry *entry = &(file_table[fnbr]);
     if (entry->type != fet_closed) return kFileAlreadyOpen;
 
@@ -306,8 +309,7 @@ MmResult serial_open(const char *comspec_str, int fnbr) {
             options.c_cflag |= PARODD;
             break;
         default:
-            ERROR_INTERNAL_FAULT;
-            break;
+            RETURN_RESULT(INTERNAL_FAULT_EX("invalid parity: %d", comspec.parity));
     }
 
     // No parity checking of input (for the moment).
@@ -360,8 +362,9 @@ MmResult serial_open(const char *comspec_str, int fnbr) {
 }
 
 MmResult serial_close(int fnbr) {
+    ON_FAILURE_RETURN(serial_validate_fnbr(fnbr));
+
     FileEntry *entry = &(file_table[fnbr]);
-    assert(entry->type == fet_serial);
     close(entry->serial_fd);
     entry->type = fet_closed;
     entry->serial_fd = 0;
@@ -371,7 +374,7 @@ MmResult serial_close(int fnbr) {
 }
 
 void serial_pump_input(int fnbr) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR(serial_validate_fnbr(fnbr));
 
     char tmp[256];
     errno = 0;
@@ -386,6 +389,8 @@ void serial_pump_input(int fnbr) {
 }
 
 int serial_eof(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
+
     if (rx_buf_size(&file_table[fnbr].rx_buf) > 0) return 0;
     serial_pump_input(fnbr);
     return (rx_buf_size(&file_table[fnbr].rx_buf) > 0) ? 0 : 1;
@@ -397,7 +402,17 @@ int serial_eof(int fnbr) {
     // return count ? 0 : 1;
 }
 
+MmResult serial_flush(int fnbr) {
+    ON_FAILURE_RETURN(serial_validate_fnbr(fnbr));
+    errno = 0;
+    // Note: call tcdrain(), not tcflush(), the latter discards data, it doesn't flush/drain it.
+    int result = tcdrain(file_table[fnbr].serial_fd);
+    RETURN_RESULT(SUCCEEDED(result) ? kOk : errno);
+}
+
 int serial_getc(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+
     int ch = rx_buf_get(&file_table[fnbr].rx_buf);
     if (ch == -1) {
         serial_pump_input(fnbr);
@@ -407,7 +422,8 @@ int serial_getc(int fnbr) {
 }
 
 int serial_putc(int fnbr, int ch) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, &ch, 1);
     switch (count) {
@@ -422,17 +438,18 @@ int serial_putc(int fnbr, int ch) {
             break;
     }
 
-    assert(false);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
     return -1;
 }
 
 int serial_rx_queue_size(int fnbr) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
     return rx_buf_size(&file_table[fnbr].rx_buf);
 }
 
 int serial_write(int fnbr, const char *buf, size_t sz) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, buf, sz);
     if (count == (ssize_t) sz) {
@@ -443,6 +460,6 @@ int serial_write(int fnbr, const char *buf, size_t sz) {
         error_throw(EBADF);
     }
 
-    assert(false);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
     return -1;
 }

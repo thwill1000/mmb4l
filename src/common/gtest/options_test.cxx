@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2021-2025 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
+#include <filesystem>
 #include <gtest/gtest.h>
-
-#include "test_config.h"
 
 extern "C" {
 
@@ -14,37 +13,50 @@ extern "C" {
 #include "../options.h"
 #include "../utility.h"
 
-const char *audio_last_error() { return ""; }
-const char *events_last_error() { return ""; }
-const char *gamepad_last_error() { return ""; }
-const char *graphics_last_error() { return ""; }
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
+}
 
 }
 
-#define OPTIONS_TEST_DIR  TMP_DIR "/OptionsTest"
+#if defined(_WIN32)
+    #define EXPECTED_DEFAULT_EDITOR "Internal"
+#else
+    #define EXPECTED_DEFAULT_EDITOR "Nano"
+#endif
 
 class OptionsTest : public ::testing::Test {
 
 protected:
 
-    std::string m_home;
+    std::string home;
+    std::filesystem::path test_dir;
 
     void SetUp() override {
-        struct stat st = { 0 };
-        if (stat(OPTIONS_TEST_DIR, &st) == -1) {
-            mkdir(OPTIONS_TEST_DIR, 0775);
+        // Create a temporary test directory structure
+        test_dir = std::filesystem::temp_directory_path() / "options_test";
+
+        // Clean up any existing test directory
+        if (std::filesystem::exists(test_dir)) {
+            std::filesystem::remove_all(test_dir);
         }
 
-        char *home = getenv("HOME");
-        if (home) {
-            m_home = home;
-        } else {
-            FAIL() << "getenv(\"HOME\") failed.";
-        }
+        // Create test directory structure
+        std::filesystem::create_directories(test_dir);
+
+        // Store user's home directory
+        char home_[PATH_MAX];
+        ASSERT_EQ(kOk, file_get_home(home_, sizeof(home_)));
+        home = home_;
     }
 
     void TearDown() override {
-        SYSTEM_CALL("rm -rf " OPTIONS_TEST_DIR);
+        // Clean up test directory
+        if (std::filesystem::exists(test_dir)) {
+            std::filesystem::remove_all(test_dir);
+        }
     }
 
 };
@@ -58,15 +70,15 @@ static void write_line_to_buf(const char *line) {
 
 static void expect_options_have_defaults(Options *options) {
     EXPECT_EQ(kRadians, options->angle);
-    EXPECT_EQ(1, options->audio);
-    EXPECT_EQ(0, options->autorun);
-    EXPECT_EQ(1, options->auto_scale);
-    EXPECT_EQ(0, options->base);
-    EXPECT_EQ(3, options->break_key);
+    EXPECT_EQ(true, options->audio);
+    EXPECT_EQ(false, options->autorun);
+    EXPECT_EQ(true, options->auto_scale);
+    EXPECT_EQ(false, options->base);
+    EXPECT_EQ(3, SDL_AtomicGet(&options->break_key));
     EXPECT_EQ(NULL, options->codepage);
     EXPECT_EQ(kSerial, options->console);
     EXPECT_EQ(0x1, options->default_type); // 0x1 = T_NBR
-    EXPECT_STREQ("Nano", options->editor);
+    EXPECT_STREQ(EXPECTED_DEFAULT_EDITOR, options->editor);
     EXPECT_EQ(false, options->explicit_type);
     EXPECT_STREQ("FILES\r\n", options->fn_keys[0]);
     EXPECT_STREQ("RUN\r\n", options->fn_keys[1]);
@@ -80,12 +92,11 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("RUN \"\"\202", options->fn_keys[9]);
     EXPECT_STREQ("", options->fn_keys[10]);
     EXPECT_STREQ("", options->fn_keys[11]);
-    EXPECT_EQ(0, options->height);
     EXPECT_EQ(kTitle, options->list_case);
-    EXPECT_EQ(kCharacter, options->resolution);
+    EXPECT_EQ(LOGGER_DEFAULT_LEVEL, options->log);
     EXPECT_STREQ("", options->search_path);
+    EXPECT_EQ(true, options->syntax_highlight);
     EXPECT_EQ(4, options->tab);
-    EXPECT_EQ(0, options->width);
     EXPECT_EQ(true, options->zboolean);
     EXPECT_EQ(2.71828, options->zfloat);
     EXPECT_EQ(1945, options->zinteger);
@@ -103,6 +114,7 @@ static void given_non_default_options(Options *options) {
     options->angle = kDegrees;
     strcpy(options->editor, "Vi");
     options->list_case = kLower;
+    options->log = kLoggerLevelDebug;
     strcpy(options->search_path, "/foo/bar");
     options->simulate = kSimulateCmm2;
     options->tab = 8;
@@ -126,6 +138,7 @@ TEST_F(OptionsTest, HasDefaultValue) {
             case kOptionAngle:
             case kOptionEditor:
             case kOptionListCase:
+            case kOptionLog:
             case kOptionSearchPath:
             case kOptionSimulate:
             case kOptionTab:
@@ -146,11 +159,11 @@ TEST_F(OptionsTest, Save_GivenAllOptionsAtDefaults) {
     Options options;
     options_init(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/save_give_all_options_at_defaults";
-    EXPECT_EQ(kOk, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "save_give_all_options_at_defaults";
+    EXPECT_EQ(kOk, options_save(&options, filename.string().c_str()));
 
     // Expect an empty file.
-    FILE *f = fopen(filename, "r");
+    FILE *f = fopen(filename.string().c_str(), "r");
     char line[256];
     EXPECT_TRUE(f);
     EXPECT_STREQ(NULL, fgets(line, 256, f));
@@ -180,9 +193,9 @@ TEST_F(OptionsTest, Save_GivenNonDefaultOptions) {
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/save_given_non_default_options";
-    EXPECT_EQ(options_save(&options, filename), 0);
-    expect_saved_content_for_non_default_options(filename);
+    std::filesystem::path filename = test_dir / "save_given_non_default_options";
+    EXPECT_EQ(kOk, options_save(&options, filename.string().c_str()));
+    expect_saved_content_for_non_default_options(filename.string().c_str());
 }
 
 TEST_F(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
@@ -190,18 +203,18 @@ TEST_F(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/save_given_dir/myfile.options";
-    EXPECT_EQ(kFileNotFound, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "save_given_dir" / "myfile.options";
+    EXPECT_EQ(kFileNotFound, options_save(&options, filename.string().c_str()));
 }
 
 TEST_F(OptionsTest, Save_GivenPathIsDirectory) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
-    (void)! system("mkdir " OPTIONS_TEST_DIR "/save_given_path_is_directory");
 
-    const char *filename = OPTIONS_TEST_DIR "/save_given_path_is_directory";
-    EXPECT_EQ(kIsADirectory, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "save_given_path_is_directory";
+    std::filesystem::create_directory(filename);
+    EXPECT_EQ(kIsADirectory, options_save(&options, filename.string().c_str()));
 }
 
 TEST_F(OptionsTest, Save_GivenInvalidPath) {
@@ -209,28 +222,32 @@ TEST_F(OptionsTest, Save_GivenInvalidPath) {
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = OPTIONS_TEST_DIR "/subdir/save_given_path_is_directory";
-    EXPECT_EQ(kFileNotFound, options_save(&options, filename));
+    std::filesystem::path filename = test_dir / "subdir" / "save_given_path_is_directory";
+    EXPECT_EQ(kFileNotFound, options_save(&options, filename.string().c_str()));
 }
-
-#define SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE  OPTIONS_TEST_DIR "/save_given_path_is_existing_read_only_file"
 
 TEST_F(OptionsTest, Save_GivenPathIsExistingReadOnlyFile) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
-    (void)! system("touch " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
-    (void)! system("chmod 444 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
 
-    const char *filename = SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE;
-    EXPECT_EQ(kPermissionDenied, options_save(&options, filename));
+    // Create the file
+    std::filesystem::path filename = test_dir / "save_given_path_is_existing_read_only_file";
+    ASSERT_EQ(kOk, file_mkfile(filename.string().c_str(), ""));
 
-    (void)! system("chmod 644 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+    // Make the file readonly
+    std::filesystem::permissions(filename, std::filesystem::perms::owner_read,
+                                 std::filesystem::perm_options::replace);
+
+    EXPECT_EQ(kPermissionDenied, options_save(&options, filename.string().c_str()));
+
+    // Delete the file so it doesn't affect other tests
+    std::filesystem::remove(filename);
 }
 
 TEST_F(OptionsTest, Load) {
-    const char *filename = OPTIONS_TEST_DIR "/load";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "case = Upper\n");
     fprintf(f, "editor = Vi\n");
     fprintf(f, "tab = 8\n");
@@ -242,7 +259,7 @@ TEST_F(OptionsTest, Load) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_load(&options, filename, NULL));
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_STREQ(options.editor, "Vi");
     EXPECT_EQ(kUpper, options.list_case);
     EXPECT_EQ(8, options.tab);
@@ -252,8 +269,8 @@ TEST_F(OptionsTest, Load) {
 }
 
 TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_additional_whitespace";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_additional_whitespace";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "tab = 8  \n");                           // Trailing whitespace
     fprintf(f, "  zboolean = true\n");                   // Leading whitespace
     fprintf(f, "zfloat   =   3.142    \n");              // Whitespace around equals
@@ -263,7 +280,7 @@ TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.zboolean, true);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -271,8 +288,8 @@ TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
 }
 
 TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_empty_and_whitespace_only_lines";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_empty_and_whitespace_only_lines";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "\n");
     fprintf(f, "zboolean = true\n");
     fprintf(f, "    \n");
@@ -286,7 +303,7 @@ TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -294,8 +311,8 @@ TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
 }
 
 TEST_F(OptionsTest, Load_GivenHashComments) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_hash_comments";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_hash_comments";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "  # Hello World\n");
     fprintf(f, "zboolean = true # Trailing comment\n");
     fprintf(f, "# Leading comment zboolean = false\n");
@@ -307,7 +324,7 @@ TEST_F(OptionsTest, Load_GivenHashComments) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -315,8 +332,8 @@ TEST_F(OptionsTest, Load_GivenHashComments) {
 }
 
 TEST_F(OptionsTest, Load_GivenSemicolonComments) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_semicolon_comments";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_semicolon_comments";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f, "  ; Hello World\n");
     fprintf(f, "zboolean = true ; Trailing comment\n");
     fprintf(f, "; Leading comment zboolean = false\n");
@@ -328,7 +345,7 @@ TEST_F(OptionsTest, Load_GivenSemicolonComments) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename, NULL), 0);
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -336,8 +353,8 @@ TEST_F(OptionsTest, Load_GivenSemicolonComments) {
 }
 
 TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_warnings_and_callback_provided";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_warnings_and_callback_provided";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f,
             "foo = true\n"
             "zboolean = 42\n"
@@ -353,7 +370,7 @@ TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ(
             "line 1: Unknown option 'foo'.\n"
             "line 2: Invalid value for option 'zboolean'.\n"
@@ -365,8 +382,8 @@ TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
 }
 
 TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_warnings_and_callback_not_provided";
-    FILE *f = fopen(filename, "w");
+    std::filesystem::path filename = test_dir / "load_given_warnings_and_callback_not_provided";
+    FILE *f = fopen(filename.string().c_str(), "w");
     fprintf(f,
             "foo = true\n"
             "zboolean = 42\n"
@@ -382,42 +399,42 @@ TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kUnknownOption, options_load(&options, filename, NULL));
+    EXPECT_EQ(kUnknownOption, options_load(&options, filename.string().c_str(), NULL));
     EXPECT_STREQ("", options_test_buf);
 }
 
 TEST_F(OptionsTest, LoadSaveRoundtrip) {
-    const char *filename = OPTIONS_TEST_DIR "/load_save_roundtrip";
+    std::filesystem::path filename = test_dir / "load_save_roundtrip";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_save(&options, filename));
-    EXPECT_EQ(kOk, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kOk, options_save(&options, filename.string().c_str()));
+    EXPECT_EQ(kOk, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ("", options_test_buf);
 
     expect_options_have_defaults(&options);
 }
 
 TEST_F(OptionsTest, Load_GivenFileDoesNotExist) {
-    const char *filename = OPTIONS_TEST_DIR "/load_given_file_does_not_exist";
+    std::filesystem::path filename = test_dir / "load_given_file_does_not_exist";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kFileNotFound, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kFileNotFound, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ("", options_test_buf);
 
     expect_options_have_defaults(&options);
 }
 
 TEST_F(OptionsTest, Load_GivenDirectory) {
-    const char *filename = "/etc";
+    std::filesystem::path filename = test_dir;
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kIsADirectory, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kIsADirectory, options_load(&options, filename.string().c_str(), &write_line_to_buf));
     EXPECT_STREQ("", options_test_buf);
 
     expect_options_have_defaults(&options);
@@ -650,7 +667,7 @@ TEST_F(OptionsTest, GetDisplayValue) {
     EXPECT_STREQ("Float", svalue);
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionEditor, svalue));
-    EXPECT_STREQ("Nano", svalue);
+    EXPECT_STREQ(EXPECTED_DEFAULT_EDITOR, svalue);
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionExplicitType, svalue));
     EXPECT_STREQ("Off", svalue);
@@ -663,9 +680,6 @@ TEST_F(OptionsTest, GetDisplayValue) {
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
     EXPECT_STREQ("<unset>", svalue);
-
-    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionResolution, svalue));
-    EXPECT_STREQ("Character", svalue);
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("<unset>", svalue);
@@ -822,13 +836,27 @@ TEST_F(OptionsTest, GetIntegerValue_ForBreakKey) {
     options_init(&options);
     MMINTEGER ivalue = 0;
 
-    options.break_key = 3;
+    SDL_AtomicSet(&options.break_key, 3);
     EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBreakKey, &ivalue));
     EXPECT_EQ(3, ivalue);
 
-    options.break_key = 4;
+    SDL_AtomicSet(&options.break_key, 4);
     EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBreakKey, &ivalue));
     EXPECT_EQ(4, ivalue);
+}
+
+TEST_F(OptionsTest, GetIntegerValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.syntax_highlight = false;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionSyntaxHighlight, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.syntax_highlight = true;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionSyntaxHighlight, &ivalue));
+    EXPECT_EQ(1, ivalue);
 }
 
 TEST_F(OptionsTest, GetIntegerValue_ForTab) {
@@ -935,11 +963,11 @@ TEST_F(OptionsTest, GetStringValue_ForBreakKey) {
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
 
-    options.break_key = 3;
+    SDL_AtomicSet(&options.break_key, 3);
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBreakKey, svalue));
     EXPECT_STREQ("3", svalue);
 
-    options.break_key = 4;
+    SDL_AtomicSet(&options.break_key, 4);
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBreakKey, svalue));
     EXPECT_STREQ("4", svalue);
 }
@@ -1095,18 +1123,30 @@ TEST_F(OptionsTest, GetStringValue_ForListCase) {
     EXPECT_STREQ("Upper", svalue);
 }
 
-TEST_F(OptionsTest, GetStringValue_ForResolution) {
+TEST_F(OptionsTest, GetStringValue_ForLog) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
 
-    options.resolution = kCharacter;
-    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionResolution, svalue));
-    EXPECT_STREQ("Character", svalue);
+    options.log = kLoggerLevelNone;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("None", svalue);
 
-    options.resolution = kPixel;
-    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionResolution, svalue));
-    EXPECT_STREQ("Pixel", svalue);
+    options.log = kLoggerLevelDebug;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Debug", svalue);
+
+    options.log = kLoggerLevelInfo;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Info", svalue);
+
+    options.log = kLoggerLevelWarning;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Warning", svalue);
+
+    options.log = kLoggerLevelError;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionLog, svalue));
+    EXPECT_STREQ("Error", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
@@ -1118,9 +1158,9 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("", svalue);
 
-    strcpy(options.search_path, (m_home + "/foo").c_str());
+    strcpy(options.search_path, (home + "/foo").c_str());
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
-    EXPECT_STREQ((m_home + "/foo").c_str(), svalue);
+    EXPECT_STREQ((home + "/foo").c_str(), svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForSimulate) {
@@ -1140,13 +1180,31 @@ TEST_F(OptionsTest, GetStringValue_ForSimulate) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("Colour Maximite 2", svalue);
 
-    options.simulate = kSimulatePicoMiteVga;
+    options.simulate = kSimulatePicocalc;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("PicoCalc", svalue);
+
+    options.simulate = kSimulatePicomiteVga;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("PicoMiteVGA", svalue);
 
-    options.simulate = kSimulateGameMite;
+    options.simulate = kSimulateGamemite;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("Game*Mite", svalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.syntax_highlight = false;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSyntaxHighlight, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.syntax_highlight = true;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSyntaxHighlight, svalue));
+    EXPECT_STREQ("On", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForTab) {
@@ -1264,10 +1322,23 @@ TEST_F(OptionsTest, SetIntegerValue_ForBreakKey) {
     options_init(&options);
 
     EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionBreakKey, 5));
-    EXPECT_EQ(5, options.break_key);
+    EXPECT_EQ(5, SDL_AtomicGet(&options.break_key));
 
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 0));
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 256));
+}
+
+TEST_F(OptionsTest, SetIntegerValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionSyntaxHighlight, 0));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionSyntaxHighlight, 1));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionSyntaxHighlight, 2));
 }
 
 TEST_F(OptionsTest, SetIntegerValue_ForTab) {
@@ -1413,7 +1484,7 @@ TEST_F(OptionsTest, SetStringValue_ForBreakKey) {
     options_init(&options);
 
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionBreakKey, "42"));
-    EXPECT_EQ(42, options.break_key);
+    EXPECT_EQ(42, SDL_AtomicGet(&options.break_key));
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "0"));
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "256"));
@@ -1586,21 +1657,33 @@ TEST_F(OptionsTest, SetStringValue_ForListCase) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionListCase, "wombat"));
 }
 
-TEST_F(OptionsTest, SetStringValue_ForResolution) {
+TEST_F(OptionsTest, SetStringValue_ForLog) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "Character"));
-    EXPECT_EQ(kCharacter, options.resolution);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "None"));
+    EXPECT_EQ(kLoggerLevelNone, options.log);
 
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "Pixel"));
-    EXPECT_EQ(kPixel, options.resolution);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Debug"));
+    EXPECT_EQ(kLoggerLevelDebug, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Info"));
+    EXPECT_EQ(kLoggerLevelInfo, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Warning"));
+    EXPECT_EQ(kLoggerLevelWarning, options.log);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "Error"));
+    EXPECT_EQ(kLoggerLevelError, options.log);
 
     // Test case-insensitivity.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "CHARacter"));
-    EXPECT_EQ(kCharacter, options.resolution);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "dEBUg"));
+    EXPECT_EQ(kLoggerLevelDebug, options.log);
 
-    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionResolution, "wombat"));
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionLog, "warnING"));
+    EXPECT_EQ(kLoggerLevelWarning, options.log);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionLog, "Trace"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
@@ -1614,18 +1697,23 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     // Path to a directory that exists.
     // Note: this will set the SEARCH PATH property to the canonical path
     // corresponding to the value supplied.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/etc"));
-    EXPECT_STREQ("/etc", options.search_path);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, test_dir.string().c_str()));
+    char expected[PATH_MAX] = { '\0' };
+    ASSERT_EQ(kOk, file_normalize_separators(test_dir.string().c_str(), expected, sizeof(expected)));
+    EXPECT_STREQ(expected, options.search_path);
 
     // Path to a file that exists.
+    std::filesystem::path existing_file = test_dir / "file.txt";
+    ASSERT_EQ(kOk, file_mkfile(existing_file.string().c_str(), ""));
     EXPECT_EQ(
             kNotADirectory,
-            options_set_string_value(&options, kOptionSearchPath, "/etc/passwd"));
+            options_set_string_value(&options, kOptionSearchPath, existing_file.string().c_str()));
 
     // Path that does not exist.
+    std::filesystem::path non_existing_file = test_dir / "does_not_exist";
     EXPECT_EQ(
             kFileNotFound,
-            options_set_string_value(&options, kOptionSearchPath, "/does/not/exist"));
+            options_set_string_value(&options, kOptionSearchPath, non_existing_file.string().c_str()));
 
     // Path that is too long.
     char svalue[STRINGSIZE + 1] = { 0 };
@@ -1655,11 +1743,14 @@ TEST_F(OptionsTest, SetStringValue_ForSimulate) {
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "CMM2"));
     EXPECT_EQ(kSimulateCmm2, options.simulate);
 
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "PicoCalc"));
+    EXPECT_EQ(kSimulatePicocalc, options.simulate);
+
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "PicoMiteVGA"));
-    EXPECT_EQ(kSimulatePicoMiteVga, options.simulate);
+    EXPECT_EQ(kSimulatePicomiteVga, options.simulate);
 
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Game*Mite"));
-    EXPECT_EQ(kSimulateGameMite, options.simulate);
+    EXPECT_EQ(kSimulateGamemite, options.simulate);
 
     // Test case-insensitivity.
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "COLOUR maximite 2"));
@@ -1667,6 +1758,39 @@ TEST_F(OptionsTest, SetStringValue_ForSimulate) {
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSimulate, "wombat"));
 }
+
+TEST_F(OptionsTest, SetStringValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "false"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "true"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "Off"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "On"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "0"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "1"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "FALSE"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "ON"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSyntaxHighlight, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSyntaxHighlight, "wombat"));
+}
+
 
 TEST_F(OptionsTest, SetStringValue_ForTab) {
     Options options;

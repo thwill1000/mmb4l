@@ -45,7 +45,7 @@ Sub test_bin_function()
   assert_string_equals("1000000000000000000000000000000000000000000000000000000000000000", Bin$(MIN_INT%))
 
   ' Value of 0 for second argument should give same result as not providing argument.
-  If Not sys.is_platform%("pm*") Then ' TODO: re-enable  
+  If Not sys.is_platform%("pm*") Then ' TODO: re-enable
   assert_string_equals("0", Bin$(0, 0))
   assert_string_equals("1", Bin$(1, 0))
   assert_string_equals("1111111111111111111111111111111111111111111111111111111111111111", Bin$(-1, 0))
@@ -146,8 +146,19 @@ Sub test_mid_command()
 
   On Error Skip
   Mid$(a$, 1, 10) = "cccccccccc"
-  Local expected$ = "10 is invalid (valid is 1 to 6)"
-  assert_string_equals(expected$, Right$(Mm.ErrMsg$, Len(expected$)))
+  assert_raw_error("10 is invalid (valid is 1 to 6)")
+
+  ' Test a bug that used to be in the code when the "=" token had no spaces around it.
+  Mid$(a$,3,1)="c"
+  assert_string_equals("b2caa6", a$)
+
+  On Error Skip
+  Mid$(a$, 1, 1)=
+  assert_raw_error("Syntax")
+
+  On Error Skip
+  Mid$(a$, 1, 1)=1
+  assert_raw_error("Expected a string")
 End Sub
 
 Sub test_oct_function()

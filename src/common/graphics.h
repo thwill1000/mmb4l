@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 graphics.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -46,10 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMBASIC_GRAPHICS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
+#include "../Configuration.h"
+#include "mmcolour.h"
 #include "mmresult.h"
 #include "options.h"
-#include "../Configuration.h"
 
 #define GRAPHICS_NONE            -1
 #define GRAPHICS_MAX_SURFACES    256
@@ -59,46 +61,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WINDOW_MAX_WIDTH         2048
 #define WINDOW_MAX_HEIGHT        2048
 #define WINDOW_MAX_SCALE         10
+#define GRAPHICS_SURFACE_DEFAULT -2
 #define GRAPHICS_SURFACE_N       1
 #define GRAPHICS_SURFACE_F       2
 #define GRAPHICS_SURFACE_L       3
+#define GRAPHICS_SURFACE_F2      4
 #define GRAPHICS_MAX_LAYER       4
 #define GRAPHICS_MAX_COLLISIONS  4
 #define MIN_CMM2_MODE            1
 #define MAX_CMM2_MODE            17
-#define MIN_PMVGA_MODE           1
-#define MAX_PMVGA_MODE           2
-
-#define RGB(red, green, blue, trans) (uint32_t) (((trans & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF))
-
-#define RGB_BLACK     RGB(   0,     0,     0,     0)
-#define RGB_BLUE      RGB(   0,     0,   255,   255)
-#define RGB_GREEN     RGB(   0,   255,     0,   255)
-#define RGB_CYAN      RGB(   0,   255,   255,   255)
-#define RGB_RED       RGB( 255,     0,     0,   255)
-#define RGB_MAGENTA   RGB( 255,     0,   192,   255)
-#define RGB_YELLOW    RGB( 255,   255,     0,   255)
-#define RGB_BROWN     RGB(0xA5,  0x2A,  0x2A,   255)
-#define RGB_GRAY      RGB(  64,    64,    64,   255)
-#define RGB_LITEGRAY  RGB( 128,   128,   128,   255)
-#define RGB_WHITE     RGB( 255,   255,   255,   255)
-#define RGB_ORANGE    RGB(0xFF,  0xA5,     0,   255)
-#define RGB_PINK      RGB(0xFF,  0xA0,  0xAB,   255)
-#define RGB_GOLD      RGB(0xFF,  0xD7,  0x00,   255)
-#define RGB_SALMON    RGB(0xFA,  0x80,  0x72,   255)
-#define RGB_BEIGE     RGB(0xF5,  0xF5,  0xDC,   255)
-#define RGB_NOTBLACK  RGB(   0,     0,     0,   255)
-
-// Additional 4-bit colours defined on the PicoMite.
-#define RGB_MYRTLE        RGB(   0, 0x40,    0, 0xFF)
-#define RGB_COBALT        RGB(   0, 0x40, 0xFF, 0xFF)
-#define RGB_MIDGREEN      RGB(   0, 0x80,    0, 0xFF)
-#define RGB_CERULEAN      RGB(   0, 0x80, 0xFF, 0xFF)
-#define RGB_MAGENTA_4BIT  RGB(0xFF,    0, 0xFF, 0xFF)
-#define RGB_RUST          RGB(0xFF, 0x40,    0, 0xFF)
-#define RGB_FUCHSIA       RGB(0xFF, 0x40, 0xFF, 0xFF)
-#define RGB_BROWN_4BIT    RGB(0xFF, 0x80,    0, 0xFF)
-#define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
+#define MIN_PICOMITE_HDMI_MODE   1
+#define MAX_PICOMITE_HDMI_MODE   5
+#define MIN_PICOMITE_VGA_MODE    1
+#define MAX_PICOMITE_VGA_MODE    2
+#define NO_TRANSPARENCY          -1
 
 #define CMM2_BLIT_BASE   63
 #define CMM2_BLIT_COUNT  64
@@ -136,7 +112,8 @@ typedef enum {
     kBlitNormal = 0x0,
     kBlitHorizontalFlip = 0x1,
     kBlitVerticalFlip = 0x2,
-    kBlitWithTransparency = 0x4
+    kBlitWithTransparency = 0x4,
+    kBlitInvert = 0x8,
 } GraphicsBlitType;
 
 typedef enum {
@@ -147,14 +124,27 @@ typedef enum {
     kOrientClockwise
 } TextOrientation;
 
+typedef enum {
+    kBmpFormat1bpp,
+    kBmpFormat4bppRgb121,
+    kBmpFormat4bppRgb121Rle4,
+    kBmpFormat8bppRgb222,
+    kBmpFormat8bppRgb222Rle8,
+    kBmpFormat8bppRgb332,
+    kBmpFormat8bppRgb332Rle8,
+    kBmpFormat16bppRgb555,
+    kBmpFormat16bppRgb565,
+    kBmpFormat24bpp,
+    kBmpFormat32bpp,
+} BmpFormat;
+
 typedef int32_t MmSurfaceId;
-typedef int64_t MmGraphicsColour; // 32-bit colour, -1 for transparent background colour.
 typedef void* MmWindowPtr;
 typedef void* MmRendererPtr;
 typedef void* MmTexturePtr;
 
 typedef struct MmSurfaceStruct {
-    MmSurfaceId id; 
+    MmSurfaceId id;
     GraphicsSurfaceType type;
     bool dirty;
     MmWindowPtr window;
@@ -164,6 +154,8 @@ typedef struct MmSurfaceStruct {
     int width;
     uint32_t *pixels;
     const char *interrupt_addr;
+    int cursor_x;
+    int cursor_y;
 
     /**
      * Only used for PicoMiteVGA support, it is the colour of the LAYER buffer that should be
@@ -176,7 +168,7 @@ typedef struct MmSurfaceStruct {
     int x;
     int y;
     int next_x;
-    int next_y; 
+    int next_y;
     uint8_t layer;
 
     /** Bitwise OR of GraphicsBlitType flags. */
@@ -203,8 +195,9 @@ extern unsigned graphics_mode;
 /** Initialises 'graphics' module. */
 MmResult graphics_init();
 
-/** Gets the last error message reported by the underlying SDL implementation. */
-const char* graphics_last_error();
+/** Resets graphics state to the default for the currently simulated platform. */
+MmResult graphics_reset();
+
 MmSurfaceId graphics_find_window(uint32_t window_id);
 
 /** Redraws all 'dirty' windows (if the time is right). */
@@ -292,6 +285,50 @@ MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, 
  */
 MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x, int y, int w,
                                            int h, int transparent);
+
+/**
+ * Blits (copies) a rectangular region from a source surface to a destination
+ * surface, scaling the image to fit the target dimensions (using fast nearest
+ * neighbour sampling) and optionally applying transparency.
+ *
+ * The source rectangle defined by (src_x, src_y, src_w, src_h) is scaled to
+ * fill the destination rectangle defined by (dst_x, dst_y, dst_w, dst_h). If
+ * a transparent colour is specified, pixels matching that colour in the source
+ * are not copied.
+ *
+ * The source and destination surfaces may be the same. If the source and
+ * destination rectangles overlap, a temporary internal surface is used
+ * automatically to ensure correct output.
+ *
+ * @param src    Pointer to the source surface to copy from.
+ * @param src_x  X coordinate of the top-left corner of the source rectangle,
+ *               in pixels.
+ * @param src_y  Y coordinate of the top-left corner of the source rectangle,
+ *               in pixels.
+ * @param src_w  Width of the source rectangle, in pixels.
+ * @param src_h  Height of the source rectangle, in pixels.
+ * @param dst    Pointer to the destination surface to copy into. May be the
+ *               same as src.
+ * @param dst_x  X coordinate of the top-left corner of the destination
+ *               rectangle, in pixels.
+ * @param dst_y  Y coordinate of the top-left corner of the destination
+ *               rectangle, in pixels.
+ * @param dst_w  Width of the destination rectangle, in pixels. If different
+ *               from src_w, the image will be scaled horizontally to fit.
+ * @param dst_h  Height of the destination rectangle, in pixels. If different
+ *               from src_h, the image will be scaled vertically to fit.
+ * @param transparent  Colour value treated as transparent during the blit.
+ *               Pixels in the source that match this colour are skipped and
+ *               leave the destination unchanged. Pass NO_TRANSPARENCY to
+ *               disable transparency.
+ *
+ * @return  kOk on success, or a non-zero error code on failure (e.g. if
+ *          either surface pointer is NULL, or the rectangles fall outside
+ *          surface bounds).
+ */
+MmResult graphics_blit_resize(MmSurface *src, int src_x, int src_y, int src_w, int src_h,
+                              MmSurface *dst, int dst_x, int dst_y, int dst_w, int dst_h,
+                              MmGraphicsColour transparent);
 
 /**
  * Clears a graphics surface.
@@ -499,25 +536,15 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
 MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz);
 
 /**
- * Loads a .bmp image.
+ * Gets the colour value of a single pixel.
  *
- * @param  surface   Surface to draw the image on.
- * @param  filename  Name of file to load the image from.
- * @param  x, y      Coordinates of top-left corner to start drawing the image from.
+ * @param       surface  Surface to get the pixel from.
+ * @param       x        x-coordinate of pixel.
+ * @param       y        y-coordinate of pixel.
+ * @param[out]  colour   On exit the colour of the pixel,
+ *                       or -1 if the coordinates are outside the graphics surface.
  */
-MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y);
-
-/**
- * Loads a .png image.
- *
- * @param  surface      Surface to draw the image on.
- * @param  filename     Name of file to load the image from.
- * @param  x, y         Coordinates of top-left corner to start drawing the image from.
- * @param  transparent  TODO
- * @param  force        TODO
- */
-MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
-                           int force);
+MmResult graphics_get_pixel(MmSurface *surface, int x, int y, MmGraphicsColour *colour);
 
 /**
  * Loads a Colour Maximite sprite file.

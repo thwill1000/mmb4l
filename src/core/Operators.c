@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Operators.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -44,8 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Provides all the operator functions used in MMBasic, i.e. +, -, *, etc.
 
-#include "../Hardware_Includes.h"
+#include <math.h>
+
 #include "MMBasic.h"
+#include "../common/error.h"
+#include "../common/memory.h"
 
 /********************************************************************************************************************************************
  basic operators
@@ -72,7 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 void op_invalid(void) {
-  error("Syntax error");
+  ON_FAILURE_ERROR(kSyntax);
 }
 
 
@@ -80,15 +83,15 @@ void op_exp(void) {
     long long int i;
     errno = 0;
     if(targ & T_NBR)
-        fret = (MMFLOAT)powf(farg1, farg2);
+        fret = (MMFLOAT)pow(farg1, farg2);
     else {
         if(iarg2 < 0) {
             targ = T_NBR;
-            fret = (MMFLOAT)powf((MMFLOAT)iarg1, (MMFLOAT)iarg2);
+            fret = (MMFLOAT)pow((MMFLOAT)iarg1, (MMFLOAT)iarg2);
         } else
             for(iret = i = 1; i <= iarg2; i++) iret *= iarg1;
     }
-    if(errno) error("Overflow");
+    if(errno) error_throw_legacy("Overflow");
 }
 
 
@@ -102,29 +105,55 @@ void op_mul(void) {
 
 // division will always return a float even if given integer arguments
 void op_div(void) {
-    if(farg2 == 0) error("Divide by zero");
+    if(farg2 == 0) error_throw_legacy("Divide by zero");
     fret = farg1 / farg2;
     targ = T_NBR;
 }
 
 
 void op_divint(void) {
-    if(iarg2 == 0) error("Divide by zero");
+    if(iarg2 == 0) error_throw_legacy("Divide by zero");
     iret = iarg1 / iarg2;
 }
 
-
+/**
+ * Implements the MMBasic addition and string concatenation operator (+).
+ *
+ * Operates on the global argument variables set by doexpr() prior to
+ * dispatch, and writes its result to the corresponding global return
+ * variable.  The type of operation performed is determined by @p targ:
+ *
+ *   - T_NBR: adds farg1 and farg2, result written to fret.
+ *   - T_INT: adds iarg1 and iarg2, result written to iret.
+ *   - T_STR: concatenates the MMBasic strings sarg1 and sarg2 into a
+ *            newly allocated temporary string, result written to sret.
+ *            Throws kStringTooLong if the combined length would exceed
+ *            MAXSTRLEN.
+ *
+ * This function takes no parameters and returns no value directly; all
+ * operands and results are communicated through the global state variables
+ * farg1, farg2, iarg1, iarg2, sarg1, sarg2, targ, fret, iret and sret.
+ * It is intended to be called exclusively via the token dispatch table
+ * (tokenfunction()), never directly.
+ */
 void op_add(void) {
-  if(targ & T_NBR)
-      fret = farg1 + farg2;
-  else if(targ & T_INT)
-      iret = iarg1 + iarg2;
-    else {
-      if(*sarg1 + *sarg2 > MAXSTRLEN) error("String too long");
-      sret = GetTempStrMemory();                                    // this will last for the life of the command
-      Mstrcpy(sret, sarg1);
-      Mstrcat(sret, sarg2);
-  }
+    // LOG_FN_ENTRY("targ=%d, farg1=%g, farg2=%g, iarg1=%" PRId64 ", iarg2=%" PRId64
+    //              ", sarg1={%s}, sarg2={%s}",
+    //              targ, farg1, farg2, iarg1, iarg2, FMT_PSTRING(sarg1),
+    //              FMT_PSTRING(sarg2));
+
+    if (targ & T_NBR) {
+        fret = farg1 + farg2;
+    } else if (targ & T_INT) {
+        iret = iarg1 + iarg2;
+    } else {
+        if(*sarg1 + *sarg2 > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
+        sret = GetTempStrMemory();  // This will last for the life of the command
+        Mstrcpy(sret, sarg1);
+        Mstrcat(sret, sarg2);
+    }
+
+    // LOG_FN_EXIT("fret=%g, iret=%" PRId64 ", sret={%s}", fret, iret, FMT_PSTRING(sret));
 }
 
 
@@ -138,7 +167,7 @@ void op_subtract(void) {
 
 
 void op_mod(void) {
-    if(iarg2 == 0) error("Divide by zero");
+    if(iarg2 == 0) error_throw_legacy("Divide by zero");
     iret = iarg1 % iarg2;
 }
 
@@ -230,6 +259,5 @@ void op_xor(void) {
 
 void op_not(void){
   // don't do anything, just a place holder
-  error("Syntax error");
+  ON_FAILURE_ERROR(kSyntax);
 }
-

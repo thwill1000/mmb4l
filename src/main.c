@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 main.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,50 +42,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "common/mmb4l.h"
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <SDL.h>
+#if defined(__ANDROID__)
+#include <SDL_opengles2.h>
+#endif
+
+#if defined(__ANDROID__)
+#include "android.h"
+#endif
+
 #include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
-#include "common/events.h"
+#include "common/display.h"
 #include "common/exit_codes.h"
+#include "common/features.h"
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
+#include "common/keybuf.h"
+#include "common/logger.h"
+#include "common/mmb4l.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
 #include "common/path.h"
 #include "common/program.h"
 #include "common/prompt.h"
-#include "common/serial.h"
+#include "common/streamio.h"
 #include "common/utility.h"
 #include "core/tokentbl.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#define MM_VERSION_STR  xstr(MM_MAJOR) "." xstr(MM_MINOR) "." xstr(MM_MICRO)
-static const char version[] __attribute__ ((used))
-        = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
-#pragma GCC diagnostic pop
+#define MM_VERSION_STR  xstringify(MM_MAJOR) "." xstringify(MM_MINOR) "." xstringify(MM_MICRO)
+__attribute__((used)) static const char version[] = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
-volatile int MMAbort = false;
 ErrorState mmb_normal_error_state;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
-int WatchdogSet, IgnorePIN;
+Features mmb_features;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
-uint8_t mmb_exit_code = EX_OK;
-
-static const char mmbasic_dir[] = "~/.mmbasic";
 
 void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
@@ -98,11 +103,11 @@ void dump_token_table(const struct s_tokentbl* tbl);
  */
 static bool run_flag;
 
-void print_banner() {
-    char s[128];
-    sprintf(
-        s,
-        "MMBasic for %s v%d.%d%s%d\n",
+static MmResult get_name_and_version(char *buf, size_t buf_sz) {
+    (void) snprintf(
+        buf,
+        buf_sz,
+        "MMBasic for %s v%d.%d%s%d",
         MM_ARCH,
         MM_MAJOR,
         MM_MINOR,
@@ -120,46 +125,74 @@ void print_banner() {
                 : MM_MICRO < 300
                     ? MM_MICRO - 200
                     : MM_MICRO - 300);
-    console_puts(s);
-    console_puts(COPYRIGHT);
+    return kOk;
+}
+
+static MmResult get_banner(char *buf, size_t buf_sz) {
+    ON_FAILURE_RETURN(get_name_and_version(buf, buf_sz));
+    return SUCCEEDED(cstring_cat(buf, "\r\n" COPYRIGHT, buf_sz)) ? kOk : kStringTooLong;
 }
 
 static void init_mmbasic_config_dir() {
-    MmResult result = path_mkdir(mmbasic_dir);
-    if (FAILED(result)) {
-        fprintf(
-            stderr,
-            "\nFailed to create directory '%s': %s\n",
-            mmbasic_dir,
-            mmresult_to_string(result));
-        exit(EX_FAIL);
-    }
+    // LOG_FN_ENTRY();
+
+    char config_dir[PATH_MAX] = { '\0' };
+    MmResult result = file_get_config_dir(config_dir, PATH_MAX);
+    ON_FAILURE_GOTO(result, error);
+    result = path_mkdir(config_dir);
+    ON_FAILURE_GOTO(result, error);
+
+    RETURN_VOID();
+
+error:
+    fprintf(
+        stderr,
+        "\nFailed to create directory '%s': %s\n",
+        config_dir,
+        mmresult_to_string(result));
+    exit(EX_FAIL);
 }
 
 static void init_options_cb(const char *msg) {
     static int count = 0;
 
     if (strcmp(msg, "END") == 0) {
-        if (count > 0) console_puts("\r\n");
+        if (count > 0) display_puts("\r\n");
         return;
     }
 
     if (count == 0) {
-        console_puts("Warnings in '");
-        console_puts(OPTIONS_FILE_NAME);
-        console_puts("':\r\n");
+        display_puts("Warnings in '");
+        display_puts(options_filename);
+        display_puts("':\r\n");
     }
 
-    console_puts(msg);
-    console_puts("\r\n");
+    display_puts(msg);
+    display_puts("\r\n");
 
     count++;
 }
 
 static void init_options() {
+    // LOG_FN_ENTRY();
+
+    char filename[PATH_MAX] = { '\0' };
+    MmResult result = file_get_config_dir(filename, sizeof(filename));
+    ON_FAILURE_GOTO(result, error);
+    result = file_append_path(filename, "mmbasic.options", sizeof(filename));
+    ON_FAILURE_GOTO(result, error);
+    result = path_get_canonical(filename, options_filename, sizeof(options_filename));
+    ON_FAILURE_GOTO(result, error);
+
+    // options_init() stomps over `logger_min_level` with its own default,
+    // or any "Log = " read from the options file (there shouldn't be one
+    // as it is a transient option, but best to be defensive). To handle
+    // this make a backup of the value to restore after the call.
+    LoggerLevel old_logger_level = logger_min_level;
+
     options_init(&mmb_options);
 
-    MmResult result = options_load(&mmb_options, OPTIONS_FILE_NAME, init_options_cb);
+    result = options_load(&mmb_options, options_filename, init_options_cb);
     switch (result) {
         case kOk:
             // Options loaded, but may still have output warnings.
@@ -168,33 +201,45 @@ static void init_options() {
             // Ignore and use default options.
             break;
         default:
-            fprintf(stderr, "\nFailed to load options: %s\n", mmresult_to_string(result));
-            exit(EX_FAIL);
-            break;
+            goto error;
     }
     init_options_cb("END");
+
+    // Resore logger_min_level and ensure mmb_options.log is consistent.
+    logger_min_level = old_logger_level;
+    mmb_options.log = logger_min_level;
+
+    RETURN_VOID();
+
+error:
+    fprintf(stderr, "\nFailed to load options: %s\n", mmresult_to_string(result));
+    exit(EX_FAIL);
 }
 
 void set_start_directory() {
+    // if (is_android()) {
+    //     snprintf(mmb_args.directory, STRINGSIZE, "%s", android_path());
+    // }
+
     if (mmb_args.directory[0] == '\0') {
         char *MMDIR = getenv("MMDIR");
         if (MMDIR) {
-            snprintf(mmb_args.directory, 256, "%s", MMDIR);
-            mmb_args.directory[255] = '\0';
+            snprintf(mmb_args.directory, STRINGSIZE, "%s", MMDIR);
+            mmb_args.directory[MAXSTRLEN] = '\0';
         }
     }
     char *p = mmb_args.directory;
     cstring_unquote(p);
     if (p[0] == '\0') return;
 
-    errno = 0;
-    if (chdir(p) != 0) {
-        console_puts("Error: could not set starting directory '");
-        console_puts(p);
-        console_puts("'.\r\n");
-        console_puts(strerror(errno));
-        console_puts(".\r\n");
-        console_puts("\r\n");
+    MmResult result = file_chdir(p);
+    if (FAILED(result)) {
+        display_puts("Error: could not set starting directory '");
+        display_puts(p);
+        display_puts("'.\r\n");
+        display_puts(mmresult_to_string(result));
+        display_puts(".\r\n");
+        display_puts("\r\n");
     }
 }
 
@@ -208,49 +253,52 @@ static void reset_console_title() {
 void longjmp_handler(int jmp_state) {
 
     if (mmb_args.show_prompt) {
-        console_show_cursor(true);
-        console_reset();
-        if (MMCharPos > 1) console_puts("\r\n");
+        if (mmb_options.console == kScreen) {
+            // Ensure we have a visible prompt
+            ON_FAILURE_EXIT(graphics_surface_write(GRAPHICS_SURFACE_DEFAULT));
+        }
+        ON_FAILURE_EXIT(console_show_cursor(true));
+        ON_FAILURE_EXIT(console_reset());
+        int cursor_x = -1, cursor_y = -1;
+        ON_FAILURE_EXIT(display_get_cursor_pos(false, &cursor_x, &cursor_y));
+        if (cursor_x > 0) ON_FAILURE_EXIT(display_puts("\r\n"));
     }
 
     audio_term();
 
-    int do_exit = false;
     switch (jmp_state) {
         case JMP_BREAK:
-            mmb_exit_code = EX_BREAK;
-            do_exit = !mmb_args.show_prompt;
+            mmb_state.exit_code = EX_BREAK;
+            mmb_state.exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_END:
-            do_exit = !mmb_args.show_prompt;
+            mmb_state.exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_ERROR:
-            console_puts(mmb_error_state_ptr->message);
-            console_puts("\r\n");
-            mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
-            do_exit = !mmb_args.show_prompt;
+            display_puts(mmb_error_state_ptr->message);
+            display_puts("\r\n");
+            mmb_state.exit_code = error_to_exit_code(mmb_error_state_ptr->code);
+            mmb_state.exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_NEW:
-            mmb_exit_code = EX_OK; // Probably not necessary.
-            do_exit = false;
+            mmb_state.exit_code = EX_OK; // Probably not necessary.
             break;
 
         case JMP_QUIT:
-            do_exit = true;
+            mmb_state.exiting = true;
             break;
 
         default:
             fprintf(stderr, "Unexpected return value from setjmp()");
-            exit(EX_FAIL);
+            mmb_state.exit_code = EX_FAIL;
+            mmb_state.exiting = true;
             break;
     }
 
-    if (do_exit) {
-        exit(mmb_exit_code);
-    }
+    // if (mmb_state.exiting) return;
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
@@ -259,7 +307,112 @@ void longjmp_handler(int jmp_state) {
     reset_console_title();
 }
 
+static MmResult init_prompt() {
+    reset_console_title();
+    console_reset();
+    console_clear();
+    ON_FAILURE_RETURN(console_show_cursor(true));
+    char banner[1024];
+    ON_FAILURE_RETURN(get_banner(banner, sizeof(banner)));
+    ON_FAILURE_RETURN(display_puts(banner));
+    ON_FAILURE_RETURN(display_puts("\r\n\r\n"));
+    ON_FAILURE_LOG(prompt_restore_history(""));
+    return kOk;
+}
+
+int android_main(int argc, char* argv[]) {
+    LOG_INFO("Wooga Wooga Wooga");
+#if defined(__ANDROID__)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        LOG_INFO("SDL_Init failed: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("SDL2 Android App",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+
+    if (!window) {
+        LOG_INFO("SDL_CreateWindow failed: %s", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+    if (!context) {
+        LOG_INFO("SDL_GL_CreateContext failed: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    bool running = true;
+    SDL_Event event;
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+        }
+
+        // Clear screen with blue color
+        glClearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        SDL_GL_SwapWindow(window);
+        SDL_Delay(16); // ~60 FPS
+    }
+
+    SDL_GL_DeleteContext(context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+#endif
+    return 0;
+}
+
+static void handle_exit(void) {
+    LOG_INFO("goodbye!");
+    ON_FAILURE_LOG(console_term());
+}
+
+MmResult init_log() {
+    if (mmb_args.log[0] == '\0') {
+        ON_FAILURE_RETURN(logger_set_min_level(LOGGER_DEFAULT_LEVEL));
+    } else {
+        // Shouldn't fail as value already validated in cmdline_parse().
+        ON_FAILURE_RETURN(
+                logger_set_min_level(
+                        logger_level_from_string(mmb_args.log)));
+    }
+
+#if !defined(__ANDROID__)
+    if (logger_min_level != kLoggerLevelNone) {
+        ON_FAILURE_RETURN(logger_init("mmb4l.log"));
+    }
+#endif
+
+    char banner[1024];
+    ON_FAILURE_RETURN(get_name_and_version(banner, sizeof(banner)));
+    LOG_INFO("starting %s", banner);
+
+    return kOk;
+}
+
 int main(int argc, char *argv[]) {
+// #ifdef _WIN32
+//     // Attach debugger then set pause=false in the debugger to continue
+//     volatile bool pause = true;
+//     while (pause) mmtime_sleep_ns(SECONDS_TO_NANOSECONDS(100));
+// #endif
+
+    ON_FAILURE_EXIT(memory_init());
+
+#if defined(__ANDROID__)
+    android_init();
+#endif
+
+    // Parse command line arguments
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {
         if (result == kStringTooLong) {
@@ -271,40 +424,43 @@ int main(int argc, char *argv[]) {
         exit(EX_FAIL);
     }
 
+    ON_FAILURE_EXIT(init_log());
+
+    // Show usage instructions and exit, if requested
     if (mmb_args.help) {
         cmdline_print_usage();
         exit(EX_OK);
     }
 
+#if defined(__ANDROID__)
+    ON_FAILURE_EXIT(keybuf_init());
+#else
+    // Initialise the tty console.
+    ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
+    atexit(handle_exit);
+    ON_FAILURE_EXIT(keybuf_init());
+    ON_FAILURE_EXIT(console_sync());
+#endif
+
     if (mmb_args.version) {
-        print_banner();
+        char banner[1024];
+        ON_FAILURE_EXIT(get_banner(banner, sizeof(banner)));
+        fprintf(stdout, "%s\r\n", banner);
         exit(EX_OK);
-    }
-
-    ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-
-    InitHeap();  // init memory allocation
-
-    console_init(!mmb_args.show_prompt);
-    console_enable_raw_mode();
-    atexit(console_disable_raw_mode);
-
-    if (mmb_args.show_prompt) {
-        reset_console_title();
-        console_reset();
-        console_clear();
-        console_show_cursor(true);
-
-        print_banner();
-        console_puts("\r\n");
     }
 
     init_mmbasic_config_dir();
     init_options();
-    error_init(mmb_error_state_ptr);
-    keyboard_init();
 
-    InitBasic();
+#if defined(__ANDROID__)
+    mmb_state.default_simulate = kSimulatePicocalc;
+#else
+    mmb_state.default_simulate =
+        (mmb_args.simulate == kSimulateUnspecified) ? kSimulateMmb4l : mmb_args.simulate;
+#endif
+
+    ON_FAILURE_EXIT(InitBasic());
+    ON_FAILURE_EXIT(keyboard_init());
 
     //printf("Commands\n--------\n");
     //dump_token_table(commandtbl);
@@ -312,17 +468,17 @@ int main(int argc, char *argv[]) {
     //printf("Tokens\n--------\n");
     //dump_token_table(tokentbl);
 
-# if 0
+#if 0
     signal(SIGBREAK, IntHandler);  // CTRL-C handler
     signal(SIGINT, IntHandler);
 #endif
 
-    interrupt_init();
-    mmtime_init();
-    srand(0);  // seed the random generator with zero
-    set_start_directory();
-
     run_flag = mmb_args.run_cmd[0] != '\0';
+
+    if (mmb_args.show_prompt) {
+        ON_FAILURE_EXIT(init_prompt());
+    }
+    set_start_directory();
 
     // Note that weird restrictions on what you can do with the return value
     // from setjmp() mean we cannot simply write longjmp_handler(setjmp(mark));
@@ -336,15 +492,21 @@ int main(int argc, char *argv[]) {
         default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
 
-    while (1) {
-        MMAbort = false;
+// #if defined(__ANDROID__)
+//     return android_main(argc, argv);
+// #endif
+
+    while (!mmb_state.exiting) {
+        SDL_AtomicSet(&MMAbort, false);
         LocalIndex = 0;     // this should not be needed but it ensures that all
                             // space will be cleared
         ClearTempMemory();  // clear temp string space (might have been used by
                             // the prompt)
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
-        if (MMCharPos > 1) {
-            console_puts("\r\n");  // prompt should be on a new line
+        int cursor_x = -1, cursor_y = -1;
+        ON_FAILURE_EXIT(display_get_cursor_pos(false, &cursor_x, &cursor_y));
+        if (cursor_x > 0) {
+            display_puts("\r\n");  // prompt should be on a new line
         }
         //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!
         // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", kSub) >= 0) {
@@ -352,7 +514,8 @@ int main(int argc, char *argv[]) {
         //     ExecuteProgram("MM.PROMPT\0");
         // } else {
         if (mmb_args.show_prompt) {
-            console_puts("> ");  // print the prompt
+            display_puts("> ");  // print the prompt
+            display_flush();
         }
         // }
         // ErrorInPrompt = false;
@@ -366,15 +529,14 @@ int main(int argc, char *argv[]) {
         memset(inpbuf, 0, INPBUF_SIZE);
         if (run_flag) {
             if (mmb_args.show_prompt) {
-                console_puts(mmb_args.run_cmd);
-                console_puts("\r\n");
+                display_puts(mmb_args.run_cmd);
+                display_puts("\r\n");
             }
             strcpy(inpbuf, mmb_args.run_cmd);
             run_flag = false;
         } else {
-            prompt_get_input();
-            MmResult result = parse_transform_input_buffer(inpbuf);
-            if (FAILED(result)) error_throw(result);
+            ON_FAILURE_ERROR_EX(prompt_get_input(), EXIT_FAILURE);
+            ON_FAILURE_ERROR_EX(parse_transform_input_buffer(inpbuf), EXIT_FAILURE);
         }
 
         if (!*inpbuf) continue;  // ignore an empty line
@@ -385,6 +547,22 @@ int main(int argc, char *argv[]) {
 
         ExecuteProgram(tknbuf);  // execute the line straight away
     }
+
+    ON_FAILURE_LOG(prompt_save_history(""));
+
+    console_term(); // Restore original terminal settings before exiting.
+
+#if defined(__ANDROID__)
+    android_term();
+    // 24-Jan-2026: The call to SDL_Quit() was segfaulting when built and run
+    //              with Userland/Ubuntu but I have found previously it was
+    //              necessary for the Android NDK build.
+    LOG_INFO("SDL quit ...");
+    SDL_Quit();  // Properly cleanup SDL
+#endif
+
+    LOG_INFO("exiting with code: %d", mmb_state.exit_code);
+    return mmb_state.exit_code;
 }
 
 void IntHandler(int signo) {
@@ -392,89 +570,24 @@ void IntHandler(int signo) {
     signal(SIGBREAK, IntHandler);
     signal(SIGINT, IntHandler);
 #endif
-    MMAbort = true;
-}
-
-void FlashWriteInit() {
-    ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-    console_set_title("MMBasic - Untitled", false);
-    CurrentFile[0] = 0;
+    SDL_AtomicSet(&MMAbort, true);
 }
 
 /**
- * Peforms "background" tasks:
- *  - pump for console input
- *  - pump for serial port input
+ * Dump a memory area to the console in hexadecimal and ASCII format.
+ * Displays 16 bytes per line with address, hex values, and printable characters.
+ * 
+ * @param p Pointer to the start of the memory area to dump
+ * @param nbr Number of bytes to dump
  */
-static void perform_background_tasks() {
-    // TODO: consolidate with pumping the serial port connections ?
-    console_pump_input();
-
-    // Pump all the serial port connections for input.
-    for (int i = 1; i <= MAXOPENFILES; ++i) {
-        if (file_table[i].type == fet_serial) {
-            serial_pump_input(i);
-        }
-    }
-
-    events_pump();
-    graphics_refresh_windows();
-    ON_FAILURE_ERROR(audio_background_tasks());
-}
-
-void CheckAbort(void) {
-    if (!MMAbort) perform_background_tasks();
-
-    if (MMAbort) {
-        // g_key_select = 0;
-        longjmp(mark, JMP_BREAK);  // jump back to the input prompt
-    }
-}
-
-// get a keystroke.  Will wait forever for input
-// if the char is a lf then replace it with a cr
-// unless it was preceded by a cr and in that case throw away the char
-// so console end of line is always cr
-int MMgetchar(void) {
-    static char prevchar = 0;
-    int c;
-    for (;;) {
-        c = console_getc();
-        if (c == -1) {
-            if (!isatty(STDIN_FILENO)) {
-                // In this case there will never be anything to read.
-                if (MMCharPos > 1) console_puts("\r\n");
-                console_puts("Error: STDIN exhausted\r\n");
-                mmb_exit_code = 1;
-                longjmp(mark, JMP_QUIT);
-            }
-            nanosleep(&ONE_MILLISECOND, NULL);
-        // } else if (c == 3) {
-        //     longjmp(mark, JMP_BREAK); // jump back to the input prompt if CTRL-C
-        } else if (c == '\n' && prevchar == '\r') {
-            prevchar = 0;
-        } else {
-            break;
-        }
-    }
-    prevchar = c;
-    return c == '\n' ? '\r' : c;
-}
-
-// dump a memory area to the console
-// for debugging
 void dump(char *p, int nbr) {
     char buf1[80], buf2[80], *b1, *b2, *pt;
     b1 = buf1;
     b2 = buf2;
-    console_puts(
+    display_puts(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
-#if defined(ENV64BIT)
-    b1 += sprintf(b1, "%8lx: ", (uintptr_t) p);
-#else
-    b1 += sprintf(b1, "%8ix: ", (uintptr_t) p);
-#endif
+    b1 += sprintf(b1, "%8" PRIxPTR ": ", (uintptr_t) p);
     for (pt = p; (uintptr_t)pt % 16 != 0; pt--) {
         b1 += sprintf(b1, "   ");
         b2 += sprintf(b2, " ");
@@ -485,34 +598,28 @@ void dump(char *p, int nbr) {
         p++;
         nbr--;
         if ((uintptr_t)p % 16 == 0) {
-            console_puts(buf1);
-            console_puts("   ");
-            console_puts(buf2);
+            display_puts(buf1);
+            display_puts("   ");
+            display_puts(buf2);
             b1 = buf1;
             b2 = buf2;
-#if defined(ENV64BIT)
-            b1 += sprintf(b1, "\r\n%8lx: ", (uintptr_t) p);
-#else
-            b1 += sprintf(b1, "\r\n%8ix: ", (uintptr_t) p);
-#endif
+            b1 += sprintf(b1, "\r\n%8" PRIxPTR ": ", (uintptr_t) p);
         }
     }
     if (b2 != buf2) {
-        console_puts(buf1);
-        console_puts("   ");
+        display_puts(buf1);
+        display_puts("   ");
         for (pt = p; (uintptr_t)pt % 16 != 0; pt++) {
-            console_puts("   ");
+            display_puts("   ");
         }
-        console_puts(buf2);
+        display_puts(buf2);
     }
-    console_puts("\r\n");
+    display_puts("\r\n");
 }
 
 void dump_token_table(const struct s_tokentbl* tbl) {
-    int i = 0;
-    for (;;) {
-        printf("%3d:  %-15s, %5d, %5d, 0x%8lX\n", i, tbl[i].name, tbl[i].type, tbl[i].precedence, (unsigned long int) tbl[i].fptr);
+    for (int i = 0;; i++) {
+        printf("%3d:  %-15s, %5d, %5d, 0x%8" PRIxPTR "\n", i, tbl[i].name, tbl[i].type, tbl[i].precedence, (uintptr_t) tbl[i].fptr);
         if (*(tbl[i].name) == 0) break;
-        i++;
     }
 }

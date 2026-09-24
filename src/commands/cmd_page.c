@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_page.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdio.h>
-
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
@@ -71,7 +69,7 @@ static MmResult cmd_page_resize(const char *p) {
 
 /** PAGE SCROLL page, x, y [, fill_colour] */
 static MmResult cmd_page_scroll(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
     MmSurfaceId page_id = -1;
     MmResult result = parse_page(p, &page_id);
@@ -113,10 +111,8 @@ static MmResult cmd_page_xor_pixels(const char *p) {
 }
 
 void cmd_page(void) {
-    if (mmb_options.simulate != kSimulateCmm2
-            && mmb_options.simulate != kSimulateMmb4w) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_cmd_page) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "WRITE"))) {

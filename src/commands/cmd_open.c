@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_open.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,29 +42,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
-
-#include <strings.h>
 
 static void cmd_open_file(int argc, char **argv) {
     char *filename = GetTempStrMemory();
     ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
 
     const char *mode = NULL;
-    if (strcasecmp(argv[2], "OUTPUT") == 0) {
+    if (cstring_casecmp(argv[2], "OUTPUT") == 0) {
         mode = "wb";  // binary mode so that we do not have lf to cr/lf
                       // translation
-    } else if (strcasecmp(argv[2], "APPEND") == 0) {
+    } else if (cstring_casecmp(argv[2], "APPEND") == 0) {
         mode = "ab";  // binary mode is used in MMfopen()
-    } else if (strcasecmp(argv[2], "INPUT") == 0) {
+    } else if (cstring_casecmp(argv[2], "INPUT") == 0) {
         mode = "rb";  // note binary mode
-    } else if (strcasecmp(argv[2], "RANDOM") == 0) {
+    } else if (cstring_casecmp(argv[2], "RANDOM") == 0) {
         mode = "x";  // a special mode for MMfopen()
     } else {
         ERROR_INVALID("file access mode");
@@ -75,7 +74,7 @@ static void cmd_open_file(int argc, char **argv) {
     if (fnbr == -1) {
         result = kFileInvalidFileNumber;
     } else {
-        result = file_open(filename, mode, fnbr);
+        result = streamio_open(filename, mode, fnbr);
     }
     ON_FAILURE_ERROR(result);
 }
@@ -103,14 +102,17 @@ static void cmd_open_serial(int argc, char **argv) {
  * OPEN comspec$ AS GPS [,timezone_offset] [,monitor]
  */
 void cmd_open(void) {
-    char separators[4] = { tokenFOR, tokenAS, ',', '\0' };
-    getargs(&cmdline, 7, separators);
+    const DelimType delim[] = { tokenFOR, tokenAS, ',', 0 };
+    getargs(&cmdline, 7, delim);
 
-    if (argc == 5 && *argv[1] == tokenFOR && *argv[3] == tokenAS) {
+    const FunctionToken arg1 = tokentbl_peek(argv[1]);
+    const FunctionToken arg3 = (argc == 5) ? tokentbl_peek(argv[3]) : INVALID_TOKEN;
+
+    if (argc == 5 && arg1 == tokenFOR && arg3 == tokenAS) {
         cmd_open_file(argc, argv);
-    } else if (argc > 2 && argc < 8 && *argv[1] == tokenAS && strcasecmp(argv[2], "GPS") == 0) {
+    } else if (argc > 2 && argc < 8 && arg1 == tokenAS && cstring_casecmp(argv[2], "GPS") == 0) {
         cmd_open_gps(argc, argv);
-    } else if (argc == 3 && *argv[1] == tokenAS) {
+    } else if (argc == 3 && arg1 == tokenAS) {
         cmd_open_serial(argc, argv);
     } else {
         ERROR_SYNTAX;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <errno.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #if !defined(STRINGSIZE)
 #define STRINGSIZE 256
@@ -70,6 +69,7 @@ typedef enum {
     kError                = 256,
     kInternalFault,
     kSyntax,
+    kArgumentBufferOverflow,
     kArgumentCount,
     kStringLength,
     kStringTooLong,
@@ -99,7 +99,6 @@ typedef enum {
     kFunctionTypeMismatch,
     kInvalidCommandLine,
     kTooManyDefines,
-    kOutOfMemory,
     kLineTooLong,
     kProgramTooLong,
     kUnterminatedComment,
@@ -124,6 +123,7 @@ typedef enum {
     kGraphicsInvalidWriteSurface,
     kGraphicsLoadBitmapFailed,
     kGraphicsReadAndWriteSurfaceSame,
+    kGraphicsSaveBitmapFailed,
     kGraphicsSurfaceAlreadyExists,
     kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,
@@ -138,6 +138,7 @@ typedef enum {
     kUnknownDevice,
     kUnsupportedOnCurrentDevice,
     kUnsupportedParameterOnCurrentDevice,
+    kUnsupportedTerminalColour,
     kInvalidMode,
     kInvalidFlag,
     kCannotBlitCloseWindow,
@@ -149,6 +150,7 @@ typedef enum {
     kMissingOpenBracket,
     kUnexpectedCloseBracket,
     kInvalidArrayParameter,
+    kTooManyOpenFiles,
     kTooManyParameters,
     kInvalidInterruptSignature,
     kGamepadNotFound,
@@ -168,6 +170,7 @@ typedef enum {
     kAudioNothingToResume,
     kAudioSampleRateMismatch,
     kAudioWavInitialisationFailed,
+    kEditorError,
     kGpioInvalidPin,
     kGpioInvalidPulseWidth,
     kGpioPinIsNotAnOutput,
@@ -177,7 +180,11 @@ typedef enum {
     kFileAlreadyOpen,
     kFileNotOpen,
     kFileInvalidExtension,
+    kFileInvalidOperation,
     kFileInvalidSeekPosition,
+    kOutOfMemory,
+    kOutOfSystemMemory,
+    kOutOfTemporaryBuffers,
     kPreprocessorReplaceFailed,
     kNotEnoughData,
     kSpriteInactive,
@@ -185,7 +192,10 @@ typedef enum {
     kSpritesNotHidden,
     kStackElementNotFound,
     kStackIndexOutOfBounds,
+    kStdinExhausted,
 } MmResultCode;
+
+extern char mmresult_last_msg[];
 
 /** @brief Clears cached MmResult. */
 void mmresult_clear();

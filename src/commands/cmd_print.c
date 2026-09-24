@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_print.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,21 +42,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/logger.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 
 void cmd_print(void) {
+    // LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
 
-    char *s;
-    const char *p;
-    MMFLOAT f;
-    MMINTEGER i64;
-    int i, t, fnbr;
+    int i, fnbr;
     bool docrlf = true;                                             // this is used to suppress the cr/lf if needed
 
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ";,");               // this is a macro and must be the first executable stmt
+    const DelimType delim[] = { ';', ',', 0 };
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, delim);              // this is a macro and must be the first executable stmt
 
     if (argc > 0 && *argv[0] == '#') {
         // First argument is a file number.
@@ -76,16 +75,20 @@ void cmd_print(void) {
 
     for (; i < argc; i++) {                                         // step through the arguments
         if (*argv[i] == ',') {
-            file_write(fnbr, "\t", 1);                              // print a tab for a comma
+            streamio_write(fnbr, "\t", 1);                          // print a tab for a comma
             docrlf = false;                                         // a trailing comma should suppress CR/LF
         }
         else if (*argv[i] == ';') {
             docrlf = false;                                         // other than suppress cr/lf do nothing for a semicolon
         }
         else {                                                      // we have a normal expression
-            p = argv[i];
+            const char *p = argv[i];
             while (*p) {
-                t = T_NOTYPE;
+                int t = T_NOTYPE;
+                MMFLOAT f = 0.0;
+                MMINTEGER i64 = 0;
+                char *s = NULL;
+
                 p = evaluate(p, &f, &i64, &s, &t, true);            // get the value and type of the argument
                 if (t & T_NBR) {
                     *inpbuf = ' ';                                  // preload a space
@@ -98,14 +101,17 @@ void cmd_print(void) {
                 } else if (t & T_STR) {
                     // Do nothing, 's' is already the MMBasic string we wish to output.
                 } else {
-                    ERROR_INTERNAL_FAULT;
+                    ON_FAILURE_ERROR(INTERNAL_FAULT_EX("invalid type: %d", t));
                 }
 
-                file_write(fnbr, s + 1, (size_t) s[0]);
+                streamio_write(fnbr, s + 1, (size_t) s[0]);
             }
             docrlf = true;
         }
     }
 
-    if (docrlf) file_write(fnbr, "\r\n", 2);                        // print the terminating cr/lf unless it has been suppressed
+    if (docrlf) streamio_write(fnbr, "\r\n", 2);                    // print the terminating cr/lf unless it has been suppressed
+    ON_FAILURE_ERROR(streamio_flush(fnbr));
+
+    RETURN_VOID();
 }

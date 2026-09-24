@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_polygon.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -211,7 +211,7 @@ static MmResult cmd_polygon_multiple(int argc, char **argv) {
 void cmd_polygon(void) {
     if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
-    getargs(&cmdline, 9, ",");
+    getargs(&cmdline, 9, DELIM_COMMA);
 
     MMINTEGER *pn = NULL;
     MMFLOAT *pfn = NULL;

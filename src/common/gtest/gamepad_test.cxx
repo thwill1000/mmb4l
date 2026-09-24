@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -17,14 +17,10 @@ extern "C" {
 #include "../graphics.h"
 #include "../interrupt.h"
 
-// Defined in "common/audio.c"
-const char *audio_last_error() { return ""; }
-
 // Defined in "common/graphics.c"
-MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = {};
 
 MmSurfaceId graphics_find_window(uint32_t window_id) { return 0; }
-const char *graphics_last_error() { return ""; }
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
 
 // Defined in "common/keyboard.c"
@@ -62,7 +58,7 @@ class GamepadTest : public ::testing::Test {
 };
 
 TEST_F(GamepadTest, Open_Succeeds_GivenGamepadClosed) {
-    MmResult result = gamepad_open(1, NULL, 0);
+    MmResult result = gamepad_open(1);
     EXPECT_EQ(kOk, result) << mmresult_to_string(result);
 
     GamepadDevice *gamepad = &gamepad_devices[1];
@@ -87,12 +83,12 @@ TEST_F(GamepadTest, Open_Succeeds_GivenGamepadClosed) {
 }
 
 TEST_F(GamepadTest, Open_ReturnsError_GivenInvalidGamepadId) {
-    EXPECT_EQ(kGamepadInvalidId, gamepad_open(0, NULL, 0));
-    EXPECT_EQ(kGamepadInvalidId, gamepad_open(5, NULL, 0));
+    EXPECT_EQ(kGamepadInvalidId, gamepad_open(0));
+    EXPECT_EQ(kGamepadInvalidId, gamepad_open(5));
 }
 
 TEST_F(GamepadTest, Close_Succeeds_GivenSomeButtonsDown) {
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_on_button_down(joystick[0].id, SDL_CONTROLLER_BUTTON_A));
     EXPECT_EQ(kOk, gamepad_on_button_down(joystick[0].id, SDL_CONTROLLER_BUTTON_START));
     EXPECT_EQ(kOk, gamepad_on_button_down(joystick[0].id, SDL_CONTROLLER_BUTTON_DPAD_RIGHT));
@@ -124,7 +120,7 @@ TEST_F(GamepadTest, Close_ReturnsError_GivenInvalidGamepadId) {
 
 TEST_F(GamepadTest, CloseAll_Succeeds_GivenAllGamepadsOpen) {
     for (uint8_t ii = 1; ii < 4; ++ii) {
-        MmResult result = gamepad_open(ii, NULL, 0);
+        MmResult result = gamepad_open(ii);
         EXPECT_EQ(kOk, result) << mmresult_to_string(result);
         EXPECT_EQ(kOk, gamepad_on_button_down(joystick[ii - 1].id, SDL_CONTROLLER_BUTTON_A));
         EXPECT_EQ(kOk, gamepad_on_button_down(joystick[ii - 1].id, SDL_CONTROLLER_BUTTON_START));
@@ -155,7 +151,7 @@ TEST_F(GamepadTest, CloseAll_Succeeds_GivenAllGamepadsOpen) {
 
 TEST_F(GamepadTest, Term_ClosesAll_GivenAllGamepadsOpen) {
     for (uint8_t ii = 1; ii < 4; ++ii) {
-        MmResult result = gamepad_open(ii, NULL, 0);
+        MmResult result = gamepad_open(ii);
         EXPECT_EQ(kOk, result) << mmresult_to_string(result);
         EXPECT_EQ(kOk, gamepad_on_button_down(joystick[ii - 1].id, SDL_CONTROLLER_BUTTON_A));
         EXPECT_EQ(kOk, gamepad_on_button_down(joystick[ii - 1].id, SDL_CONTROLLER_BUTTON_START));
@@ -186,7 +182,7 @@ TEST_F(GamepadTest, Term_ClosesAll_GivenAllGamepadsOpen) {
 
 TEST_F(GamepadTest, ReadButtons_Succeeds_GivenGamepadOpen) {
     int64_t out;
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
 
     // Press the buttons down one at a time ...
 
@@ -365,7 +361,7 @@ TEST_F(GamepadTest, ReadLeftX) {
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_left_x(0, &out));
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_left_x(5, &out));
     EXPECT_EQ(kGamepadNotOpen, gamepad_read_left_x(1, &out));
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_read_left_x(1, &out));
     EXPECT_EQ(0x0, out);
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_LEFTX, 1024));
@@ -379,7 +375,7 @@ TEST_F(GamepadTest, ReadLeftY) {
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_left_y(0, &out));
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_left_y(5, &out));
     EXPECT_EQ(kGamepadNotOpen, gamepad_read_left_y(1, &out));
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_read_left_y(1, &out));
     EXPECT_EQ(0x0, out);
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_LEFTY, 1024));
@@ -393,7 +389,7 @@ TEST_F(GamepadTest, ReadRightX) {
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_right_x(0, &out));
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_right_x(5, &out));
     EXPECT_EQ(kGamepadNotOpen, gamepad_read_right_x(1, &out));
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_read_right_x(1, &out));
     EXPECT_EQ(0x0, out);
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_RIGHTX, 1024));
@@ -407,7 +403,7 @@ TEST_F(GamepadTest, ReadRightY) {
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_right_y(0, &out));
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_right_y(5, &out));
     EXPECT_EQ(kGamepadNotOpen, gamepad_read_right_y(1, &out));
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_read_right_y(1, &out));
     EXPECT_EQ(0x0, out);
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_RIGHTY, 1024));
@@ -421,7 +417,7 @@ TEST_F(GamepadTest, ReadRightLeftAnalogButton) {
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_left_analog_button(0, &out));
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_left_analog_button(5, &out));
     EXPECT_EQ(kGamepadNotOpen, gamepad_read_left_analog_button(1, &out));
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_read_left_analog_button(1, &out));
     EXPECT_EQ(0x0, out);
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_TRIGGERLEFT, 1024));
@@ -435,7 +431,7 @@ TEST_F(GamepadTest, ReadRightRightAnalogButton) {
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_right_analog_button(0, &out));
     EXPECT_EQ(kGamepadInvalidId, gamepad_read_right_analog_button(5, &out));
     EXPECT_EQ(kGamepadNotOpen, gamepad_read_right_analog_button(1, &out));
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_read_right_analog_button(1, &out));
     EXPECT_EQ(0x0, out);
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 1024));
@@ -446,7 +442,7 @@ TEST_F(GamepadTest, ReadRightRightAnalogButton) {
 TEST_F(GamepadTest, ReadButtons_ReturnsZL_GivenTriggerLeftDown) {
     int64_t out;
 
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_TRIGGERLEFT,
                                      (SDL_JOYSTICK_AXIS_MAX / 2) + 1));
     EXPECT_EQ(kOk, gamepad_read_buttons(1, &out));
@@ -456,7 +452,7 @@ TEST_F(GamepadTest, ReadButtons_ReturnsZL_GivenTriggerLeftDown) {
 TEST_F(GamepadTest, ReadButtons_DoesNotReturnZL_GivenTriggerLeftUp) {
     int64_t out;
 
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_TRIGGERLEFT,
                                      (SDL_JOYSTICK_AXIS_MAX / 2)));
     EXPECT_EQ(kOk, gamepad_read_buttons(1, &out));
@@ -466,7 +462,7 @@ TEST_F(GamepadTest, ReadButtons_DoesNotReturnZL_GivenTriggerLeftUp) {
 TEST_F(GamepadTest, ReadButtons_ReturnsZR_GivenTriggerRightDown) {
     int64_t out;
 
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
                                      (SDL_JOYSTICK_AXIS_MAX / 2) + 1));
     EXPECT_EQ(kOk, gamepad_read_buttons(1, &out));
@@ -476,7 +472,7 @@ TEST_F(GamepadTest, ReadButtons_ReturnsZR_GivenTriggerRightDown) {
 TEST_F(GamepadTest, ReadButtons_DoesNotReturnZR_GivenTriggerRightUp) {
     int64_t out;
 
-    EXPECT_EQ(kOk, gamepad_open(1, NULL, 0));;
+    EXPECT_EQ(kOk, gamepad_open(1));
     EXPECT_EQ(kOk, gamepad_on_analog(joystick[0].id, SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
                                      (SDL_JOYSTICK_AXIS_MAX / 2)));
     EXPECT_EQ(kOk, gamepad_read_buttons(1, &out));

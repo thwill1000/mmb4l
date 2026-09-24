@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Thomas Hugo Williams
+ * Copyright (c) 2022-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -10,6 +10,7 @@ void cmd_arc() { }
 void cmd_autosave() { }
 void cmd_blit() { }
 void cmd_box() { }
+void cmd_breakpoint() { }
 void cmd_call() { }
 void cmd_case() { }
 void cmd_cfunction() { }
@@ -29,6 +30,7 @@ void cmd_dim() { }
 #if !defined(DO_NOT_STUB_CMD_DO)
 void cmd_do() { }
 #endif
+void cmd_drive() { }
 void cmd_dummy() { }
 void cmd_edit() { }
 void cmd_else() { }
@@ -52,6 +54,7 @@ void cmd_gui() { }
 void cmd_if() { }
 void cmd_image() { }
 void cmd_inc() { }
+void cmd_in() { }
 void cmd_input() { }
 void cmd_ireturn() { }
 void cmd_kill() { }
@@ -60,12 +63,14 @@ void cmd_line() { }
 void cmd_lineinput() { }
 void cmd_list() { }
 void cmd_load() { }
+void cmd_log() { }
 void cmd_loop() { }
 void cmd_longstring() { }
 void cmd_math() { }
 void cmd_memory() { }
 void cmd_mid() { }
 void cmd_mkdir() { }
+void cmd_mkfile() { }
 void cmd_mmdebug() { }
 void cmd_mode() { }
 void cmd_new() { }
@@ -74,6 +79,7 @@ void cmd_null() { }
 void cmd_on() { }
 void cmd_open() { }
 void cmd_option() { }
+void cmd_out() { }
 void cmd_page() { }
 void cmd_pause() { }
 void cmd_pin() { }
@@ -94,6 +100,7 @@ void cmd_rmdir() { }
 #if !defined(DO_NOT_STUB_CMD_RUN)
 void cmd_run() { }
 #endif
+void cmd_save() { }
 void cmd_seek() { }
 void cmd_select() { }
 void cmd_setenv() { }

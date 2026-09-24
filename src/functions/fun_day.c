@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_day.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -56,8 +56,8 @@ void fun_day(void) {
         time = mmtime_now_ns();
     } else {
         const char *arg = getCstring(ep);
-        getargs(&arg, 5, "-/");  // this is a macro and must be the first
-                                 // executable stmt in a block
+        const DelimType delim[] = { '-', '/', 0 };
+        getargs(&arg, 5, delim);
         if (argc != 5) ERROR_SYNTAX;
         int d = atoi(argv[0]);
         int m = atoi(argv[2]);
@@ -73,7 +73,7 @@ void fun_day(void) {
         tmbuf.tm_year = y - 1900;
         tmbuf.tm_mon = m - 1;
         tmbuf.tm_mday = d;
-        time = SECONDS_TO_NANOSECONDS(timegm(&tmbuf));
+        time = SECONDS_TO_NANOSECONDS(mmtime_timegm(&tmbuf));
     }
 
     targ = T_STR;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_xmodem.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
-#include "../common/xmodem.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
+#include "../common/xmodem.h"
 
 // TODO: Disable and restore break key ?
 
@@ -63,7 +63,7 @@ void cmd_xmodem(void) {
         receive = false;
     }
 
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
     char *filename = GetTempStrMemory();
@@ -74,8 +74,8 @@ void cmd_xmodem(void) {
 
     const bool verbose = has_arg(4) ? getint(argv[4], 0, 1) == 1 : 0;
 
-    int file_fnbr = file_find_free();
-    ON_FAILURE_ERROR(file_open(filename, receive ? "wb" : "rb", file_fnbr));
+    int file_fnbr = streamio_find_free();
+    ON_FAILURE_ERROR(streamio_open(filename, receive ? "wb" : "rb", file_fnbr));
 
     if (receive) {
         xmodem_receive(file_fnbr, serial_fnbr, verbose);
@@ -83,5 +83,5 @@ void cmd_xmodem(void) {
         xmodem_send(file_fnbr, serial_fnbr, verbose);
     }
 
-    ON_FAILURE_ERROR(file_close(file_fnbr));
+    ON_FAILURE_ERROR(streamio_close(file_fnbr));
 }

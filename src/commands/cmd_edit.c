@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_edit.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,16 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/cstring.h"
-#include "../common/path.h"
-#include "../common/program.h"
-#include "../common/utility.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+
+#include "../common/mmb4l.h"
+#include "../common/cstring.h"
+#include "../common/editor.h"
+#include "../common/file.h"
+#include "../common/keybuf.h"
+#include "../common/path.h"
+#include "../common/program.h"
+#include "../common/utility.h"
 
 #define CMD_SIZE  (STRINGSIZE * 2)
 
@@ -60,48 +62,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_FILE_COULD_NOT_BE_CREATED  error_throw_ex(kError, "File could not be created")
 #define ERROR_NOTHING_TO_EDIT            error_throw_ex(kError, "Nothing to edit")
 
-static void get_mmbasic_nanorc(char *path) {
-    *path = '\0';
-    char *home = getenv("HOME");
-    if (!home) return;
-    sprintf(path, "%s/.mmbasic/mmbasic.nanorc", home);
+static MmResult get_mmbasic_nanorc(char *path, size_t size) {
+    ON_FAILURE_RETURN(file_get_config_dir(path, size));
+    ON_FAILURE_RETURN(file_append_path(path, "mmbasic.nanorc", size));
+    char canonical_path[STRINGSIZE];
+    ON_FAILURE_RETURN(path_get_canonical(path, canonical_path, sizeof(canonical_path)));
+    if (FAILED(cstring_cpy(path, canonical_path, size))) return kFilenameTooLong;
     if (!path_exists(path)) {
         *path = '\0';
     }
+    return kOk;
 }
 
-static MmResult get_editor_command(const char *file_path, int line, char *command, bool *blocking) {
+static MmResult get_editor_command(const char *editor, const char *file_path, int line,
+                                   char *command, bool *blocking) {
     *command = '\0';
     *blocking = false;
-    for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
-        if (strcasecmp(mmb_options.editor, editor->name) == 0) {
-            strcpy(command, editor->command);
-            *blocking = editor->blocking;
+    for (const OptionsEditor *e = options_editors; e->name; ++e) {
+        if (cstring_casecmp(editor, e->name) == 0) {
+            strcpy(command, e->command);
+            *blocking = e->blocking;
         }
     }
 
     // Special magic for Nano when we the 'mmbasic.nano.rc' file is installed.
     // Note early values or nano, such as the default version for Raspbian
     // do not support the --rcfile flag.
-    if (strcasecmp(mmb_options.editor, "nano") == 0) {
+    if (cstring_casecmp(editor, "nano") == 0) {
         char nanorc[STRINGSIZE];
-        get_mmbasic_nanorc(nanorc);
+        ON_FAILURE_RETURN(get_mmbasic_nanorc(nanorc, sizeof(nanorc)));
         if (*nanorc) sprintf(command, "nano --rcfile=%s +${line} ${file}", nanorc);
     }
 
     if (!*command) {
         // Manually specified editor.
-        strcpy(command, mmb_options.editor);
+        // TODO: is it blocking or not?
+        strcpy(command, editor);
     }
 
     char replacement[STRINGSIZE + 2];
     snprintf(replacement, STRINGSIZE + 2, "\"%s\"", file_path);
     if (FAILED(cstring_replace(command, CMD_SIZE, "${file}", replacement))) {
-        return mmresult_ex(kInvalidEditor, "Editor ${file} replace failed: %s", mmb_options.editor);
+        return mmresult_ex(kInvalidEditor, "Editor ${file} replace failed: %s", editor);
     }
     snprintf(replacement, STRINGSIZE + 2, "%d", line);
     if (FAILED(cstring_replace(command, CMD_SIZE,  "${line}", replacement))) {
-        return mmresult_ex(kInvalidEditor, "Editor ${line} replace failed: %s", mmb_options.editor);
+        return mmresult_ex(kInvalidEditor, "Editor ${line} replace failed: %s", editor);
     }
 
     return kOk;
@@ -115,16 +121,29 @@ static int create_empty_file(char *file_path) {
     return true;
 }
 
-static int delete_if_empty(char *file_path) {
-    errno = 0;
+static MmResult delete_if_empty(char *file_path) {
     if (path_exists(file_path) && path_is_empty(file_path)) {
-        return remove(file_path) == 0;
+        return file_delete(file_path);
+    } else {
+        return kOk;
     }
-    return 1;
 }
 
+extern char cmd_run_args[STRINGSIZE];
+
 void cmd_edit(void) {
-    getargs(&cmdline, 1, ",");
+    // Check if the first argument overides the EDITOR option.
+    const char *editor = mmb_options.editor;
+    const char *p = NULL;
+    for (const OptionsEditor *e = options_editors; e->name; ++e) {
+        if ((p = checkstring(cmdline, e->name))) {
+            editor = e->name;
+            break;
+        }
+    }
+    if (!p) p = cmdline;
+
+    getargs(&p, 1, DELIM_COMMA);
 
     if (CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
 
@@ -140,7 +159,11 @@ void cmd_edit(void) {
 
     int line = 1;
     if (*fname == '\0') {
-        if (!current && *mmb_error_state_ptr->file != '\0') {
+        // PROMPT_PATH is the dummy value that error.c uses when there is no
+        // program running, not the name of a file that can be edited.
+        if (!current
+                && *mmb_error_state_ptr->file != '\0'
+                && strcmp(mmb_error_state_ptr->file, PROMPT_PATH) != 0) {
             strcpy(fname, mmb_error_state_ptr->file);
             line = mmb_error_state_ptr->line;
         } else if (*CurrentFile == '\0') {
@@ -149,6 +172,7 @@ void cmd_edit(void) {
             strcpy(fname, CurrentFile);
         }
     }
+    line = line > 1 ? line : 1;
 
     char file_path[STRINGSIZE];
     MmResult result = path_get_canonical(fname, file_path, STRINGSIZE);
@@ -171,16 +195,33 @@ void cmd_edit(void) {
     }
 
     // Edit the file.
-    char command[CMD_SIZE] = { 0 };
     bool blocking = false;
-    ON_FAILURE_ERROR(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking));
-    errno = 0;
-    if (FAILED(system(command))) ERROR_EDITOR_FAILED;
+    bool run_on_exit = false;
+    if (cstring_casecmp(editor, "internal") == 0) {
+        // Use the internal "Internal" editor.
+        blocking = true;
+        const char *old_codepage = mmb_options.codepage;
+        mmb_options.codepage = NULL;
+        LOG_DEBUG("starting internal editor: file_path=%s, line=%d", file_path, line);
+        MmResult result = editor_show(file_path, line, &run_on_exit);
+        mmb_options.codepage = old_codepage;
+        ON_FAILURE_ERROR(result);
+    } else {
+        char command[CMD_SIZE] = { 0 };
+        ON_FAILURE_ERROR(
+                get_editor_command(editor, file_path, line, command, &blocking));
+        LOG_DEBUG("starting editor with command: %s", command);
+        if (blocking) keybuf_pause();
+        errno = 0;
+        const int system_result = system(command);
+        if (blocking) keybuf_resume();
+        if (FAILED(system_result)) ERROR_EDITOR_FAILED;
+    }
 
     // If we created a new file and it is still empty after editing with an
     // editor that blocks then delete it.
     if (new_file && blocking) {
-        if (!delete_if_empty(file_path)) {
+        if (FAILED(delete_if_empty(file_path))) {
             ERROR_FAILED_TO_DELETE_TMP_FILE;
         }
     }
@@ -189,7 +230,13 @@ void cmd_edit(void) {
     if (path_exists(file_path)
             && path_is_regular(file_path)
             && path_has_extension(file_path, ".bas", true)) {
-        MmResult result = program_load_file(file_path);
-        if (FAILED(result)) error_throw(result);
+        ON_FAILURE_ERROR(program_load_file(file_path));
+
+        // Run the program if requested.
+        if (run_on_exit) {
+            *cmd_run_args = '\0';
+            ON_FAILURE_ERROR(PrepareProgram(true));
+            if (*ProgMemory == T_NEWLINE) nextstmt = ProgMemory;
+        }
     }
 }

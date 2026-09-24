@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 events.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -53,37 +53,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "graphics.h"
 #include "interrupt.h"
 #include "keyboard.h"
+#include "logger.h"
 #include "utility.h"
 
 // Defined in "core/MMBasic.c"
 extern const char *CurrentLinePtr;
 
-static const char* NO_ERROR = "";
 static bool events_initialised = false;
+
+static MmResult events_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kEventsApiError, "Events error: %s", emsg);
+}
 
 MmResult events_init() {
     if (events_initialised) return kOk;
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO) < 0) {
-        return kEventsApiError;
+        return events_api_error();
     }
     events_initialised = true;
     return kOk;
 }
 
-const char* events_last_error() {
-    const char* emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
-}
+#define POLL_MS  8
 
 void events_pump() {
     if (!events_initialised) return;
+
+    // Only poll SDL events every POLL_MS to reduce overhead.
+    static uint32_t next_poll = 0;
+    uint32_t now = SDL_GetTicks();  // TODO: update to SDL_GetTicks64
+    if (now < next_poll) return;
+    next_poll += POLL_MS;
+    if (next_poll < now) next_poll = now + POLL_MS;  // too far behind, reset
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_CONTROLLERAXISMOTION:
-                // printf("Controller axis: device idx: %d, axis: %d, value: %d\n",
-                //        event.caxis.which, event.caxis.axis, event.caxis.value);
+                // LOG_DEBUG("Controller axis: device idx: %d, axis: %d, value: %d\n",
+                //           event.caxis.which, event.caxis.axis, event.caxis.value);
                 ON_FAILURE_ERROR(gamepad_on_analog(event.caxis.which, event.caxis.axis,
                                                    event.caxis.value));
                 break;
@@ -97,18 +107,28 @@ void events_pump() {
                 break;
 
             case SDL_CONTROLLERDEVICEADDED:
-                // printf("Controller added, device idx: %d\n", event.cdevice.which);
+                // LOG_DEBUG("Controller added, device idx: %d\n", event.cdevice.which);
                 break;
 
             case SDL_CONTROLLERDEVICEREMOVED:
-                // printf("Controller removed, instance id: %d\n", event.cdevice.which);
+                // LOG_DEBUG("Controller removed, instance id: %d\n", event.cdevice.which);
+                break;
+
+            case SDL_FINGERDOWN:
+                // LOG_DEBUG("event: FINGERDOWN: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
+                break;
+
+            case SDL_FINGERUP:
+                // LOG_DEBUG("event: FINGERUP: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
                 break;
 
             case SDL_KEYDOWN:
+                // LOG_DEBUG("event: KEYDOWN");
                 ON_FAILURE_ERROR(keyboard_key_down(&event.key.keysym));
                 break;
 
             case SDL_KEYUP:
+                // LOG_DEBUG("event: KEYUP");
                 ON_FAILURE_ERROR(keyboard_key_up(&event.key.keysym));
                 break;
 
@@ -124,16 +144,17 @@ void events_pump() {
                             interrupt_fire_window_event(&event.window);
                         } else if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
                             MmSurfaceId window_id = graphics_find_window(event.window.windowID);
-                            if (window_id == -1) ON_FAILURE_ERROR(kInternalFault);
+                            if (window_id == -1) ON_FAILURE_ERROR(INTERNAL_FAULT);
                             ON_FAILURE_ERROR(
                                 graphics_surface_destroy(&graphics_surfaces[window_id]));
                         }
                         break;
                     }
 
-                    case SDL_WINDOWEVENT_EXPOSED: {
+                    case SDL_WINDOWEVENT_EXPOSED:
+                    case SDL_WINDOWEVENT_SHOWN: {
                         MmSurfaceId window_id = graphics_find_window(event.window.windowID);
-                        if (window_id == -1) ON_FAILURE_ERROR(kInternalFault);
+                        if (window_id == -1) ON_FAILURE_ERROR(INTERNAL_FAULT);
                         graphics_surfaces[window_id].dirty = true;
                     }
 

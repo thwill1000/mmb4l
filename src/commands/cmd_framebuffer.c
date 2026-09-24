@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_framebuffer.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,21 +42,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <strings.h>
-
+#include "../common/cstring.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
-/** FRAMEBUFFER CLOSE [{F|L}] */
+/** FRAMEBUFFER CLOSE [ F| L | 2 ] */
 static MmResult cmd_framebuffer_close(const char *p) {
     skipspace(p);
     MmResult result = kOk;
     MmSurface *surfaceF = &graphics_surfaces[GRAPHICS_SURFACE_F];
     MmSurface *surfaceL = &graphics_surfaces[GRAPHICS_SURFACE_L];
+    MmSurface *surfaceF2 = &graphics_surfaces[GRAPHICS_SURFACE_F2];
     if (parse_is_end(p)) {
         result = graphics_surface_destroy(surfaceF);
         if (SUCCEEDED(result)) result = graphics_surface_destroy(surfaceL);
+        if (SUCCEEDED(result)) result = graphics_surface_destroy(surfaceF2);
     } else {
         MmSurfaceId page_id = -1;
         result = parse_page(p, &page_id);
@@ -71,8 +72,11 @@ static MmResult cmd_framebuffer_close(const char *p) {
                 case GRAPHICS_SURFACE_L:
                     result = graphics_surface_destroy(surfaceL);
                     break;
+                case GRAPHICS_SURFACE_F2:
+                    result = graphics_surface_destroy(surfaceF2);
+                    break;
                 default:
-                    result = kInternalFault;
+                    result = INTERNAL_FAULT_EX("invalid page_id: %d", page_id);
                     break;
             }
         }
@@ -83,7 +87,7 @@ static MmResult cmd_framebuffer_close(const char *p) {
 
 /** FRAMEBUFFER COPY from, to [, B] */
 static MmResult cmd_framebuffer_copy(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     MmSurfaceId src_id = -1;
@@ -97,17 +101,16 @@ static MmResult cmd_framebuffer_copy(const char *p) {
     MmSurface* dst_surface = &graphics_surfaces[dst_id];
 
     // MMB4L ignores the background flag B for the moment.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
     bool background = false;
-#pragma GCC diagnostic pop
+    (void) background;  // Suppress unused variable warning
+
     if (argc == 5) {
         const char *tp;
         if ((tp = checkstring(argv[4], "B"))) {
             background = true;
         } else { // Allow string expression.
             const char *s= getCstring(argv[4]);
-            if (strcasecmp(s, "B")) {
+            if (cstring_casecmp(s, "B") == 0) {
                 background = true;
             } else {
                 return kSyntax;
@@ -127,12 +130,18 @@ static MmResult cmd_framebuffer_copy(const char *p) {
                          dst_surface, 0x0, -1);
 }
 
-/** FRAMEBUFFER CREATE */
+/** FRAMEBUFFER CREATE [ 2 ] */
 static MmResult cmd_framebuffer_create(const char *p) {
+    MmSurfaceId id = GRAPHICS_SURFACE_F;
+    const char *p2;
+    if ((p2 = checkstring(p, "2"))) {
+        id = GRAPHICS_SURFACE_F2;
+        p = p2;
+    }
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     return graphics_buffer_create(
-        GRAPHICS_SURFACE_F,
+        id,
         graphics_surfaces[GRAPHICS_SURFACE_N].width,
         graphics_surfaces[GRAPHICS_SURFACE_N].height);
 }
@@ -155,7 +164,7 @@ static MmResult cmd_framebuffer_layer(const char *p) {
 
 /** FRAMEBUFFER MERGE [colour] [, mode] [, update rate] */
 static MmResult cmd_framebuffer_merge(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc == 2 || argc == 4) return kArgumentCount;
 
     uint8_t transparent = (argc > 0) ? getint(argv[0], 0, 15) : 0;
@@ -185,7 +194,7 @@ static MmResult cmd_framebuffer_wait(const char *p) {
 
 /** FRAMEBUFFER WRITE {N|F|L} */
 static MmResult cmd_framebuffer_write(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId dst_id = -1;
@@ -195,10 +204,7 @@ static MmResult cmd_framebuffer_write(const char *p) {
 }
 
 void cmd_framebuffer(void) {
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_cmd_framebuffer) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
 
     MmResult result = kOk;
     const char *p;

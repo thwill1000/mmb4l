@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 path.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -44,45 +44,53 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <limits.h>
-#include <linux/limits.h> // PATH_MAX
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #include "cstring.h"
 #include "error.h"
+#include "file.h"
+#include "logger.h"
 #include "path.h"
 #include "safe_buffer.h"
 #include "utility.h"
 
+// Forward declaration of real function implementations
+static MmResult path_complete_impl(const char *path, char *out, size_t sz);
+
+// Pointers to functions we want to override in unit-tests
+MmResult (*path_complete)(const char *, char *, size_t) = path_complete_impl;
+
 bool path_exists(const char *path) {
-    struct stat st;
-    errno = 0;
-    return stat(path, &st) == 0;
+    // LOG_FN_ENTRY("path=\"%s\"", path);
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    RETURN_BOOL(info.exists);
 }
 
 bool path_is_directory(const char *path) {
-    struct stat st;
-    errno = 0;
-    return (stat(path, &st) == 0) && S_ISDIR(st.st_mode) ? true : false;
+    // LOG_FN_ENTRY("path=\"%s\"", path);
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    RETURN_BOOL(info.exists && (info.type == kFileTypeDirectory));
 }
 
 bool path_is_empty(const char *path) {
-    struct stat st;
-    errno = 0;
-    stat(path, &st);
-    return st.st_size == 0;
+    // LOG_FN_ENTRY("path=\"%s\"", path);
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    RETURN_BOOL(info.exists && (info.size == 0));
 }
 
 bool path_is_regular(const char *path) {
-    struct stat st;
-    errno = 0;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
+    // LOG_FN_ENTRY("path=\"%s\"", path);
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    RETURN_BOOL(info.exists && (info.type == kFileTypeRegularFile));
 }
 
 bool path_has_extension(const char *path, const char *extension, bool case_insensitive) {
@@ -116,7 +124,7 @@ typedef enum {
  * @return  pointer to the first '/' encountered or to \p new_path if there
  *          were none.
  */
-/*static*/ char *path_unwind(char *new_path, char *pdst) {
+char *path_unwind(char *new_path, char *pdst) {
     if (pdst == new_path
             || ((pdst == new_path + 2) && memcmp(pdst - 2, "..", 2) == 0)
             || (memcmp(pdst - 3, "/..", 3) == 0)) {
@@ -136,15 +144,18 @@ typedef enum {
 }
 
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
-    const char *psrc = original_path;
-    bool absolute = original_path[0] == '\\' || original_path[0] == '/';
+    // LOG_FN_ENTRY("original_path=\"%s\", new_path=0x%" PRIxPTR ", sz=%d", original_path, (uintptr_t) new_path, sz);
 
-    // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
-    size_t len = strlen(psrc);
-    if (len >= 2 && isalpha(psrc[0]) && psrc[1] == ':') {
-        psrc += 2;
-        len -= 2;
+    const char *psrc = original_path;
+    bool absolute = file_is_separator(psrc[0]);
+
+    // Handle Windows drive letter paths, e.g. "C:\path\to\file" or "C:/path/to/file"
+    if (isalpha(psrc[0]) && psrc[1] == ':' && file_is_separator(psrc[2])) {
         absolute = true;
+#if !defined(_WIN32)
+        // On Linux ignore the leading drive letter and colon
+        psrc += 2;
+#endif
     }
 
     memset(new_path, 0, sz);
@@ -156,15 +167,24 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
 
             case '\0':
                 switch (state) {
+                    case kPathStateStartDot:
+                        safe_buffer_write(&safe_dst, ".", 1);
+                        break;
                     case kPathStateStartDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "..", 2);
+                        safe_buffer_write(&safe_dst, "..", 2);
+                        break;
+                    case kPathStateSlash:
+                    case kPathStateSlashDot:
+                        safe_buffer_write(&safe_dst, "/", 1);
                         break;
                     case kPathStateSlashDotDot: {
-                        char *p = path_unwind(new_path, safe_dst.ptr);
-                        if (p == safe_dst.ptr) {
-                            safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
+                        char *p = path_unwind(new_path, safe_dst.pos);
+                        if (p == safe_dst.pos) {
+                            safe_buffer_write(&safe_dst, "/..", absolute ? 1 : 3);
+                        } else if (file_is_separator(*p)) {
+                            safe_buffer_set_pos(&safe_dst, p + 1);
                         } else {
-                            safe_buffer_set_ptr(&safe_dst, p);
+                            safe_buffer_set_pos(&safe_dst, p);
                         }
                         break;
                     }
@@ -172,7 +192,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         break;
                 }
 
-                safe_buffer_append(&safe_dst, *psrc); // Copies the '/0'
+                safe_buffer_write_char(&safe_dst, *psrc); // Copies the '/0'
                 break;
 
             case '.':
@@ -190,7 +210,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateSlashDotDot;
                         break;
                     default:
-                        safe_buffer_append(&safe_dst, '.');
+                        safe_buffer_write_char(&safe_dst, '.');
                         break;
                 }
                 break;
@@ -203,7 +223,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateDefault;
                         break;
                     case kPathStateStartDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "..", 2);
+                        safe_buffer_write(&safe_dst, "..", 2);
                         state = kPathStateSlash;
                         break;
                     case kPathStateSlash:
@@ -214,13 +234,13 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateSlash;
                         break;
                     case kPathStateSlashDotDot: {
-                        char *p = path_unwind(new_path, safe_dst.ptr);
-                        if (p == safe_dst.ptr) {
-                            safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
+                        char *p = path_unwind(new_path, safe_dst.pos);
+                        if (p == safe_dst.pos) {
+                            safe_buffer_write(&safe_dst, "/..", absolute ? 1 : 3);
                             state = kPathStateSlash;
                         } else {
                             state = *p == '/' ? kPathStateSlash : kPathStateDefault;
-                            safe_buffer_set_ptr(&safe_dst, p);
+                            safe_buffer_set_pos(&safe_dst, p);
                         }
                         break;
                     }
@@ -233,14 +253,13 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             case '~':
                 if (state == kPathStateStart) {
                     psrc++;
-                    if (*psrc == '\0' || *psrc == '\\' || *psrc == '/' ) {
-                        errno = 0;
-                        const char *home = getenv("HOME");
-                        if (!home) return errno; // Probably never happens.
-                        safe_buffer_append_string(&safe_dst, home);
-                        safe_buffer_inc_ptr(&safe_dst, -1);  // Back off trailing '\0'.
+                    if (*psrc == '\0' || file_is_separator(*psrc)) {
+                        if (safe_dst.pos != safe_dst.base) RETURN_RESULT(INTERNAL_FAULT);
+                        ON_FAILURE_RETURN(file_get_home(safe_dst.base, safe_dst.limit - safe_dst.base));
+                        safe_dst.end = safe_dst.base + strlen(safe_dst.base);  // Don't include trailing '\0'.
+                        safe_dst.pos = safe_dst.end;
                     } else {
-                        safe_buffer_append(&safe_dst, '~');
+                        safe_buffer_write_char(&safe_dst, '~');
                     }
                     psrc--;
                     state = kPathStateDefault;
@@ -252,38 +271,55 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             default:
                 switch (state) {
                     case kPathStateStartDot:
-                        safe_buffer_append(&safe_dst, '.');
+                        safe_buffer_write_char(&safe_dst, '.');
                         break;
                     case kPathStateStartDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "..", 2);
+                        safe_buffer_write(&safe_dst, "..", 2);
                         break;
                     case kPathStateSlash:
-                        safe_buffer_append(&safe_dst, '/');
+                        safe_buffer_write_char(&safe_dst, '/');
                         break;
                     case kPathStateSlashDot:
-                        safe_buffer_append_bytes(&safe_dst, "/.", 2);
+                        safe_buffer_write(&safe_dst, "/.", 2);
                         break;
                     case kPathStateSlashDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "/..", 3);
+                        safe_buffer_write(&safe_dst, "/..", 3);
                         break;
                     default:
                         break;
                 }
                 state = kPathStateDefault;
-                safe_buffer_append(&safe_dst, *psrc);
+                safe_buffer_write_char(&safe_dst, *psrc);
                 break;
 
         } // switch
 
     } while (*psrc++ && !safe_dst.overrun);
 
-    if (!*new_path) {
-        // Empty absolute path is '/' whereas empty relative path is '.'
-        new_path[0] = absolute ? '/' : '.';
+    // Strip trailing slash unless it is a root path, i.e. if it is not '/' or 'C:/'
+    if (*(safe_dst.end - 2) == '/') {
+        if (safe_dst.end - safe_dst.base == 2) {
+            // Linux root path '/' should remain unchanged
+        } else if (safe_dst.end - safe_dst.base == 4
+            && isalpha(safe_dst.base[0])
+            && safe_dst.base[1] == ':'
+            && safe_dst.base[2] == '/') {
+            // Windows root path 'C:/' should remain unchanged
+        } else {
+            // Strip trailing slash
+            *(safe_dst.end - 2) = '\0';
+            safe_dst.end--;
+        }
+    }
+
+    if (*new_path == '\0') {
+        new_path[0] = '.';
         new_path[1] = '\0';
     }
 
-    return (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
+    MmResult result = (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
+    new_path[sz - 1] = '\0'; // Ensure null termination.
+    RETURN_RESULT_EX(result, "new_path=\"%s\"", new_path);
 }
 
 /**
@@ -308,13 +344,13 @@ static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
     do {
         if (*psrc == '/' || *psrc == '\0') {
 try_again:
-            safe_buffer_append(&safe_dst, '\0');
+            safe_buffer_write_char(&safe_dst, '\0');
             if (safe_dst.overrun) break;
-            safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
-            ssize_t num = readlink(dst, buf, PATH_MAX);
+            safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
 
             // On success update 'dst' with target of link.
-            if (num != -1) {
+            size_t buf_sz = PATH_MAX;
+            if (SUCCEEDED(file_readlink(dst, buf, &buf_sz))) {
 
                 if (++count > 16) return kTooManySymbolicLinks;
 
@@ -323,91 +359,74 @@ try_again:
                     safe_buffer_reset(&safe_dst);
                 } else {
                     // Handle relative symbolic link.
-                    safe_buffer_append_bytes(&safe_dst, "/../", 4);
+                    safe_buffer_write(&safe_dst, "/../", 4);
                 }
 
-                safe_buffer_append_bytes(&safe_dst, buf, num);
-                safe_buffer_append(&safe_dst, '\0');
+                safe_buffer_write(&safe_dst, buf, buf_sz);
+                safe_buffer_write_char(&safe_dst, '\0');
                 if (safe_dst.overrun) break;
-                safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
+                safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
                 ON_FAILURE_RETURN(path_munge(dst, buf, PATH_MAX));
                 safe_buffer_reset(&safe_dst);
-                safe_buffer_append_string(&safe_dst, buf);
+                safe_buffer_write_string(&safe_dst, buf);
                 if (safe_dst.overrun) break;
-                safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
+                safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
 
                 goto try_again;  // Handle symbolic links to symbolic links.
             }
 
             // Handle edge case of a symbolic link to root.
-            if (*psrc == '/' && safe_buffer_last(&safe_dst) == '/')
-                safe_buffer_inc_ptr(&safe_dst, -1);
+            if (*psrc == '/' && *(safe_dst.pos - 1) == '/')
+                safe_buffer_inc_pos(&safe_dst, -1);
         }
-        safe_buffer_append(&safe_dst, *psrc);
+        safe_buffer_write_char(&safe_dst, *psrc);
     } while (*psrc++ != '\0' && !safe_dst.overrun);
 
     return (dst[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
 }
 
 MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
-    bool absolute = (path[0] == '\\' || path[0] == '/');
+    char tmp_path[PATH_MAX] = { 0 };
 
-    const char *prefix = "";
     if ((path[0] == '~') && (path[1] == '\0' || path[1] == '\\' || path[1] == '/')) {
 
         // Replace '~' prefix with the user's HOME directory.
-        errno = 0;
-        prefix = getenv("HOME");
-        if (!prefix) return errno; // Probably never happens.
-        absolute = (prefix[0] == '\\' || prefix[0] == '/');
+        ON_FAILURE_RETURN(file_get_home(tmp_path, PATH_MAX));
+        if (!file_is_absolute(tmp_path)) return INTERNAL_FAULT;
         path++; // Skip the '~'.
 
     } else if (isalpha(path[0]) && path[1] == ':') {
-
+#if !defined(_WIN32)
         // Replace DOS drive prefix with root dir;
         // Any repeated '/' will be dealt with by the later call to path_munge().
-        prefix = "/";
-        absolute = true;
+        if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
         path += 2; // Skip the drive prefix.
+#endif
+    } else if (!file_is_absolute(path)) {
 
-    }
-
-    char tmp_path[PATH_MAX] = { 0 };
-
-    // If the 'path' is not absolute then copy the current working directory
-    // into 'tmp_path'.
-    if (!absolute) {
-        errno = 0;
-        if (!getcwd(tmp_path, PATH_MAX)) return errno;
+        // If the 'path' is not absolute then copy the current working directory
+        // into 'tmp_path'.
+        ON_FAILURE_RETURN(file_getcwd(tmp_path, PATH_MAX));
         if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
     }
-
-    // Append 'prefix', which may be empty.
-    if (FAILED(cstring_cat(tmp_path, prefix, PATH_MAX))) return kFilenameTooLong;
 
     // Append 'path'.
     if (FAILED(cstring_cat(tmp_path, path, PATH_MAX))) return kFilenameTooLong;
 
     // Munge 'tmp_path' into 'canonical_path' to deal with any
     // repeated slashes, slash-dots, slash-dot-dots, or back-slashes.
-    MmResult result = path_munge(tmp_path, canonical_path, sz);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(tmp_path, canonical_path, sz));
 
     // Resolve symbolic links into 'tmp_path'.
-    result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX));
     if (strlen(tmp_path) >= sz) return kFilenameTooLong;
     strcpy(canonical_path, tmp_path);
 
     return kOk;
 }
 
-bool path_is_absolute(const char *path) {
-    return path[0] == '\\' || path[0] == '/';
-}
-
 MmResult path_get_parent(const char *path, char *parent_path, size_t sz) {
-    bool absolute = path_is_absolute(path);
+    bool absolute = file_is_absolute(path);
     MmResult result = path_munge(path, parent_path, sz);
     if (FAILED(result)) return result;
     char *p = strrchr(parent_path, '/');
@@ -420,113 +439,98 @@ MmResult path_get_parent(const char *path, char *parent_path, size_t sz) {
     return kOk;
 }
 
-MmResult path_append(const char *head, const char *tail, char *result, size_t sz) {
-    result[0] = '\0';
-    if (FAILED(cstring_cat(result, head, sz))
-            || FAILED(cstring_cat(result, "/", sz))
-            || FAILED(cstring_cat(result, tail, sz))) return kFilenameTooLong;
-    return kOk;
-}
-
 const char *path_get_extension(const char *path) {
     char *p = strrchr(path, '.');
     return p ? p : path + strlen(path);
 }
 
 static MmResult path_mkdir_internal(const char *path) {
-    if (path[0] == '\0') return kOk;
+    // LOG_FN_ENTRY("path=\"%s\"", path);
 
-    if (path_exists(path)) {
-        return path_is_directory(path) ? kOk : kNotADirectory;
+    MmResult result = kError;
+    if (path[0] == '\0') {
+        result = kOk;
+    } else if (path_exists(path)) {
+        result = path_is_directory(path) ? kOk : kNotADirectory;
+    } else {
+        result = file_mkdir(path);
     }
 
-    errno = 0;
-    if (FAILED(mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) return errno;
-
-    return kOk;
+    RETURN_RESULT(result);
 }
 
 MmResult path_mkdir(const char *path) {
+    // LOG_FN_ENTRY("path=\"%s\"", path);
+
     char tmp_path[PATH_MAX];
-    MmResult result = path_munge(path, tmp_path, PATH_MAX);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(path, tmp_path, PATH_MAX));
 
     // Make intermediate elements of the path.
     char *end = strchr(tmp_path, '/');
     while (end) {
         *end = '\0';
-        result = path_mkdir_internal(tmp_path);
-        if (FAILED(result)) return result;
+        ON_FAILURE_RETURN(path_mkdir_internal(tmp_path));
         *end = '/';
         end = strchr(end + 1, '/');
     }
 
     // Make final element of the path.
-    result = path_mkdir_internal(tmp_path);
-    return result == kNotADirectory ? kFileExists : result;
+    MmResult result = path_mkdir_internal(tmp_path);
+    RETURN_RESULT(result == kNotADirectory ? kFileExists : result);
 }
 
-MmResult path_complete(const char *path, char *out, size_t sz) {
-    // printf("path_complete: #%s#\n", path);
-    char dir_path[PATH_MAX];
-    MmResult result = path_munge(path, dir_path, PATH_MAX);
-    if (FAILED(result)) return result;
+static MmResult path_complete_impl(const char *path, char *out, size_t sz) {
+    // LOG_FN_ENTRY("path=%s, out=%p, sz=%zu", path, out, sz);
 
     out[0] = '\0';
-    if (dir_path[0] == '\0' || path_exists(dir_path)) return kOk;
 
-    // Rewind to path-separator '/' or beginning of path,
-    // that gives us the 'dir_path' to search
-    // and the 'filename' prefix to match.
-    char filename[NAME_MAX + 1];
-    char *p = dir_path + strlen(dir_path);
-    while (*p != '/' && p > dir_path) p--;
-    if (*p == '/') {
-        strcpy(filename, p + 1);
-        if (p == dir_path) {
-            strcpy(dir_path, "/");
-        } else {
-            *p = '\0';
-        }
-    } else {
-        strcpy(filename, p);
-        strcpy(dir_path, "./");
+    char basename[NAME_MAX + 1];
+    char dirname[PATH_MAX];
+    {
+        char tmp[PATH_MAX];
+        ON_FAILURE_RETURN(path_munge(path, tmp, PATH_MAX));
+
+        if (tmp[0] == '\0' || path_exists(tmp)) RETURN_RESULT(kOk);
+
+        ON_FAILURE_RETURN(file_basename(tmp, basename, sizeof(basename)));
+        ON_FAILURE_RETURN(file_dirname(tmp, dirname, sizeof(dirname)));
     }
 
-    // printf("#%s#%s#\n", dir_path, filename);
-    // printf("%d\n", path_exists(dir_path));
-    // printf("%d\n", path_is_directory(dir_path));
+    // If 'dirname' doesn not exist or is not a directory then exit.
+    if (!path_exists(dirname)) RETURN_RESULT(kFileNotFound);
+    if (!path_is_directory(dirname)) RETURN_RESULT(kNotADirectory);
 
-    // If 'dir_path' doesn not exist or is not a directory then exit.
-    if (!path_exists(dir_path)) return kFileNotFound;
-    if (!path_is_directory(dir_path)) return kNotADirectory;
+    // Open 'dirname'.
+    DirStream *fd = NULL;
+    ON_FAILURE_RETURN(file_opendir(dirname, &fd));
 
-    // Open 'dir_path'.
-    errno = 0;
-    DIR *fd = opendir(dir_path);
-    if (!fd) return errno;
+    // LOG_DEBUG("dirname = %s, basename = %s", dirname, basename);
 
-    // Loop through files in 'dir_path' to identify a common completion 'out'.
-    struct dirent* entry;
-    size_t filename_len = strlen(filename);
-    while ((entry = readdir(fd))) {
-        if (strcmp(entry->d_name, ".") == 0
-                 || strcmp(entry->d_name, "..") == 0) continue;
-        p = strstr(entry->d_name, filename);
-        if (p != entry->d_name) continue;
-        // printf(" - %s\n", entry->d_name);
-        if (out[0] == '\0') {
-            cstring_cat(out, entry->d_name + filename_len, sz);
+    // Loop through files in 'dirname' to identify a common completion 'out'.
+    const size_t basename_len = strlen(basename);
+    MmResult result = kOk;
+    bool matched = false;
+    for (;;) {
+        DirEntry *entry = NULL;
+        result = file_readdir(fd, &entry);
+        if (FAILED(result) || !entry) break;
+        // LOG_DEBUG("entry->name = %s", entry->name);
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) continue;
+        char *p = strstr(entry->name, basename);
+        if (p != entry->name) continue;
+        if (!matched) {
+            cstring_cat(out, entry->name + basename_len, sz);
+            matched = true;
         } else {
             p = out;
-            char *p2 = entry->d_name + filename_len;
-            while (*p++ == *p2++);
-            *--p = '\0';
+            char *p2 = entry->name + basename_len;
+            while (*p == *p2 && *p != '\0') { p++; p2++; }
+            *p = '\0';
         }
     }
 
-    // readdir() will have set errno if it fails.
-    return (MmResult) errno;
+    ON_FAILURE_LOG(file_closedir(fd));
+    RETURN_RESULT_EX(result, "out=\"%s\"", out);
 }
 
 MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz) {

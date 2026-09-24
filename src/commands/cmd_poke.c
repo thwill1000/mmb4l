@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_poke.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -139,7 +139,7 @@ static void poke_word(int argc, char** argv, const char *p) {
 }
 
 void cmd_poke(void) {
-    getargs(&cmdline, 5, ",");
+    getargs(&cmdline, 5, DELIM_COMMA);
 
     const char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {

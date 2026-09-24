@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_new.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -46,22 +46,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/console.h"
+#include "../common/display.h"
 #include "../common/options.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 
 void cmd_new(void) {
 //    if(CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
     checkend(cmdline);
-    ClearSavedVars();
-    FlashWriteInit();
-    ClearProgram();
-    WatchdogSet = false;
+    console_set_title("MMBasic - Untitled", false);
+    ProgMemory[0] = '\0';
+    ProgMemory[1] = '\0';
+    ProgMemory[2] = '\0';
+    CurrentFile[0] = '\0';
+    ON_FAILURE_ERROR(ClearRuntime());
+    ON_FAILURE_ERROR(SwitchPlatform(kSimulateUnspecified));
     mmb_options.autorun = false;
-    MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    MmResult result = options_save(&mmb_options, options_filename);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
-        sprintf(buf, "Warning: failed to save options: %s", mmresult_to_string(result));
-        console_puts(buf);
+        snprintf(buf, STRINGSIZE, "Warning: failed to save options: %s\r\n",
+               mmresult_to_string(result));
+        display_puts(buf);
     }
     longjmp(mark, JMP_NEW);
 }

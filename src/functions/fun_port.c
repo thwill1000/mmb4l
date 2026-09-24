@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_port.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,12 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** PORT(start, nbr [, start, nbr] ...) */
 void fun_port(void) {
-    if (mmb_options.simulate != kSimulateGameMite) {
-        error_throw(kUnsupportedOnCurrentDevice);
-        return;
+    if (mmb_features.gamepad_type != kGamepadTypeGamemite) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
-    getargs(&ep, GPIO_MAX_PIN_NUM * 4, ",");
+    getargs(&ep, GPIO_MAX_PIN_NUM * 4, DELIM_COMMA);
     if ((argc & 0b11) != 0b11) ERROR_ARGUMENT_COUNT;
 
     iret = 0;

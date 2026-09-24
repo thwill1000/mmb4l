@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <string.h>
 
+#include "features.h"
 #include "graphics.h"
 #include "stack.h"
 
@@ -62,6 +63,8 @@ typedef enum {
    kSpriteEdgeRight = 0x04,
    kSpriteEdgeBottom = 0x08
 } SpriteEdge;
+
+extern Features mmb_features;
 
 /**
  * Id of the sprite involved in the last collision:
@@ -180,7 +183,7 @@ MmResult sprite_hide_all();
  *          255 otherwise.
  */
 static inline MmSurfaceId sprite_max_id() {
-   return (mmb_options.simulate == kSimulateMmb4l) ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
+   return (mmb_features.graphics_type == kGraphicsTypeMmb4l) ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
 }
 
 /**
@@ -196,7 +199,7 @@ static inline MmSurfaceId sprite_max_id() {
 static inline MmSurfaceId sprite_id_to_surface_id(MmSurfaceId sprite_id) {
    if (sprite_id < 0 || sprite_id > sprite_max_id()) {
       return -1;
-   } else if (sprite_id == 0 || mmb_options.simulate == kSimulateMmb4l) {
+   } else if (sprite_id == 0 || mmb_features.graphics_type == kGraphicsTypeMmb4l) {
       return sprite_id;
    } else {
       return sprite_id + CMM2_SPRITE_BASE;
@@ -216,7 +219,7 @@ static inline MmSurfaceId sprite_id_to_surface_id(MmSurfaceId sprite_id) {
 static inline MmSurfaceId sprite_id_from_surface_id(MmSurfaceId surface_id) {
    if (surface_id < 0 || surface_id > GRAPHICS_MAX_ID) {
       return -1;
-   } else if (surface_id == 0 || mmb_options.simulate == kSimulateMmb4l) {
+   } else if (surface_id == 0 || mmb_features.graphics_type == kGraphicsTypeMmb4l) {
       return surface_id;
    } else {
       const MmSurfaceId sprite_id = surface_id - CMM2_SPRITE_BASE;

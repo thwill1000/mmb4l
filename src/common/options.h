@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -48,15 +48,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 #include "../Configuration.h"
+#include "file.h"
+#include "logger.h"
 #include "mmresult.h"
 
-#define OPTIONS_FILE_NAME       "~/.mmbasic/mmbasic.options"
+#include <SDL_atomic.h>
 
 /** Number of programmable function keys. */
 #define OPTIONS_NUM_FN_KEYS     12
 
 /** Maximum length of string that can be assigned to a programmable function key. */
 #define OPTIONS_MAX_FN_KEY_LEN  64
+
+/** Helper macro to conveniently set the global simulate option and update the features. */
+#define OPTIONS_SET_SIMULATE(s) \
+    mmb_options.simulate = s; \
+    (void) features_init(&mmb_features, s);
 
 typedef enum {
     kOptionAngle = 0,
@@ -82,9 +89,10 @@ typedef enum {
     kOptionF10,
     kOptionF11,
     kOptionF12,
-    kOptionResolution,
+    kOptionLog,
     kOptionSearchPath,
     kOptionSimulate,
+    kOptionSyntaxHighlight,
     kOptionTab,
 #if defined(OPTION_TESTS)
     kOptionZBoolean,
@@ -123,19 +131,27 @@ typedef struct {
 
 typedef enum { kRadians, kDegrees } OptionsAngle;
 
-typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
+typedef enum {
+    kConsoleNone = 0x0,
+    kSerial = 0x1,
+    kScreen = 0x2,
+    kBoth = 0x3
+} OptionsConsole;
 
 typedef enum {
+    kSimulateUnspecified = 0,
     kSimulateMmb4l,
     kSimulateMmb4w,
     kSimulateCmm2,
-    kSimulatePicoMiteVga,
-    kSimulateGameMite
+    kSimulateGamemite,
+    kSimulatePicocalc,
+    kSimulatePicomiteHdmi,
+    kSimulatePicomiteVga,
+    kSimulatePicomiteVgaUsb,
+    kSimulateCount,
 } OptionsSimulate;
 
 typedef enum { kTitle, kLower, kUpper } OptionsListCase;
-
-typedef enum { kCharacter, kPixel } OptionsResolution;
 
 typedef struct {
     OptionsAngle angle;
@@ -143,20 +159,19 @@ typedef struct {
     bool audio;
     bool auto_scale;
     int base;
-    char break_key;
-    const char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.h'
+    SDL_atomic_t break_key;  // Accessed by main + keybuf threads
+    const char *codepage;    // Pointer to one of the arrays/maps declared in 'codepage.h'
     OptionsConsole console;
     char default_type;
     char editor[STRINGSIZE];  // TODO: should probably be shorter
     char explicit_type;
     char fn_keys[OPTIONS_NUM_FN_KEYS][OPTIONS_MAX_FN_KEY_LEN + 1];
-    int  height;
     OptionsListCase list_case;
-    OptionsResolution resolution;
+    LoggerLevel log;
     char search_path[STRINGSIZE];
     OptionsSimulate simulate;
+    bool syntax_highlight;
     char tab;
-    int  width;
 
 #if defined OPTION_TESTS
     bool    zboolean;
@@ -171,8 +186,9 @@ typedef void (*OPTIONS_WARNING_CB) (const char *);
 extern Options mmb_options;
 extern OptionsDefinition options_definitions[];
 extern OptionsEditor options_editors[];
+extern char options_filename[PATH_MAX];
 
-/** @brief Initialises the options. */
+/**@brief Initialises the options. */
 void options_init(Options *options);
 
 /** @brief Decodes a C-string that has been encoded using options_encode_string(). */
@@ -222,5 +238,15 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
 
 /** @brief Sets the value for the given option from a C-string. */
 MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue);
+
+/**
+ * Gets the OptionsSimulate enum value corresponding to a string, or -1 if unmatched.
+ */
+int options_simulate_from_string(const char *s);
+
+/**
+ * Gets the OptionsSimulate string value corresponding to an enum value.
+ */
+const char *options_simulate_to_string(OptionsSimulate simulate);
 
 #endif // #if !defined(MMB4L_OPTIONS_H)

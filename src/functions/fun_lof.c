@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_lof.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,17 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/streamio.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
 
 void fun_lof(void) {
     int fnbr = parse_file_number(ep, false);
-    if (fnbr == -1) {
-        error_throw(kFileInvalidFileNumber);
-        return;
-    }
+    if (fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
     targ = T_INT;
-    iret = file_lof(fnbr);
+    iret = streamio_lof(fnbr);
 }

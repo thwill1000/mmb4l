@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cls.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -58,14 +58,14 @@ static MmResult cmd_cls_console(const char *p) {
 
 /** CLS [colour] */
 static MmResult cmd_cls_default(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
 
     if (!graphics_current) {
         console_clear();
         return kOk;
     }
 
-    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga)
+    const MmSurface *layer = mmb_features.graphics_type == kGraphicsTypePicomiteVga
             ? &graphics_surfaces[GRAPHICS_SURFACE_L]
             : NULL;
     const MmGraphicsColour colour = has_arg(0)

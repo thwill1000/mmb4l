@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -10,22 +10,21 @@ extern "C" {
 #include <SDL.h>
 #include <stdint.h>
 
+#include "../features.h"
 #include "../gpio.h"
 #include "../mmresult.h"
 
 static int64_t gamepad_button_state[3] = { 0x0, 0x0, 0x0 };
 static bool gamepad_open_state[3] = { false, false, false };
 
-// Defined in "audio.c"
-const char *audio_last_error() { return NULL; }
+// Defined in main.c
+Features mmb_features;
 
 // Defined in "events.c"
 MmResult events_init() { return kOk; }
-const char *events_last_error() { return NULL; }
 
 // Defined in "gamepad.c"
-const char *gamepad_last_error() { return NULL; }
-MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
+MmResult gamepad_open(MmGamepadId id) {
     gamepad_open_state[id] = true;
     return kOk;
 }
@@ -48,9 +47,6 @@ MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out) {
     return kOk;
 }
 
-// Defined in "graphics.c"
-const char *graphics_last_error() { return NULL; }
-
 // Defined in "options.c"
 Options mmb_options;
 }
@@ -63,7 +59,7 @@ class GpioPinTest : public ::testing::TestWithParam<std::tuple<uint8_t, uint8_t,
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
@@ -167,7 +163,7 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 static uint16_t read_snes(uint8_t latch, uint8_t clock, uint8_t data) {
-    const float PULSE_DURATION = 0.012;  // 12uS
+    const float PULSE_DURATION = 0.012f;  // 12uS
     EXPECT_EQ(kOk, gpio_pulse_pin(latch, PULSE_DURATION));
     uint16_t bits = 0x0;
     for (size_t i = 0; i < 16; ++i) {
@@ -201,12 +197,12 @@ class SnesControllerSimulationTest
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
 TEST_P(SnesControllerSimulationTest, ControllerA) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_LATCH, kGpioPinDOut));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_CLOCK, kGpioPinDOut));
@@ -222,7 +218,7 @@ TEST_P(SnesControllerSimulationTest, ControllerA) {
 }
 
 TEST_P(SnesControllerSimulationTest, ControllerB) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_LATCH, kGpioPinDOut));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_CLOCK, kGpioPinDOut));
@@ -238,7 +234,7 @@ TEST_P(SnesControllerSimulationTest, ControllerB) {
 }
 
 TEST_F(SnesControllerSimulationTest, ConfiguringSnesALatchPinAsDOut_OpensGamepad1) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     uint8_t params[][3] = {
         { kGpioPinOff, kGpioPinOff, false },
@@ -261,7 +257,7 @@ TEST_F(SnesControllerSimulationTest, ConfiguringSnesALatchPinAsDOut_OpensGamepad
 }
 
 TEST_F(SnesControllerSimulationTest, ConfiguringSnesBLatchPinAsDOut_OpensGamepad2) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     uint8_t params[][3] = {
         { kGpioPinOff, kGpioPinOff, false },
@@ -284,7 +280,7 @@ TEST_F(SnesControllerSimulationTest, ConfiguringSnesBLatchPinAsDOut_OpensGamepad
 }
 
 TEST_F(SnesControllerSimulationTest, ConfiguringSnesALatchPinAsOff_ClosesGamepad1) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     uint8_t params[][3] = {
         { kGpioPinOff, kGpioPinOff, false },
@@ -307,7 +303,7 @@ TEST_F(SnesControllerSimulationTest, ConfiguringSnesALatchPinAsOff_ClosesGamepad
 }
 
 TEST_F(SnesControllerSimulationTest, ConfiguringSnesBLatchPinAsOff_ClosesGamepad2) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     uint8_t params[][3] = {
         { kGpioPinOff, kGpioPinOff, false },
@@ -373,7 +369,7 @@ static uint16_t read_gamemite() {
            (a << 7);
 }
 
-class GameMiteControllerSimulationTest
+class GamemiteControllerSimulationTest
     : public ::testing::TestWithParam<std::tuple<std::string, GamepadButton, uint16_t>> {
    protected:
     void SetUp() override {
@@ -382,12 +378,12 @@ class GameMiteControllerSimulationTest
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
-TEST_P(GameMiteControllerSimulationTest, ControllerA) {
-    mmb_options.simulate = kSimulateGameMite;
+TEST_P(GamemiteControllerSimulationTest, ControllerA) {
+    OPTIONS_SET_SIMULATE(kSimulateGamemite);
 
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP8, kGpioPinDIn));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP9, kGpioPinDIn));
@@ -406,7 +402,7 @@ TEST_P(GameMiteControllerSimulationTest, ControllerA) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    , GameMiteControllerSimulationTest,
+    , GamemiteControllerSimulationTest,
     ::testing::Values(std::make_tuple("No_buttons", (GamepadButton)0x0, 0b11111111),
                       std::make_tuple("Button_B", kButtonB, 0b10111111),
                       std::make_tuple("Button_Y", kButtonY, 0b10111111),
@@ -423,11 +419,11 @@ INSTANTIATE_TEST_SUITE_P(
                       std::make_tuple("Multiple_buttons",
                                       (GamepadButton)(kButtonA | kButtonUp | kButtonLeft),
                                       0b01111001)),
-    [](const testing::TestParamInfo<GameMiteControllerSimulationTest::ParamType> &info) {
+    [](const testing::TestParamInfo<GamemiteControllerSimulationTest::ParamType> &info) {
         return std::get<0>(info.param);
     });
 
-class PicoMiteVgaConfigurePinTest
+class PicomiteVgaConfigurePinTest
     : public ::testing::TestWithParam<std::tuple<uint8_t, bool>> {
    protected:
     void SetUp() override {
@@ -436,13 +432,13 @@ class PicoMiteVgaConfigurePinTest
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
 /** Tests that only the pins used by the PicoGAME VGA SNES controllers are supported. */
-TEST_P(PicoMiteVgaConfigurePinTest, ConfigurePin) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+TEST_P(PicomiteVgaConfigurePinTest, ConfigurePin) {
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     uint8_t pin_num;
     MmResult result = gpio_translate_from_pin_gp(std::get<0>(GetParam()), &pin_num);
     EXPECT_EQ(kOk, result);
@@ -458,7 +454,7 @@ TEST_P(PicoMiteVgaConfigurePinTest, ConfigurePin) {
 
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(
-    , PicoMiteVgaConfigurePinTest,
+    , PicomiteVgaConfigurePinTest,
     ::testing::Values(std::make_tuple(1, true),
                       std::make_tuple(2, true),
                       std::make_tuple(3, true),
@@ -487,7 +483,7 @@ INSTANTIATE_TEST_SUITE_P(
                       std::make_tuple(26, false),
                       std::make_tuple(27, false),
                       std::make_tuple(28, false)),
-    [](const testing::TestParamInfo<PicoMiteVgaConfigurePinTest::ParamType> &info) {
+    [](const testing::TestParamInfo<PicomiteVgaConfigurePinTest::ParamType> &info) {
         char buf[32];
         sprintf(buf, "Gp_%d_is_%s", std::get<0>(info.param),
                 std::get<1>(info.param) ? "Supported" : "Unsupported");

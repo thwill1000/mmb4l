@@ -20,15 +20,15 @@ freely, subject to the following restrictions:
         distribution.
 */
 
-#include "upng.h"
-#include "../common/error.h"
-#include "../common/file.h"
-#include "../common/memory.h"
-#include "../common/utility.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+
+#include "upng.h"
+#include "../common/error.h"
+#include "../common/memory.h"
+#include "../common/streamio.h"
+#include "../common/utility.h"
 
 #define MAKE_BYTE(b) ((b) & 0xFF)
 #define MAKE_DWORD(a,b,c,d) ((MAKE_BYTE(a) << 24) | (MAKE_BYTE(b) << 16) | (MAKE_BYTE(c) << 8) | MAKE_BYTE(d))
@@ -60,7 +60,7 @@ freely, subject to the following restrictions:
 #define upng_chunk_length(chunk) MAKE_DWORD_PTR(chunk)
 #define upng_chunk_type(chunk) MAKE_DWORD_PTR((chunk) + 4)
 #define upng_chunk_critical(chunk) (((chunk)[4] & 32) == 0)
-upng_t upng_static;
+
 typedef enum upng_state {
     UPNG_ERROR        = -1,
     UPNG_DECODED    = 0,
@@ -98,6 +98,8 @@ struct upng_t {
     upng_state        state;
     upng_source        source;
 };
+
+upng_t upng_static;
 
 typedef struct huffman_tree {
     unsigned* tree2d;
@@ -280,8 +282,11 @@ static unsigned huffman_decode_symbol(upng_t *upng, const unsigned char *in, uns
 
         bit = read_bit(bp, in);
 
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
         ct = codetree->tree2d[(treepos << 1) | bit];
         if (ct < codetree->numcodes) {
             return ct;
@@ -292,7 +297,11 @@ static unsigned huffman_decode_symbol(upng_t *upng, const unsigned char *in, uns
             SET_ERROR(upng, UPNG_EMALFORMED);
             return 0;
         }
+
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
+
     }
 }
 
@@ -1178,32 +1187,28 @@ upng_t* upng_new_from_file(char *filename)
     }
 
     if(strchr(filename, '.') == NULL) strcat(filename, ".png");
-    fnbr = file_find_free();
+    fnbr = streamio_find_free();
     // if(!BasicFileOpen(filename, fnbr, FA_READ)) return 0;
-	MmResult result = file_open(filename, "rb", fnbr);
-    if (FAILED(result)) {
-        error_throw(result);
-        return NULL;
-    }
+    ON_FAILURE_ERROR_EX(streamio_open(filename, "rb", fnbr), NULL);
 
     /* get filesize */
     // f_lseek(FileTable[fnbr].fptr, f_size(FileTable[fnbr].fptr));
-    size = fullsize = file_lof(fnbr); // f_tell(FileTable[fnbr].fptr);
+    size = fullsize = streamio_lof(fnbr); // f_tell(FileTable[fnbr].fptr);
     // f_lseek(FileTable[fnbr].fptr, 0);
     buffer = buff = GetMemory(size);
 
     /* read contents of the file into the vector */
     if (buffer == NULL) {
-        (void) file_close(fnbr);
+        (void) streamio_close(fnbr);
         error_throw_ex(kError, "UPNG_ENOMEM");
         return upng;
     }
     while(size>0){
-        sizeread = file_read(fnbr, buffer, 512); // f_read(FileTable[fnbr].fptr, buffer, 512, &sizeread);
+        sizeread = streamio_read(fnbr, buffer, 512); // f_read(FileTable[fnbr].fptr, buffer, 512, &sizeread);
         size-=sizeread;
         buffer+=sizeread;
     }
-    result = file_close(fnbr);
+    MmResult result = streamio_close(fnbr);
     if (FAILED(result)) {
         upng_free(upng);
         error_throw(result);

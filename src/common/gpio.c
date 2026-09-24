@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 gpio.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -134,11 +134,12 @@ void gpio_init() {
     }
 }
 
-void gpio_term() {
+MmResult gpio_term() {
     if (gpio_initialised) {
         gpio_reset();
         gpio_initialised = false;
     }
+    return kOk;
 }
 
 /**
@@ -155,7 +156,7 @@ static MmResult gpio_configure_pin_gamemite(uint8_t pin_num, GpioPinConfig confi
     switch (pin_num) {
         case GPIO_GP8:
             if (config == kGpioPinDIn && gpio_pins[pin_num].config == kGpioPinOff) {
-                result = gamepad_open(1, NULL, 0);
+                result = gamepad_open(1);
             } else if (config == kGpioPinOff && gpio_pins[pin_num].config == kGpioPinDIn) {
                 result = gamepad_close(1);
             }
@@ -179,7 +180,7 @@ static MmResult gpio_configure_snes_latch(MmGamepadId id, uint8_t pin_num, GpioP
     MmResult result = kOk;
     if (config == kGpioPinDOut) {
         // Configuring to DOut always opens gamepad irrespective of current config.
-        result = gamepad_open(id, NULL, 0);
+        result = gamepad_open(id);
     } else if (config == kGpioPinOff) {
         // Configuring to DOff always closes gamepad irrespective of current config.
         result = gamepad_close(id);
@@ -187,7 +188,7 @@ static MmResult gpio_configure_snes_latch(MmGamepadId id, uint8_t pin_num, GpioP
     return result;
 }
 
-static MmResult gpio_configure_pin_picomite_vga(uint8_t pin_num, GpioPinConfig config) {
+static MmResult gpio_configure_pin_picomite_snes(uint8_t pin_num, GpioPinConfig config) {
     switch (pin_num) {
         case GPIO_SNES_A_LATCH:
             return gpio_configure_snes_latch(1, GPIO_SNES_A_LATCH, config);
@@ -213,12 +214,12 @@ MmResult gpio_configure_pin(uint8_t pin_num, GpioPinConfig config) {
 
     MmResult result = kOk;
 
-    switch (mmb_options.simulate) {
-        case kSimulateGameMite:
+    switch (mmb_features.gamepad_type) {
+        case kGamepadTypeGamemite:
             result = gpio_configure_pin_gamemite(pin_num, config);
             break;
-        case kSimulatePicoMiteVga:
-            result = gpio_configure_pin_picomite_vga(pin_num, config);
+        case kGamepadTypePicomiteSnes:
+            result = gpio_configure_pin_picomite_snes(pin_num, config);
             break;
         default:
             break;
@@ -258,7 +259,7 @@ MmResult gpio_get_pin_value(uint8_t pin_num, uint8_t *value) {
     if (!gpio_is_valid_pin_num(pin_num)) return kGpioInvalidPin;
 
     MmResult result = kOk;
-    if (mmb_options.simulate == kSimulateGameMite) {
+    if (mmb_features.gamepad_type == kGamepadTypeGamemite) {
         GamepadButton button = 0x0;
         switch (pin_num) {
             case GPIO_GP8:
@@ -326,7 +327,7 @@ static MmResult gpio_on_pin_high_to_low(uint8_t pin_num) { return kOk; }
 
 /** Called BEFORE a pin transitions from low to high. */
 static MmResult gpio_on_pin_low_to_high(uint8_t pin_num) {
-    if (mmb_options.simulate == kSimulatePicoMiteVga) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteSnes) {
         switch (pin_num) {
             case GPIO_SNES_A_LATCH: {
                 gpio_read_snes_bits(1, &gpio_snes_a);
@@ -375,7 +376,7 @@ MmResult gpio_set_pin_value(uint8_t pin_num, uint8_t value) {
             if (value == 0) result = gpio_on_pin_high_to_low(pin_num);
             break;
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
             break;
     }
     if (SUCCEEDED(result)) gpio_pins[pin_num].value = value;

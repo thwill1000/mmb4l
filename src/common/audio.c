@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 audio.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,32 +42,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "audio.h"
-
-#include <SDL.h>
 #include <assert.h>
-#include <dirent.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../third_party/dr_flac.h"
-#include "../third_party/dr_mp3.h"
-#include "../third_party/dr_wav.h"
-#include "../third_party/hxcmod.h"
+#include <SDL.h>
+
+#include "audio.h"
 #include "audio_tables.h"
-#include "console.h"
 #include "cstring.h"
+#include "display.h"
 #include "error.h"
 #include "events.h"
 #include "file.h"
+#include "file_private.h"
 #include "interrupt.h"
 #include "memory.h"
 #include "mmresult.h"
 #include "path.h"
+#include "streamio.h"
 #include "utility.h"
+#include "../third_party/dr_flac.h"
+#include "../third_party/dr_mp3.h"
+#include "../third_party/dr_wav.h"
+#include "../third_party/hxcmod.h"
 
 #define AUDIO_SAMPLE_RATE 44100UL
 #define WAV_BUFFER_SIZE 16384
@@ -107,8 +108,6 @@ typedef struct {
     char *data;
 } AudioBuffer;
 
-static const char *NO_ERROR = "";
-
 static bool audio_initialised = false;
 static AudioState audio_state = P_NOTHING;
 
@@ -123,7 +122,7 @@ static float audio_phase_m[2][MAXSOUNDS] = {0};
 static int audio_sound_volume[2][MAXSOUNDS] = {0};
 static uint64_t audio_tone_duration;
 static char audio_track_list[MAX_TRACKS][STRINGSIZE];
-static unsigned audio_track_current = 0;
+static int audio_track_current = -1;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY FLAC, PLAY MOD, PLAY_MP3 and PLAY_WAV
@@ -190,6 +189,12 @@ static drmp3_bool32 audio_on_seek(void *pUserData, int offset, drmp3_seek_origin
     return 1;
 }
 
+static MmResult audio_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kAudioApiError, "Audio error: %s", emsg);
+}
+
 /**
  * Configures the SDL Audio sample rate and number of channels.
  *
@@ -213,12 +218,14 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
             .format = AUDIO_F32,
             .channels = num_channels,
             .freq = sample_rate,
-            .samples = 1,  // TODO: Support a bigger sample buffer.
+            .samples = 1024,  // ~23ms buffer @ 44100Hz
             .callback = audio_callback,
         };
 
         if (mmb_options.audio) {
-            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) {
+                result = audio_api_error();
+            }
         }
 
         LOCK_AUDIO("audio_configure"); // Acquire lock on the new audio.
@@ -246,21 +253,18 @@ MmResult audio_init() {
             .format = AUDIO_F32,
             .channels = 2,
             .freq = AUDIO_SAMPLE_RATE,
-            .samples = 1,  // TODO: Support a bigger sample buffer.
+            .samples = 1024,  // ~23ms buffer @ 44100Hz
             .callback = audio_callback,
         };
 
         if (mmb_options.audio) {
-            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) {
+                result = audio_api_error();
+            }
         }
     }
 
     return result;
-}
-
-const char *audio_last_error() {
-    const char *emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
 }
 
 static void audio_free_buffers() {
@@ -313,7 +317,7 @@ static void audio_alloc_mod_buf(size_t size) {
 
 static MmResult audio_close_file() {
     if (audio_fnbr != -1) {
-        MmResult result = file_close(audio_fnbr);
+        MmResult result = streamio_close(audio_fnbr);
         audio_fnbr = -1;
         return result;
     } else {
@@ -346,39 +350,36 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     char tmp[STRINGSIZE];
 
     // Check for a single file.
-    {
-        MmResult result = path_try_extension(canonical, extension, tmp, STRINGSIZE);
-        if (SUCCEEDED(result)) {
-            cstring_cpy(audio_track_list[0], tmp, STRINGSIZE);
-            return kOk;
-        } else if (result != kFileNotFound) {
-            return result;
-        }
+    MmResult result = path_try_extension(canonical, extension, tmp, STRINGSIZE);
+    if (SUCCEEDED(result)) {
+        cstring_cpy(audio_track_list[0], tmp, STRINGSIZE);
+        RETURN_RESULT(kOk);
+    } else if (result != kFileNotFound) {
+        RETURN_RESULT(result);
     }
 
     // Treat 'canonical' as a directory to search.
-    {
-        errno = 0;
-        const char *dirname = canonical;
-        DIR *dir = opendir(dirname);
-        if (!dir) return errno;
-        struct dirent *ent;
-        size_t counter = 0;
-        while (counter != MAX_TRACKS && (ent = readdir(dir)) != NULL) {
-            if (path_has_extension(ent->d_name, extension, true)) {
-                if (FAILED(cstring_cpy(tmp, dirname, STRINGSIZE))) {
-                    return kFilenameTooLong;
-                }
-                if (FAILED(path_append(tmp, ent->d_name, audio_track_list[counter++],
-                                       STRINGSIZE))) {
-                    return kFilenameTooLong;
-                }
-            }
+    DirStream *dir = NULL;
+    const char *dirname = canonical;
+    ON_FAILURE_RETURN(file_opendir(dirname, &dir));
+
+    size_t counter = 0;
+    while (counter != MAX_TRACKS) {
+        DirEntry *entry = NULL;
+        result = file_readdir(dir, &entry);
+        if (FAILED(result) || !entry) break;
+        if (!path_has_extension(entry->name, extension, true)) continue;
+        if (FAILED(cstring_cpy(audio_track_list[counter], dirname, STRINGSIZE))) {
+            result = kFilenameTooLong;
+            break;
         }
-        closedir(dir);
+        result = file_append_path(audio_track_list[counter], entry->name, sizeof(tmp));
+        if (FAILED(result)) break;
+        counter++;
     }
 
-    return (MmResult) errno;
+    ON_FAILURE_LOG(file_closedir(dir));
+    RETURN_RESULT(result);
 }
 
 MmResult audio_stop() {
@@ -422,7 +423,6 @@ static float audio_callback_tone(int channel) {
     if (audio_tone_duration <= 0) {
         return 0.0f;
     } else {
-        audio_tone_duration--;
         const int volume =
             (sine_table[(int)audio_phase_ac[channel][0]] - 2000) * mapping[TONE_VOLUME] / 2000;
         audio_phase_ac[channel][0] += audio_phase_m[channel][0];
@@ -539,29 +539,52 @@ static float audio_callback_sound(int channel) {
     return (float)volume / 2000.0f;
 }
 
-// For the moment 'len' is expected to always be 8 bytes (2 samples) for stereo.
+// SDL may now call this with any multiple of a stereo frame (len is no
+// longer guaranteed to be 8 bytes / one frame) since .samples was raised
+// from 1 to a real buffer size. We loop over however many complete stereo
+// frames were requested and synthesize each one via the same per-channel
+// callbacks as before; audio_callback_mod()/audio_callback_track()'s
+// buffer-swap logic is unaffected since it already re-checks
+// byte_count/pos on every single call rather than assuming one call per
+// buffer, so calling it many times per audio_callback() invocation is safe.
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
-    assert(len == 8);
-    float *fstream = (float *)stream;
-    for (int i = 0; i < 2; ++i) {
-        switch (audio_state) {
-            case P_TONE:
-                fstream[i] = audio_callback_tone(i);
-                break;
-            case P_MOD:
-                fstream[i] = audio_callback_mod(i);
-                break;
-            case P_MP3:
-            case P_WAV:
-            case P_FLAC:
-                fstream[i] = audio_callback_track(i);
-                break;
-            case P_SOUND:
-                fstream[i] = audio_callback_sound(i);
-                break;
-            default:
-                fstream[i] = 0.0f;
-                break;
+    assert(audio_current_spec.channels == 2);
+    assert(len % (2 * (int) sizeof(float)) == 0);
+
+    float *fstream = (float *) stream;
+    const int num_frames = len / (2 * (int) sizeof(float));
+
+    for (int frame = 0; frame < num_frames; ++frame) {
+        for (int channel = 0; channel < 2; ++channel) {
+            float value;
+            switch (audio_state) {
+                case P_TONE:
+                    value = audio_callback_tone(channel);
+                    break;
+                case P_MOD:
+                    value = audio_callback_mod(channel);
+                    break;
+                case P_MP3:
+                case P_WAV:
+                case P_FLAC:
+                    value = audio_callback_track(channel);
+                    break;
+                case P_SOUND:
+                    value = audio_callback_sound(channel);
+                    break;
+                default:
+                    value = 0.0f;
+                    break;
+            }
+            fstream[frame * 2 + channel] = value;
+        }
+
+        // One frame of tone duration consumed per output frame, regardless
+        // of channel count - decremented here rather than inside
+        // audio_callback_tone() so the per-channel synthesis function stays
+        // free of shared mutable state.
+        if (audio_state == P_TONE && audio_tone_duration > 0) {
+            audio_tone_duration--;
         }
     }
 }
@@ -586,7 +609,7 @@ MmResult audio_play_next() {
         case P_MP3:
         case P_WAV:
             if (audio_is_last_track()) {
-                console_puts("Last track is playing\r\n");
+                display_puts("Last track is playing\r\n");
             } else {
                 result = audio_play_next_track();
             }
@@ -657,7 +680,7 @@ MmResult audio_play_previous() {
         case P_MP3:
         case P_WAV:
             if (audio_is_first_track()) {
-                console_puts("First track is playing\r\n");
+                display_puts("First track is playing\r\n");
             } else {
                 audio_track_current -= 2;
                 result = audio_play_next_track();
@@ -684,8 +707,8 @@ static bool audio_is_valid_sample_rate(unsigned sample_rate) {
 static MmResult audio_open_file(const char *filename) {
     MmResult result = audio_close_file();
     if (SUCCEEDED(result)) {
-        audio_fnbr = file_find_free();
-        result = file_open(filename, "rb", audio_fnbr);
+        audio_fnbr = streamio_find_free();
+        result = streamio_open(filename, "rb", audio_fnbr);
     }
     return result;
 }
@@ -766,9 +789,9 @@ static MmResult audio_play_modfile_internal(const char *filename) {
     // TODO: If file_lof() or file_read() report error this will leave audio device paused.
     int size = 0;
     if (SUCCEEDED(result)) {
-        size = file_lof(audio_fnbr);
+        size = streamio_lof(audio_fnbr);
         audio_alloc_mod_buf(size);
-        file_read(audio_fnbr, audio_mod_buf, size);
+        streamio_read(audio_fnbr, audio_mod_buf, size);
         result = audio_close_file();
     }
 
@@ -899,9 +922,9 @@ static MmResult audio_play_next_track() {
     const char *next_track = audio_track_list[audio_track_current];
     if (!*next_track) return kAudioNoMoreTracks;
     if (!CurrentLinePtr) {
-        console_puts("Now playing: ");
-        console_puts(next_track);
-        console_puts("\r\n");
+        display_puts("Now playing: ");
+        display_puts(next_track);
+        display_puts("\r\n");
     }
     MmResult result = kOk;
     if (path_has_extension(next_track, ".FLAC", true)) {
@@ -913,7 +936,7 @@ static MmResult audio_play_next_track() {
     } else if (path_has_extension(next_track, ".WAV", true)) {
         result = audio_play_wav_internal(next_track);
     } else {
-        result = kInternalFault;
+        result = INTERNAL_FAULT_EX("invalid audio track type: %s", next_track);
     }
     return result;
 }
@@ -1029,7 +1052,8 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
                 // Already set to null_table.
                 break;
             default:
-                result = kInternalFault;
+                result = INTERNAL_FAULT_EX("invalid SoundType: %d", type);
+                break;
         }
     }
 

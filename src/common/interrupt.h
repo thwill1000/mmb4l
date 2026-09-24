@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 interrupt.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 
 #include "graphics.h"
-#include "../Configuration.h"
 
 typedef struct SDL_WindowEvent SDL_WindowEvent;
 
@@ -71,7 +70,7 @@ typedef struct {
 } Interrupt;
 
 /** Initialises interrupts. */
-void interrupt_init(void);
+MmResult interrupt_init(void);
 
 /** Clears all interrupts. */
 void interrupt_clear(void);
@@ -107,6 +106,12 @@ void interrupt_enable_specific_key(int key, const char *interrupt_addr);
 
 /** Enables the specified 'SETTICK' interrupt. */
 void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_addr);
+
+/** Pauses the specified 'SETTICK' interrupt. */
+MmResult interrupt_pause_tick(int irq);
+
+/** Resumes the specified 'SETTICK' interrupt. */
+MmResult interrupt_resume_tick(int irq);
 
 /**
  * Checks if the specified character matches that set for the 'ON KEY ASCIIcode'

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_system.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,17 +42,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/cstring.h"
-#include "../common/parse.h"
-#include "../common/utility.h"
-#include "../core/tokentbl.h"
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+
+#include "../common/mmb4l.h"
+#include "../common/cstring.h"
+#include "../common/display.h"
+#include "../common/parse.h"
+#include "../common/utility.h"
+#include "../common/system.h"
+#include "../core/tokentbl.h"
+
+#if defined(_WIN32)
+#define popen _popen
+#define pclose _pclose
+#define WEXITSTATUS(status) status
+#endif
 
 /**
  * @brief  Reads value of an environment variable into a buffer.
@@ -81,7 +87,7 @@ static MmResult cmd_system_getenv_to_buf(const char *name, char *buf, size_t *sz
  * SYSTEM GETENV name$, value%()
  */
 static void cmd_system_getenv(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_SYNTAX;
 
     // Name of environment variable to query.
@@ -136,11 +142,8 @@ static void cmd_system_getenv(const char *p) {
  * SYSTEM SETENV name$ = longstring%()
  */
 void cmd_system_setenv(const char *p) {
-    char ss[3];
-    ss[0] = tokenEQUAL;
-    ss[1] =',';
-    ss[2] = 0;
-    getargs(&p, 3, ss);
+    const DelimType delim[] = { tokenEQUAL, ',', 0 };
+    getargs(&p, 3, delim);
     if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     // 'name' restricted to uppercase letters, digits and '_'.
@@ -168,14 +171,14 @@ void cmd_system_setenv(const char *p) {
             char *value = GetTempMemory(sz + 1);
             memcpy(value, var_ptr + 8, sz);
             value[sz] = 0;
-            if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
+            if (FAILED(system_setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
             return;
         }
     }
 
     // Otherwise it should be a STRING.
     char *value = getCstring(argv[2]);
-    if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
+    if (FAILED(system_setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
 }
 
 /**
@@ -189,31 +192,43 @@ void cmd_system_setenv(const char *p) {
  *                               On exit the number of characters in the buffer.
  * @param[out]      exit_status  On exit the exit status of the executed system command.
  */
-static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
+MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
+    FILE *f = popen(cmd, "r");
+    if (!f) return errno;
 
-    if (!buf) {
-        // Special handling when we are not capturing the output.
-        *exit_status = system(cmd);
-    } else {
-        FILE *f = popen(cmd, "r");
-        if (!f) return errno;
-
-        ssize_t i;
-        for (i = 0; i < (ssize_t) *sz; ++i) {
+    bool start = true;
+    if (buf) {
+        int64_t len;
+        for (len = 0; len < (int64_t) *sz;) {
             int ch = fgetc(f);
             if (ch == EOF) break;
-            buf[i] = (char) ch;
+            if (start) {
+                // Do not include leading whitespace in the captured output.
+                if (isspace(ch)) {
+                    continue;
+                } else {
+                    start = false;
+                }
+            }
+            buf[len++] = (char) ch;
         }
 
-        // Trim any trailing CRLF.
-        i--;
-        if (i > -1 && buf[i] == '\n') i--;
-        if (i > -1 && buf[i] == '\r') i--;
-        *sz = i + 1;
-
-        *exit_status = pclose(f);
+        // Trim trailing whitespace from the captured output.
+        for (; len > 0; len--) {
+            if (!isspace(buf[len - 1])) break;
+        }
+        *sz = len;
+    } else {
+        for (;;) {
+            int ch = fgetc(f);
+            if (ch == EOF) break;
+            if (ch == '\n') (void) display_putc('\r');
+            (void) display_putc(ch);
+        }
+        (void) display_flush();
     }
 
+    *exit_status = pclose(f);
     if (*exit_status == -1) {
         return errno;
     } else {
@@ -230,7 +245,7 @@ static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exi
  * SYSTEM command$ [, output%() [, exit_code%]]
  */
 static void cmd_system_execute(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc != 3 && argc != 5) ERROR_SYNTAX;
 
     // System command to run.
@@ -284,7 +299,12 @@ static void cmd_system_execute(const char *p) {
             // Set size of LONGSTRING variable.
             *((int64_t *) output_var_ptr) = buf_sz;
         }
+#if !defined(_WIN32)
+        // On Unix-like platforms, if the command is not found then the shell
+        // typically returns an exit status of 127. On Windows there is no
+        // reliable equivalent exit code so we skip this check entirely.
         if (*exit_status_ptr == 127) error_throw(kUnknownSystemCommand);
+#endif
     } else {
         error_throw(result);
     }

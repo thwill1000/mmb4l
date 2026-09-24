@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_bound.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 
 void fun_bound(void) {
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
     int which = (argc == 3) ? getint(argv[2], 0, MAXDIM) : 1;
     findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
 

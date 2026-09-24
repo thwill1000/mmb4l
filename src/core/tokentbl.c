@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../Configuration.h"
 #include "MMBasic.h"
 #include "tokentbl.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 
-#include <strings.h>
+int tokentbl_size;
 
 /**
  * This is the token table that defines the various tokens for MMBasic functions
@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 const struct s_tokentbl tokentbl[] = {
     { "@(",          T_FUN | T_STR,      0, fun_at       },
+    { "@c(",         T_FUN | T_STR,      0, fun_atchar   },
     { "Abs(",        T_FUN | T_NBR | T_INT, 0, fun_abs   },
     { "ACos(",       T_FUN | T_NBR,      0, fun_acos     },
     { "Asc(",        T_FUN | T_INT,      0, fun_asc      },
@@ -110,7 +111,7 @@ const struct s_tokentbl tokentbl[] = {
     { "Loc(",        T_FUN | T_INT,      0, fun_loc      },
     { "Lof(",        T_FUN | T_INT,      0, fun_lof      },
     { "Log(",        T_FUN | T_NBR,      0, fun_log      },
-    { "Math(",       T_FUN | T_NBR,      0, fun_math     },
+    { "Math(",       T_FUN | T_INT | T_NBR, 0, fun_math  },
     { "Max(",        T_FUN | T_NBR,      0, fun_max      },
     { "Mid$(",       T_FUN | T_STR,      0, fun_mid      },
     { "Min(",        T_FUN | T_NBR,      0, fun_min      },
@@ -128,6 +129,7 @@ const struct s_tokentbl tokentbl[] = {
     { "Peek(",       T_FUN | T_INT | T_NBR, 0, fun_peek  },
     { "Pi",          T_FNA | T_NBR,      0, fun_pi       },
     { "Pin(",        T_FUN | T_NBR | T_INT, 0, fun_pin   },
+    { "Pixel(",      T_FUN | T_INT,      0, fun_pixel    },
     { "Port(",       T_FUN | T_INT,      0, fun_port     },
     { "Pos",         T_FNA | T_INT,      0, fun_pos      },
     { "Rad(",        T_FUN | T_NBR,      0, fun_rad      },
@@ -188,12 +190,21 @@ const struct s_tokentbl tokentbl[] = {
     { "",            0,                              0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
-char tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
+FunctionToken tokenADD, tokenSUBTRACT;
+FunctionToken tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
+FunctionToken tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
+
+#define TOKENTBL_SIZE  sizeof(tokentbl) / sizeof(struct s_tokentbl)
+
+#if defined(ENABLE_GTEST_EXTRAS)
+static char ENCODED_FUNCTIONS[TOKENTBL_SIZE][4] = { 0 };
+#endif
 
 void tokentbl_init() {
-    tokentbl_size = sizeof(tokentbl) / sizeof(struct s_tokentbl);
+    tokentbl_size = TOKENTBL_SIZE;
 
+    tokenADD   = tokentbl_get("+");
+    tokenSUBTRACT = tokentbl_get("-");
     tokenTHEN  = tokentbl_get("Then");
     tokenELSE  = tokentbl_get("Else");
     tokenGOTO  = tokentbl_get("GoTo");
@@ -205,14 +216,37 @@ void tokentbl_init() {
     tokenGOSUB = tokentbl_get("GoSub");
     tokenAS    = tokentbl_get("As");
     tokenFOR   = tokentbl_get("For");
+
+#if defined(ENABLE_GTEST_EXTRAS)
+    for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
+        char *buf = ENCODED_FUNCTIONS[i];
+        tokentbl_write(&buf, i + C_BASETOKEN);
+    }
+#endif
 }
 
-int tokentbl_get(const char *s) {
+void tokentbl_dump(void) {
+    printf("tokentbl_size = %d\n", tokentbl_size);
     for (int i = 0; i < tokentbl_size - 1; i++) {
-        if (strcasecmp(s, tokentbl[i].name) == 0) {
-            return i + C_BASETOKEN;
+        printf("  [%3d] token=0x%03x  fptr=%p  name=\"%s\"\n",
+               i, (unsigned)(i + C_BASETOKEN),
+               (void *) tokentbl[i].fptr,
+               tokentbl[i].name);
+    }
+}
+
+FunctionToken tokentbl_get(const char *s) {
+    for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
+        if (cstring_casecmp(s, tokentbl[i].name) == 0) {
+            return (FunctionToken) (i + C_BASETOKEN);
         }
     }
-    ERROR_INTERNAL_FAULT;
-    return 0;
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, INVALID_TOKEN);
+    return INVALID_TOKEN;
 }
+
+#if defined(ENABLE_GTEST_EXTRAS)
+const char *tokentbl_encoded(const char *name) {
+    return ENCODED_FUNCTIONS[tokentbl_get(name) - C_BASETOKEN];
+}
+#endif

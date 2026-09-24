@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -10,12 +10,13 @@ extern "C" {
 #include "test_helper.h"
 #include "stubs/error_stubs.h"
 #include "../cstring.h"
+#include "../features.h"
 #include "../graphics.h"
 #include "../options.h"
 #include "../memory.h"
 #include "../parse.h"
 #include "../utility.h"
-#include "../../core/Commands.h"
+#include "../../core/tokentbl.h"
 #include "../../core/MMBasic.h"
 #include "../../core/vartbl.h"
 #include "../../core/gtest/command_stubs.h"
@@ -27,47 +28,38 @@ char *CFunctionFlash;
 char *CFunctionLibrary;
 char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-uint8_t mmb_exit_code = 0;
-int MMgetchar(void) { return 0; }
 
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
-// Defined in "common/console.c"
-int console_kbhit(void) { return 0; }
-char console_putc(char c) { return c; }
-void console_puts(const char *s) { }
-void console_set_title(const char *title) { }
-size_t console_write(const char *buf, size_t sz) { return 0; }
-
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined(void) { }
 
+// Defined in "common/events.c"
+void events_pump() { }
+
 // Defined in "common/gpio.c"
-void gpio_term() { }
+MmResult gpio_term() { return kOk; }
 MmResult (*mock_gpio_translate_from_pin_gp)(uint8_t pin_gp, uint8_t *pin_num) = NULL;
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
     return mock_gpio_translate_from_pin_gp(pin_gp, pin_num);
 }
 
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
+}
+
 // Defined in "core/Commands.c"
-char DimUsed;
-int doindex;
-struct s_dostack dostack[MAXDOLOOPS];
-const char *errorstack[MAXGOSUB];
-int forindex;
-struct s_forstack forstack[MAXFORLOOPS + 1];
-int gosubindex;
-const char *gosubstack[MAXGOSUB];
-int TraceBuffIndex;
-const char *TraceBuff[TRACE_BUFF_SIZE];
-int TraceOn;
-void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
 
 }
+
+FunctionToken tokenINFO = 0x0;
 
 bool operator==(const ParameterSignature& lhs, const ParameterSignature& rhs)
 {
@@ -97,17 +89,20 @@ class ParseTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        mmb_options.simulate = kSimulateMmb4l;
         vartbl_init_called = false;
         errno = 0;
         strcpy(error_msg, "");
-        InitBasic();
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, InitBasic());
         clear_prog_memory();
         mock_gpio_translate_from_pin_gp = NULL;
+        tokenINFO = tokentbl_get("MM.INFO(");
     }
 
     void TearDown() override {
-        ClearTempMemory();
-        (void) graphics_term();
+        ASSERT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, memory_term());
     }
 };
 
@@ -221,6 +216,16 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     strcpy(input, "*foo \"wom\" \"bat\"");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
     EXPECT_STREQ("RUN \"foo\", Chr$(34) + \"wom\" + Chr$(34) + \" \" + Chr$(34) + \"bat\" + Chr$(34)", input);
+
+    // Given device with file.
+    strcpy(input, "*PicoCalc foo");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\" AS PicoCalc", input);
+
+    // Given device with file and argument.
+    strcpy(input, "*Cmm2 foo --wombat");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\", \"--wombat\" AS CMM2", input);
 
     // Given maximum length input.
     input[0] = '\0';
@@ -505,7 +510,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedIntegerType_Succeeds) {
         .num_params = 0
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(18, p - ProgMemory);
+    EXPECT_EQ(17 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedStringType_Succeeds) {
@@ -524,7 +529,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedStringType_Succeeds) {
         .num_params = 0
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(17, p - ProgMemory);
+    EXPECT_EQ(16 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedFloatType_Succeeds) {
@@ -543,7 +548,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedFloatType_Succeeds) {
         .num_params = 0
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(16, p - ProgMemory);
+    EXPECT_EQ(15 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitIntegerType_Succeeds) {
@@ -624,7 +629,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedIntegerParameter_Succeeds)
         .type = T_IMPLIED | T_INT,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(20, p - ProgMemory);
+    EXPECT_EQ(19 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithNoType_AndDefaultType_Succeeds) {
@@ -717,12 +722,12 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithTwoParameters_Succeeds) {
         .type = T_IMPLIED | T_INT,
     };
     expected.params[1] = {
-        .name_offset = 20,
+        .name_offset = (uint8_t) (19 + tokensize(tokenAS)),
         .name_len = 3,
         .type = T_IMPLIED | T_NBR,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(33, p - ProgMemory);
+    EXPECT_EQ(31 + 2 * tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithArrayParameters_Succeeds) {
@@ -753,13 +758,13 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithArrayParameters_Succeeds) {
         .array = true,
     };
     expected.params[2] = {
-        .name_offset = 29,
+        .name_offset = (uint8_t) (28 + tokensize(tokenAS)),
         .name_len = 3,
         .type = T_IMPLIED | T_STR,
         .array = true,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(45, p - ProgMemory);
+    EXPECT_EQ(43 + 2 * tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExtraWhitespace_Succeeds) {
@@ -783,12 +788,12 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExtraWhitespace_Succeeds) {
         .type = T_IMPLIED | T_STR,
     };
     expected.params[1] = {
-        .name_offset = 33,
+        .name_offset = (uint8_t) (32 + tokensize(tokenAS)),
         .name_len = 1,
         .type = T_INT,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(43, p - ProgMemory);
+    EXPECT_EQ(42 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_With32CharacterName_Succeeds) {
@@ -1056,7 +1061,7 @@ TEST_F(ParseTest, ParseFnSig_GivenSub_WithImpliedIntegerParameter_Succeeds) {
         .type = T_IMPLIED | T_INT,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(19, p - ProgMemory);
+    EXPECT_EQ(18 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenSub_WithInvalidName_Fails) {
@@ -1136,67 +1141,66 @@ TEST_F(ParseTest, ParseFnSig_GivenNotAFunctionOrSub_Fails) {
 
 TEST_F(ParseTest, ParseGpPin_GivenGpZero_Succeeds) {
     tokenise_and_append("Print Mm.Info(PinNo GP0)");
-
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 13, p);
+    EXPECT_EQ(ProgMemory + 12 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenOneDigitGp_Succeeds) {
     tokenise_and_append("Print Mm.Info(PinNo GP1)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
     EXPECT_EQ(1, gp);
-    EXPECT_EQ(ProgMemory + 13, p);
+    EXPECT_EQ(ProgMemory + 12 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenTwoDigitGp_Succeeds) {
     tokenise_and_append("Print Mm.Info(PinNo GP42)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
     EXPECT_EQ(42, gp);
-    EXPECT_EQ(ProgMemory + 14, p);
+    EXPECT_EQ(ProgMemory + 13 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenGpWithLeadingZero_Fails) {
     tokenise_and_append("Print Mm.Info(PinNo GP01)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kSyntax, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_EQ(ProgMemory + 9 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenThreeDigitGp_Fails) {
     tokenise_and_append("Print Mm.Info(PinNo GP100)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kSyntax, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_EQ(ProgMemory + 9 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenNotGp_Fails) {
     tokenise_and_append("Print Mm.Info(PinNo s$)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kNotParsed, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_EQ(ProgMemory + 9 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -1276,7 +1280,7 @@ TEST_F(ParseTest, ParsePinNum_GivenIntegerExpression_Succeeds) {
     EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(14, pin_num);
     EXPECT_EQ(false, is_gp);
-    EXPECT_EQ(ProgMemory + 6, p);
+    EXPECT_EQ(ProgMemory + 5 + tokensize(tokenADD), p);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -1291,13 +1295,13 @@ TEST_F(ParseTest, ParsePinNum_GivenUnknownVariable_Fails) {
     EXPECT_EQ(0, pin_num);
     EXPECT_EQ(false, is_gp);
     EXPECT_EQ(ProgMemory + 6, p);
-    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
 
     // Note failure MmResult is not currently reported because error is picked up in a legacy
     // routine that uses longjmp().
 }
 
-TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicomite) {
     graphics_surfaces[0].type = kGraphicsBuffer;
     graphics_surfaces[1].type = kGraphicsBuffer;
 
@@ -1322,11 +1326,12 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {
     }
 }
 
-TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicoMite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicomite) {
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_F2].type = kGraphicsBuffer;
 
     {
         clear_prog_memory();
@@ -1357,13 +1362,24 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicoMite) {
         EXPECT_EQ(kOk, parse_page(p, &page_id));
         EXPECT_EQ(3, page_id);
     }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE 2");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(4, page_id);
+    }
 }
 
-TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicoMite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicomite) {
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_F2].type = kGraphicsBuffer;
 
     {
         clear_prog_memory();
@@ -1394,10 +1410,20 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicoMite) {
         EXPECT_EQ(kOk, parse_page(p, &page_id));
         EXPECT_EQ(3, page_id);
     }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE \"2\"");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(4, page_id);
+    }
 }
 
 TEST_F(ParseTest, ParsePage_GivenUnknownStringPageId_AndPicomite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE \"A\"");
 
     const char *p = ProgMemory + 9;
@@ -1407,18 +1433,19 @@ TEST_F(ParseTest, ParsePage_GivenUnknownStringPageId_AndPicomite) {
 }
 
 TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
-    GTEST_SKIP() << "Segfaults due to longjmp() error handling";
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE 1");
 
     const char *p = ProgMemory + 9;
     MmSurfaceId page_id = -1;
+    // NOTE: in production parse_page() will currently do a longjmp() error
+    //       rather than return this error code.
     EXPECT_EQ(kSyntax, parse_page(p, &page_id));
     EXPECT_EQ(-1, page_id);
 }
 
 TEST_F(ParseTest, ParsePage_GivenValidNonExistingPageId_AndPicomite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE \"N\"");
 
     const char *p = ProgMemory + 9;
@@ -1531,9 +1558,8 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
-        // Currently reports error through legacy error reporting.
-        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
+        EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
     }
 
     // 0 is not a valid sprite id.
@@ -1546,7 +1572,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         MmSurfaceId actual_sprite_id = -1;
         EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
         // Currently reports error through legacy error reporting.
-        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
     }
 
     // Minimum sprite id = 1.
@@ -1583,8 +1609,8 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
-        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
+        EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
     }
 }
 
@@ -1592,12 +1618,14 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulateGamemite,
+        kSimulatePicocalc,
+        kSimulatePicomiteVga,
+        kSimulatePicomiteVgaUsb,
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
 
         // 0 is not a valid sprite id.
         {
@@ -1608,7 +1636,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
 
             MmSurfaceId actual_sprite_id = -1;
             EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
-            EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+            EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
         }
 
         // Minimum sprite id = 1.
@@ -1645,8 +1673,8 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
             const char *p = ProgMemory + 8;
 
             MmSurfaceId actual_sprite_id = -1;
-            EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
-            EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+            EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
+            EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
         }
     }
 }
@@ -1716,15 +1744,16 @@ TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_ButSurfaceIsNotASpri
 
 TEST_F(ParseTest, ParseSpriteId_GivenFlag_AllowsZeroValue) {
     const OptionsSimulate sim[] = {
-        kSimulateMmb4l,
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulateGamemite,
+        kSimulatePicocalc,
+        kSimulatePicomiteVga,
+        kSimulatePicomiteVgaUsb,
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
 
         error_msg[0] = '\0';
         clear_prog_memory();

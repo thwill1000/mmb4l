@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,36 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "cstring.h"
-#include "mmresult.h"
-#include "../Configuration.h"
-
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
-const char *audio_last_error();
-const char *events_last_error();
-const char *gamepad_last_error();
-const char *graphics_last_error();
+#include "../Configuration.h"
+#include "cstring.h"
+#include "mmresult.h"
 
 MmResult mmresult_last_code = kOk;
 char mmresult_last_msg[STRINGSIZE] = { 0 };
-
-static void formatAudioApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Audio error: %s", audio_last_error());
-}
-
-static void formatEventsApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Events error: %s", events_last_error());
-}
-
-static void formatGamepadApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Gamepad error: %s", gamepad_last_error());
-}
-
-static void formatGraphicsApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Graphics error: %s", graphics_last_error());
-}
 
 void mmresult_clear() {
    mmresult_last_code = kOk;
@@ -93,22 +73,7 @@ const char *mmresult_to_string(MmResult result) {
         return mmresult_last_msg;
     }
 
-    switch (result) {
-        case kEventsApiError:
-            formatEventsApiError();
-            return mmresult_last_msg;
-        case kGamepadApiError:
-            formatGamepadApiError();
-            return mmresult_last_msg;
-        case kGraphicsApiError:
-            formatGraphicsApiError();
-            return mmresult_last_msg;
-        case kAudioApiError:
-            formatAudioApiError();
-            return mmresult_last_msg;
-        default:
-            return mmresult_to_default_string(result);
-    }
+    return mmresult_to_default_string(result);
 }
 
 const char *mmresult_to_default_string(MmResult result) {
@@ -122,6 +87,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kError:         return "MMBasic error";
         case kInternalFault: return "Internal fault (sorry)";
         case kSyntax:        return "Syntax";
+        case kArgumentBufferOverflow: return "Argument buffer overflow";
         case kArgumentCount: return "Argument count";
         case kStringTooLong: return "String too long";
         case kInvalidArgument: return "Invalid argument";
@@ -153,7 +119,6 @@ const char *mmresult_to_default_string(MmResult result) {
         case kInvalidCommandLine: return "Invalid command line arguments";
         case kStringLength:         return "String length";
         case kTooManyDefines:             return "Too many #DEFINE directives";
-        case kOutOfMemory:                return "Not enough memory";
         case kLineTooLong:                return "Line too long";
         case kProgramTooLong:             return "Program too long";
         case kUnterminatedComment:        return "Unterminated multiline comment";
@@ -178,6 +143,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsReadAndWriteSurfaceSame: return "Graphics read and write surfaces are the same";
+        case kGraphicsSaveBitmapFailed:   return "Bitmap could not be saved";
         case kGraphicsSurfaceAlreadyExists: return "Graphics surface already exists";
         case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
@@ -190,6 +156,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kUnknownDevice:              return "Unknown device/platform";
         case kUnsupportedOnCurrentDevice: return "Unsupported on current device/platform";
         case kUnsupportedParameterOnCurrentDevice: return "Unsupported parameter on current device/platform";
+        case kUnsupportedTerminalColour:  return "Unsupported terminal colour";
         case kInvalidMode:                return "Invalid graphics mode for current device";
         case kInvalidFlag:                return "Invalid flag";
         case kCannotBlitCloseWindow:      return "Use GRAPHICS DESTROY to close windows";
@@ -201,6 +168,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kMissingOpenBracket:         return "Missing open bracket";
         case kUnexpectedCloseBracket:     return "Unexpected close bracket";
         case kInvalidArrayParameter:      return "Invalid array parameter";
+        case kTooManyOpenFiles:           return "Too many open files";
         case kTooManyParameters:          return "Too many parameters";
         case kInvalidInterruptSignature:  return "Invalid interrupt signature";
         case kGamepadNotFound:            return "Gamepad not found";
@@ -220,6 +188,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kAudioNothingToResume:       return "Nothing to resume";
         case kAudioSampleRateMismatch:    return "WAV file has different sample rate to MOD file";
         case kAudioWavInitialisationFailed: return "WAV file initialisation failed";
+        case kEditorError:                return "None fatal editor error";
         case kGpioInvalidPin:             return "Invalid pin";
         case kGpioInvalidPulseWidth:      return "Invalid pulse width";
         case kGpioPinIsNotAnOutput:       return "Pin is not an output";
@@ -227,9 +196,13 @@ const char *mmresult_to_default_string(MmResult result) {
         case kNotParsed:                  return "Not parsed";
         case kFileInvalidExtension:       return "Invalid file extension; must begin with '.'";
         case kFileInvalidFileNumber:      return "Invalid file number";
+        case kFileInvalidOperation:       return "Invalid file operation";
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
+        case kOutOfMemory:                return "Out of memory";
+        case kOutOfSystemMemory:          return "Out of system memory";
+        case kOutOfTemporaryBuffers:      return "Out of temporary memory buffers";
         case kNotEnoughData:              return "Not enough data";
         case kPreprocessorReplaceFailed:  return "Preprocessor string replacement failed";
         case kSpriteInactive:             return "Sprite not showing";
@@ -237,6 +210,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kSpritesNotHidden:           return "Sprites are not hidden";
         case kStackElementNotFound:       return "Stack element not found";
         case kStackIndexOutOfBounds:      return "Stack index out of bounds";
+        case kStdinExhausted:             return "STDIN exhausted";
         default:                          return "Unknown result code";
     }
 }

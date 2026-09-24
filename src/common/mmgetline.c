@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmgetline.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,26 +42,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "console.h"
-#include "error.h"
-#include "file.h"
-#include "options.h"
-
 #include <ctype.h>
 #include <string.h>
 
-void CheckAbort(void);
+#include "console.h"
+#include "display.h"
+#include "error.h"
+#include "exit_codes.h"
+#include "keycodes.h"
+#include "mmb4l.h"
+#include "mmtime.h"
+#include "options.h"
+#include "streamio.h"
 
 // get a line from the keyboard or a file handle
-void MMgetline(int filenbr, char *p) {
+void MMgetline(int fnbr, char *p) {
     int c, nbrchars = 0;
     const char *tp;
 
     while (1) {
-        CheckAbort();  // jump right out if CTRL-C
+        perform_background_tasks();  // which will jump right out if CTRL-C
 
-        if ((file_table[filenbr].type == fet_file) && file_eof(filenbr)) break; // End of file.
-        c = file_getc(filenbr);
+        if (streamio_is_file(fnbr) && streamio_eof(fnbr)) break; // End of file.
+        c = streamio_getc(fnbr);
 
         // -1 - no character.
         //  0 - the null character which we ignore.
@@ -69,7 +72,7 @@ void MMgetline(int filenbr, char *p) {
 
         // if this is the console, check for a programmed function key and
         // insert the text
-        if (filenbr == 0) {
+        if (fnbr == 0) {
             tp = NULL;
             if (c == F2) tp = "RUN";
             if (c == F3) tp = "LIST";
@@ -77,8 +80,8 @@ void MMgetline(int filenbr, char *p) {
             if (c == F5) tp = "WEDIT";
             if (tp) {
                 strcpy(p, tp);
-                console_puts(tp);
-                console_puts("\r\n");
+                display_puts(tp);
+                display_puts("\r\n");
                 return;
             }
         }
@@ -87,14 +90,18 @@ void MMgetline(int filenbr, char *p) {
             do {
                 if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);
                 *p++ = ' ';
-                if (filenbr == 0) console_putc(' ');
+                if (fnbr == 0) display_putc(' ');
             } while (nbrchars % mmb_options.tab);
+            if (fnbr == 0) ON_FAILURE_ERROR(display_flush());
             continue;
         }
 
         if (c == '\b') {  // handle the backspace
             if (nbrchars) {
-                if (filenbr == 0) console_puts("\b \b");
+                if (fnbr == 0) {
+                    ON_FAILURE_ERROR(display_puts("\b \b"));
+                    ON_FAILURE_ERROR(display_flush());
+                }
                 nbrchars--;
                 p--;
             }
@@ -106,8 +113,8 @@ void MMgetline(int filenbr, char *p) {
         }
 
         if (c == '\r') {
-            if (filenbr == 0) {
-                console_puts("\r\n");
+            if (fnbr == 0) {
+                ON_FAILURE_ERROR(display_puts("\r\n"));
                 break;  // on the console this means the end of the line
                         // - stop collecting
             } else {
@@ -116,8 +123,9 @@ void MMgetline(int filenbr, char *p) {
             }
         }
 
-        if (isprint(c) && (filenbr == 0)) {
-            console_putc(c);  // The console requires that chars be echoed
+        if (isprint(c) && (fnbr == 0)) {
+            ON_FAILURE_ERROR(display_putc(c));  // The console requires that chars be echoed
+            ON_FAILURE_ERROR(display_flush());
         }
 
         if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);  // stop collecting if maximum length

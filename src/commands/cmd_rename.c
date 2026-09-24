@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_rename.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -44,13 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
-#include "../common/utility.h"
 #include "../core/tokentbl.h"
 
 void cmd_rename(void) {
-    char ss[2] = { tokenAS, 0 };
-    getargs(&cmdline, 3, ss);
+    const DelimType delim[] = { tokenAS, 0 };
+    getargs(&cmdline, 3, delim);
     if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     char *old_filename = GetTempStrMemory();
@@ -59,6 +59,5 @@ void cmd_rename(void) {
     char *new_filename = GetTempStrMemory();
     ON_FAILURE_ERROR(parse_filename(argv[2], new_filename, STRINGSIZE));
 
-    errno = 0;
-    if FAILED(rename(old_filename, new_filename)) ON_FAILURE_ERROR(errno);
+    ON_FAILURE_ERROR(file_rename(old_filename, new_filename));
 }

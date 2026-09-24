@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmdline.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmdline.h"
 #include "cstring.h"
+#include "error.h"
+#include "features.h"
+#include "logger.h"
 #include "parse.h"
 #include "utility.h"
 
@@ -55,23 +58,36 @@ static int is_prefix(const char *pre, const char *str) {
     return strncmp(pre, str, strlen(pre)) == 0;
 }
 
+static int is_valid_log_level(const char *s) {
+    const LoggerLevel level = logger_level_from_string(s);
+    return level >= kLoggerLevelDebug
+            && level <= kLoggerLevelNone
+            && level != kLoggerLevelFatal;
+}
+
 MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
 
     // TODO: should perhaps be rewritten to use getopt().
 
+    out->simulate = kSimulateMmb4l;
     memset(out, 0, sizeof(CmdLineArgs));
     out->show_prompt = 255;
 
-    // Looking for flags.
+    // The first argument may be a device to simulate.
     int i = 1;
+    if (argc >= 2) {
+        const int s = options_simulate_from_string(argv[i]);
+        if (s != -1) {
+            out->simulate = (OptionsSimulate) s;
+            i++;
+        }
+    }
+
+    // Looking for flags.
     for (; i < argc && argv[i][0] == '-'; ++i) {
         if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--directory") == 0) {
-            if (i == argc - 1) {
-                return kInvalidCommandLine;
-            } else {
-                if (FAILED(cstring_cpy(out->directory, argv[++i], STRINGSIZE)))
-                    return kStringTooLong;
-            }
+            if (i == argc - 1) return kInvalidCommandLine;
+            if (FAILED(cstring_cpy(out->directory, argv[++i], STRINGSIZE))) return kStringTooLong;
         } else if (is_prefix("-d=", argv[i])) {
             if (FAILED(cstring_cpy(out->directory, argv[i] + strlen("-d="), STRINGSIZE)))
                 return kStringTooLong;
@@ -82,6 +98,37 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
             out->help = 1;
         } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interactive") == 0) {
             out->show_prompt = 1;
+        } else if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--log") == 0) {
+            if (i == argc - 1) return kInvalidCommandLine;
+            if (FAILED(cstring_cpy(out->log, argv[++i], sizeof(out->log)))) return kStringTooLong;
+            if (!is_valid_log_level(out->log)) {
+                return mmresult_ex(kInvalidValue, "Invalid log level: %s", out->log);
+            }
+        } else if (is_prefix("-l=", argv[i])) {
+            if (FAILED(cstring_cpy(out->log, argv[i] + strlen("-l="), sizeof(out->log))))
+                return kStringTooLong;
+            if (!is_valid_log_level(out->log)) {
+                return mmresult_ex(kInvalidValue, "Invalid log level: %s", out->log);
+            }
+        } else if (is_prefix("--log=", argv[i])) {
+            if (FAILED(cstring_cpy(out->log, argv[i] + strlen("--log="), sizeof(out->log))))
+                return kStringTooLong;
+            if (!is_valid_log_level(out->log)) {
+                return mmresult_ex(kInvalidValue, "Invalid log level: %s", out->log);
+            }
+        } else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--simulate") == 0) {
+            if (i == argc - 1) return kInvalidCommandLine;
+            const int s = options_simulate_from_string(argv[++i]);
+            if (s == -1) return kUnknownDevice;
+            out->simulate = (OptionsSimulate) s;
+        } else if (is_prefix("-s=", argv[i])) {
+            const int s = options_simulate_from_string(argv[i] + strlen("-s="));
+            if (s == -1) return kUnknownDevice;
+            out->simulate = (OptionsSimulate) s;
+        } else if (is_prefix("--simulate=", argv[i])) {
+            const int s = options_simulate_from_string(argv[i] + strlen("--simulate="));
+            if (s == -1) return kUnknownDevice;
+            out->simulate = (OptionsSimulate) s;
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
             out->version = 1;
         } else {
@@ -93,17 +140,20 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
 
     // Any remaining arguments are the program to RUN.
     // We convert them into the prompt * syntax ...
-    MmResult result = kOk;
-    for (; i < argc; ++i) {
-        if (out->run_cmd[0] == '\0') result = cstring_cat(out->run_cmd, "*", sizeof(out->run_cmd));
-        if (SUCCEEDED(result)) result = cstring_cat(out->run_cmd, argv[i], sizeof(out->run_cmd));
-        if (SUCCEEDED(result)) result = cstring_cat(out->run_cmd, " ", sizeof(out->run_cmd));
-        if (FAILED(result)) return kStringTooLong;
-    }
+    const size_t buf_sz = sizeof(out->run_cmd);
+    if (i < argc) {
+        MmResult result = cstring_cat(out->run_cmd, "*", buf_sz);
 
-    // ... and then transform that into the RUN syntax.
-    result = parse_transform_input_buffer(out->run_cmd);
-    if (FAILED(result)) return result;
+        for (; i < argc; ++i) {
+            result = cstring_cat(out->run_cmd, argv[i], buf_sz);
+            result = cstring_cat(out->run_cmd, " ", buf_sz);
+        }
+
+        if (FAILED(result)) return kStringTooLong;
+
+        // ... and then transform that into the RUN syntax.
+        ON_FAILURE_RETURN(parse_transform_input_buffer(out->run_cmd));
+    }
 
     if (out->show_prompt == 255) out->show_prompt = (out->run_cmd[0] == '\0');
 
@@ -123,5 +173,9 @@ void cmdline_print_usage() {
     fprintf(stderr, "  -i, --interactive  if started with a <file.bas> then return to the MMBasic\n");
     fprintf(stderr, "                     prompt when the program ends or reports an error instead\n");
     fprintf(stderr, "                     of automatically exiting.\n");
+    fprintf(stderr, "  -l <level>         set initial log level: None, Debug, Info, Warning, Error.\n");
+    fprintf(stderr, "  --log <level>\n");
+    fprintf(stderr, "  -s <device>        simulate the specified device.\n");
+    fprintf(stderr, "  --simulate <device>\n");
     fprintf(stderr, "  -v, --version      display version and copyright and exit.\n");
 }

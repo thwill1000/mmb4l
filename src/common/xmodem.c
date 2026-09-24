@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 xmodem.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,15 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "xmodem.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "mmb4l.h"
-#include "console.h"
-#include "file.h"
+#include "display.h"
 #include "mmtime.h"
 #include "serial.h"
-
-#include <string.h>
+#include "streamio.h"
+#include "xmodem.h"
 
 /*
  * Derived from the work of Georges Menie (www.menie.org) Copyright 2001-2010
@@ -146,13 +146,13 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
             xbuff[2] = ~packetno;
 
             if (verbose) {
-                if (total > 0) console_cursor_up(1);
-                sprintf(sbuf, "Sent %d bytes\n", total);
-                console_puts(sbuf);
+                if (total > 0) display_cursor_up(1);
+                sprintf(sbuf, "Sent %d bytes\r\n", total);
+                display_puts(sbuf);
             }
 
             // Copy data from the file into the packet.
-            len = file_read(file_fnbr, xbuff + 3, 128);
+            len = streamio_read(file_fnbr, xbuff + 3, 128);
 //            for (len = 0; len < 128 && !file_eof(file_fnbr); len++) {
 //                xbuff[len + 3] = file_getc(file_fnbr);
 //            }
@@ -165,7 +165,7 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
                 xbuff[X_BLOCK_SIZE + 3] = ccks;
 
                 // now send the block
-                for (retry = 0; retry < MAXRETRANS && !MMAbort; ++retry) {
+                for (retry = 0; retry < MAXRETRANS && !SDL_AtomicGet(&MMAbort); ++retry) {
                     // send the block
                     serial_write(serial_fnbr, xbuff, X_BLOCK_SIZE + 4);
                     //for (i = 0; i < X_BLOCK_SIZE + 4 && !MMAbort; ++i) {
@@ -223,9 +223,9 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
     // first establish communication with the remote
     while (1) {
         if (verbose) {
-            if (total > 0) console_cursor_up(1);
+            if (total > 0) display_cursor_up(1);
             sprintf(sbuf, "Received %d bytes\n", total);
-            console_puts(sbuf);
+            display_puts(sbuf);
         }
 
         for (retry = 0; retry < 32; ++retry) {
@@ -267,8 +267,9 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
             xmodem_check(&xbuff[3], X_BLOCK_SIZE)) {
             if (xbuff[1] == packetno) {
                 for (i = 0; i < X_BLOCK_SIZE; i++) {
-                    file_putc(file_fnbr, xbuff[i + 3]);
+                    (void) streamio_putc(file_fnbr, xbuff[i + 3]);
                 }
+                ON_FAILURE_ERROR(streamio_flush(file_fnbr));
                 ++packetno;
                 retrans = MAXRETRANS + 1;
                 total += X_BLOCK_SIZE;

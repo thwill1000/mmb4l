@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,30 +42,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "error.h"
-
-#include "mmb4l.h"
-#include "cstring.h"
-#include "exit_codes.h"
-#include "path.h"
-#include "program.h"
-#include "utility.h"
-
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "cstring.h"
+#include "error.h"
+#include "exit_codes.h"
+#include "logger.h"
+#include "mmb4l.h"
+#include "path.h"
+#include "program.h"
+#include "utility.h"
+
 extern jmp_buf ErrNext;
 
-void error_init(ErrorState *error_state) {
+MmResult error_init(ErrorState *error_state) {
     error_state->code = 0;
     *error_state->file = '\0';
     error_state->line = -1;
     *error_state->message = '\0';
     error_state->skip = 0;
     error_state->override_line = false;
+    error_state->callback = NULL;
+    error_state->callback_data = NULL;
+    return kOk;
 }
 
 void error_get_line_and_file(int *line, char *file_path) {
@@ -73,7 +76,10 @@ void error_get_line_and_file(int *line, char *file_path) {
     *line = -1;
     memset(file_path, 0, STRINGSIZE);
 
-    if (!CurrentLinePtr) return;
+    if (!CurrentLinePtr) {
+        strcpy(file_path, PROMPT_PATH);
+        return;
+    }
 
     assert(CurrentLinePtr < (char *) ProgMemory + PROG_FLASH_SIZE);
 
@@ -146,7 +152,7 @@ void error_get_line_and_file(int *line, char *file_path) {
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
 static void verror(MmResult error, const char *msg, va_list argp) {
-    options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
+    options_load(&mmb_options, options_filename, NULL);  // make sure that the option struct is in a clean state
 
     mmb_error_state_ptr->code = error;
     if (!mmb_error_state_ptr->override_line) {
@@ -186,7 +192,15 @@ static void verror(MmResult error, const char *msg, va_list argp) {
         msg++;
     }
 
+    LOG_DEBUG("%s (%d)", buf, error);
+
     cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
+
+    // If an error callback has been registered then call it.
+    if (mmb_error_state_ptr->callback) {
+        mmb_error_state_ptr->callback(mmb_error_state_ptr->callback_data);
+        error_clear_callback();
+    }
 
     if (mmb_error_state_ptr->skip) {
         *mmb_error_state_ptr->file = '\0';
@@ -196,6 +210,12 @@ static void verror(MmResult error, const char *msg, va_list argp) {
         longjmp(mark, JMP_ERROR);
     }
 }
+
+#if defined(_MSC_VER)
+// To avoid unreachable code warnings because of the longjmp() calls in verror().
+#pragma warning(push)
+#pragma warning(disable: 4702)
+#endif
 
 MmResult error_throw_legacy(const char *msg, ...) {
     va_list argp;
@@ -215,6 +235,10 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...) {
     return result;
 }
 
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
 MmResult error_throw(MmResult result) {
     return error_throw_ex(result, mmresult_to_string(result));
 }
@@ -224,4 +248,14 @@ uint8_t error_to_exit_code(MmResult result) {
         default:
             return EX_FAIL;
     }
+}
+
+void error_set_callback(void (*fn)(void *), void *data) {
+    mmb_error_state_ptr->callback = fn;
+    mmb_error_state_ptr->callback_data = data;
+}
+
+void error_clear_callback() {
+    mmb_error_state_ptr->callback = NULL;
+    mmb_error_state_ptr->callback_data = NULL;
 }

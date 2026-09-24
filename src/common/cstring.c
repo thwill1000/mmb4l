@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cstring.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -44,33 +44,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "../Configuration.h"
+
 #include "cstring.h"
 #include "utility.h"
 
-#include "../Version.h"  // For the ENV32BIT definition.
+#include <string.h>
+#include <stddef.h>
 
 int cstring_cat(char *dst, const char *src, size_t dst_sz) {
+    if (dst == NULL || src == NULL || dst_sz == 0) {
+        return -1;
+    }
+
     size_t dst_len = strlen(dst);
     size_t src_len = strlen(src);
-    size_t n = min(dst_sz - dst_len - 1, src_len);
+
+    // Check if the destination is already full or invalid
+    if (dst_len >= dst_sz - 1) {
+        return -1;
+    }
+
+    size_t remaining_space = dst_sz - dst_len - 1;
+
+    // Manual min calculation to avoid macro side-effects
+    size_t n = (src_len < remaining_space) ? src_len : remaining_space;
+
     if (n > 0) {
+        // use memmove or memcpy; since we calculated n based on src_len
+        // and remaining space, this is safe.
         memmove(dst + dst_len, src, n);
         dst[dst_len + n] = '\0';
     }
-    return dst_len + src_len < dst_sz ? 0 : -1;
+
+    // Return 0 only if the entire src was appended
+    return (src_len <= remaining_space) ? 0 : -1;
 }
 
 int cstring_cat_int64(char *dst, int64_t src, size_t dst_sz) {
     char buf[32];
-#if defined(ENV32BIT)
-    sprintf(buf, "%lld", src);
-#else
-    sprintf(buf, "%ld", src);
-#endif
+    sprintf(buf, "%" PRId64, src);
     return cstring_cat(dst, buf, dst_sz);
 }
 

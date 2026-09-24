@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 prompt.h
 
-Copyright 2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2022-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,29 +45,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_PROMPT_H)
 #define MMB4L_PROMPT_H
 
+#include "mmresult.h"
 #include "options.h"
 
 typedef struct {
     char backup[STRINGSIZE];
     char buf[STRINGSIZE];
-    int char_index;
+    size_t char_index;  // Insertion point
     int history_idx;
     bool insert;
-    int start_line;
-    int max_chars;
-    bool save_line;
+    bool finished;
 } PromptState;
+
+/**
+ * Gets a character from the prompt input.
+ *
+ * Will wait forever for input. If the char is a LF then replace it with a CR
+ * unless it was preceded by a CR in which case throw away the char so end of
+ * line is always a CR.
+ *
+ * @param[in]   ch  pointer to store the character.
+ * @return          kOk on success, error code on failure.
+ */
+MmResult prompt_getc(int *ch);
 
 /**
  * @brief Implements the MMBasic prompt.
  *
  * On exit the global 'inpbuf' will contain what was typed at the prompt.
  */
-void prompt_get_input(void);
+MmResult prompt_get_input(void);
 
 /**
  * @brief Performs path completion on the contents of the global 'inpbuf'.
  */
-void prompt_handle_tab(PromptState *pstate);
+MmResult prompt_handle_tab(PromptState *pstate);
+
+/**
+ * Restores the command history from a file.
+ *
+ * @param[in]   filepath  path to the history file.
+ *                        If NULL/empty restores from the default location
+ * @return                kOk on success, error code on failure
+ */
+MmResult prompt_restore_history(const char *filepath);
+
+/**
+ * Saves the command history to a file.
+ *
+ * @param[in]   filepath  path to the history file.
+ *                        If NULL/empty saves to the default location
+ * @return                kOk on success, error code on failure
+ */
+MmResult prompt_save_history(const char *filepath);
 
 #endif // #if !defined(MMB4L_PROMPT_H)

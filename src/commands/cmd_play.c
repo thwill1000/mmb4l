@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_play.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,16 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <limits.h>
+#include <stdint.h>
+
 #include "../common/audio.h"
 #include "../common/audio_tables.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
-
-#include <limits.h>
-#include <stdint.h>
-#include <strings.h>
 
 static MmResult cmd_play_continue(const char *p) {
     ERROR_UNIMPLEMENTED("PLAY CONTINUE");
@@ -60,7 +60,7 @@ static MmResult cmd_play_continue(const char *p) {
 
 /** PLAY EFFECT file$ [, interrupt] */
 static MmResult cmd_play_effect(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -73,7 +73,7 @@ static MmResult cmd_play_effect(const char *p) {
 
 /** PLAY FLAC file$ [, interrupt] */
 static MmResult cmd_play_flac(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -122,7 +122,7 @@ static MmResult cmd_play_note(const char *p) {
  * CMM2/MMB4W:    'interrupt' argument is unsupported.
  */
 static MmResult cmd_play_modfile(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -130,23 +130,22 @@ static MmResult cmd_play_modfile(const char *p) {
 
     unsigned sample_rate = 44100;
     const char *interrupt = NULL;
-    switch (mmb_options.simulate) {
-        case kSimulateMmb4l:
+    switch (mmb_features.play_modfile_params) {
+        case kPlayModfileTypeWithBoth:
             sample_rate = has_arg(2) ? getint(argv[2], 0, 48000) : 44100;
             interrupt = has_arg(4) ? GetIntAddress(argv[4]) : NULL;
             break;
-        case kSimulateGameMite:
-        case kSimulatePicoMiteVga:
+        case kPlayModfileTypeWithInterrupt:
             if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
             interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
             break;
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
+        case kPlayModfileTypeWithSampleRate:
             if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
             sample_rate = has_arg(2) ? getint(argv[2], 0, 48000) : 44100;
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid FeaturesPlayModfileParams: %d",
+                                     mmb_features.play_modfile_params);
     }
 
     return audio_play_modfile(filename, sample_rate, interrupt);
@@ -154,7 +153,7 @@ static MmResult cmd_play_modfile(const char *p) {
 
 /** PLAY MODSAMPLE sample_num, channel_num [, volume] [, sample_rate] */
 static MmResult cmd_play_modsample(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
     const uint8_t sample_num = (uint8_t) getint(argv[0], 1, 32);
     const uint8_t channel_num = (uint8_t) getint(argv[2], 1, 4);
@@ -187,7 +186,7 @@ static MmResult cmd_play_resume(const char *p) {
 
 /** PLAY SOUND sound_no, channel_no, type [, frequency] [, volume] */
 static MmResult cmd_play_sound(const char *p) {
-    getargs(&p, 9, ",");
+    getargs(&p, 9, DELIM_COMMA);
     if (argc != 5 && argc != 7 && argc != 9) return kArgumentCount;
 
     int sound_no = getint(argv[0], 1, MAXSOUNDS) - 1;
@@ -201,11 +200,11 @@ static MmResult cmd_play_sound(const char *p) {
         channel = kChannelBoth;
     } else {
         char *s = getCstring(argv[2]);
-        if (strcasecmp("L", s) == 0) {
+        if (cstring_casecmp("L", s) == 0) {
             channel = kChannelLeft;
-        } else if (strcasecmp("R", s) == 0) {
+        } else if (cstring_casecmp("R", s) == 0) {
             channel = kChannelRight;
-        } else if (strcasecmp("B", s) == 0) {
+        } else if (cstring_casecmp("B", s) == 0) {
             channel = kChannelBoth;
         } else {
             return mmresult_ex(kSyntax, "Channel number must be L, R or B");
@@ -230,19 +229,19 @@ static MmResult cmd_play_sound(const char *p) {
         type = kSoundTypeSawTooth;
     } else {
         char *s = getCstring(argv[4]);
-        if (strcasecmp("N", s) == 0) {
+        if (cstring_casecmp("N", s) == 0) {
             type = kSoundTypeWhiteNoise;
-        } else if (strcasecmp("O", s) == 0) {
+        } else if (cstring_casecmp("O", s) == 0) {
             type = kSoundTypeNull;
-        } else if (strcasecmp("P", s) == 0) {
+        } else if (cstring_casecmp("P", s) == 0) {
             type = kSoundTypePeriodicNoise;
-        } else if (strcasecmp("Q", s) == 0) {
+        } else if (cstring_casecmp("Q", s) == 0) {
             type = kSoundTypeSquare;
-        } else if (strcasecmp("S", s) == 0) {
+        } else if (cstring_casecmp("S", s) == 0) {
             type = kSoundTypeSine;
-        } else if (strcasecmp("T", s) == 0) {
+        } else if (cstring_casecmp("T", s) == 0) {
             type = kSoundTypeTriangular;
-        } else if (strcasecmp("W", s) == 0) {
+        } else if (cstring_casecmp("W", s) == 0) {
             type = kSoundTypeSawTooth;
         } else {
             return mmresult_ex(kSyntax, "Sound type must be N, O, P, Q, S, T or W");
@@ -267,7 +266,7 @@ static MmResult cmd_play_stop(const char *p) {
 
 /** PLAY TONE left [, right] [, dur] [, interrupt] */
 static MmResult cmd_play_tone(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
     float f_left = (float)getnumber(argv[0]);
     float f_right = (float)getnumber(argv[2]);
@@ -284,7 +283,7 @@ static MmResult cmd_play_stream(const char *p) {
 
 /** PLAY MP3 file$ [, interrupt] */
 static MmResult cmd_play_mp3(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -297,7 +296,7 @@ static MmResult cmd_play_mp3(const char *p) {
 
 /** PLAY VOLUME left [, right] */
 static MmResult cmd_play_volume(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
     uint8_t left = (uint8_t)getint(argv[0], 0, 100);
     uint8_t right = has_arg(2) ? (uint8_t)getint(argv[2], 0, 100) : left;
@@ -307,7 +306,7 @@ static MmResult cmd_play_volume(const char *p) {
 
 /** PLAY WAV file$ [, interrupt] */
 static MmResult cmd_play_wav(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../Configuration.h"
 #include "MMBasic.h"
 #include "commandtbl.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 
-#include <strings.h>
+int commandtbl_size;
 
 /**
  * This is the command table that defines the various tokens for MMBasic commands.
@@ -64,6 +64,7 @@ const struct s_tokentbl commandtbl[] = {
     { "AutoSave",    T_CMD,              0, cmd_autosave },
     { "Blit",        T_CMD,              0, cmd_blit     },
     { "Box",         T_CMD,              0, cmd_box      },
+    { "Breakpoint",  T_CMD,              0, cmd_breakpoint },
     { "Call",        T_CMD,              0, cmd_call     },
     { "Case Else",   T_CMD,              0, cmd_case     },
     { "Case",        T_CMD,              0, cmd_case     },
@@ -87,6 +88,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Device",      T_CMD,              0, cmd_device   },
     { "Dim",         T_CMD,              0, cmd_dim      },
     { "Do",          T_CMD,              0, cmd_do       },
+    { "Drive",       T_CMD,              0, cmd_drive    },
     { "Edit",        T_CMD,              0, cmd_edit     },
     { "ElseIf",      T_CMD,              0, cmd_else     },
     { "Else If",     T_CMD,              0, cmd_else     },
@@ -120,6 +122,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Gui",         T_CMD,              0, cmd_gui      },
     { "If",          T_CMD,              0, cmd_if       },
     { "Image",       T_CMD,              0, cmd_image    },
+    { "In",          T_CMD,              0, cmd_in       },
     { "Inc",         T_CMD,              0, cmd_inc      },
     { "Input",       T_CMD,              0, cmd_input    },
     { "IReturn",     T_CMD,              0, cmd_ireturn  },
@@ -129,21 +132,24 @@ const struct s_tokentbl commandtbl[] = {
     { "Line Input",  T_CMD,              0, cmd_lineinput},
     { "List",        T_CMD,              0, cmd_list     },
     { "Load",        T_CMD,              0, cmd_load     },
+    { "Log",         T_CMD,              0, cmd_log      },
     { "Local",       T_CMD,              0, cmd_dim      },
     { "LongString",  T_CMD,              0, cmd_longstring },
     { "Loop",        T_CMD,              0, cmd_loop     },
     { "Math",        T_CMD,              0, cmd_math     },
     { "Memory",      T_CMD,              0, cmd_memory   },
     { "Mid$(",       T_CMD | T_FUN,      0, cmd_mid      },
-    { "Mkdir",       T_CMD,              0, cmd_mkdir    },
+    { "MkDir",       T_CMD,              0, cmd_mkdir    },
+    { "MkFile",      T_CMD,              0, cmd_mkfile   },
     { "MmDebug",     T_CMD,              0, cmd_mmdebug  },
     { "Mode",        T_CMD,              0, cmd_mode     },
     { "New",         T_CMD,              0, cmd_new      },
     { "Next",        T_CMD,              0, cmd_next     },
     { "On",          T_CMD,              0, cmd_on       },
     { "Open",        T_CMD,              0, cmd_open     },
-    { "Option",      T_CMD,              0, cmd_option   },
+    { "Out",         T_CMD,              0, cmd_out      },
     { "Page",        T_CMD,              0, cmd_page     },
+    { "Option",      T_CMD,              0, cmd_option   },
     { "Pause",       T_CMD,              0, cmd_pause    },
     { "Play",        T_CMD,              0, cmd_play     },
     { "Pin(",        T_CMD | T_FUN,      0, cmd_pin      },
@@ -162,6 +168,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Return",      T_CMD,              0, cmd_return,  },
     { "Rmdir",       T_CMD,              0, cmd_rmdir    },
     { "Run",         T_CMD,              0, cmd_run      },
+    { "Save",        T_CMD,              0, cmd_save     },
     { "Seek",        T_CMD,              0, cmd_seek     },
     { "Select Case", T_CMD,              0, cmd_select   },
     { "SetEnv",      T_CMD,              0, cmd_setenv   },
@@ -185,15 +192,21 @@ const struct s_tokentbl commandtbl[] = {
     { "",            0,                  0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDO;
+CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDIM, cmdDO;
 CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_DEFINEFONT;
 CommandToken cmdEND_FUNCTION;
 CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
-CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
-CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
+CommandToken cmdIF, cmdIRET, cmdLET, cmdLOCAL, cmdLOOP, cmdNEXT, cmdPRINT;
+CommandToken cmdREM, cmdRUN, cmdSELECT_CASE, cmdSTATIC, cmdSUB, cmdWEND, cmdWHILE;
+
+#define COMMANDTBL_SIZE  sizeof(commandtbl) / sizeof(struct s_tokentbl)
+
+#if defined(ENABLE_GTEST_EXTRAS)
+static char ENCODED_COMMANDS[COMMANDTBL_SIZE][4] = { 0 };
+#endif
 
 void commandtbl_init() {
-    commandtbl_size = sizeof(commandtbl) / sizeof(struct s_tokentbl);
+    commandtbl_size = COMMANDTBL_SIZE;
 
     cmdCASE = commandtbl_get("Case");
     cmdCASE_ELSE = commandtbl_get("Case Else");
@@ -201,6 +214,7 @@ void commandtbl_init() {
     cmdCSUB = commandtbl_get("CSub");
     cmdDATA = commandtbl_get("Data");
     cmdDEFINEFONT = commandtbl_get("DefineFont");
+    cmdDIM = commandtbl_get("Dim");
     cmdDO = commandtbl_get("Do");
     cmdELSE = commandtbl_get("Else");
     cmdELSEIF = commandtbl_get("ElseIf");
@@ -217,22 +231,38 @@ void commandtbl_init() {
     cmdIF = commandtbl_get("If");
     cmdIRET = commandtbl_get("IReturn");
     cmdLET = commandtbl_get("Let");
+    cmdLOCAL = commandtbl_get("Local");
     cmdLOOP = commandtbl_get("Loop");
     cmdNEXT = commandtbl_get("Next");
     cmdPRINT = commandtbl_get("Print");
     cmdREM = commandtbl_get("Rem");
+    cmdRUN = commandtbl_get("Run");
     cmdSELECT_CASE = commandtbl_get("Select Case");
+    cmdSTATIC = commandtbl_get("Static");
     cmdSUB = commandtbl_get("Sub");
     cmdWEND = commandtbl_get("WEnd");
     cmdWHILE = commandtbl_get("While");
+
+#if defined(ENABLE_GTEST_EXTRAS)
+    for (size_t i = 0; i < COMMANDTBL_SIZE - 1; i++) {
+        char *buf = ENCODED_COMMANDS[i];
+        commandtbl_encode(&buf, i);
+    }
+#endif
 }
 
 CommandToken commandtbl_get(const char *s) {
-    for (int i = 0; i < commandtbl_size - 1; i++) {
-        if (strcasecmp(s, commandtbl[i].name) == 0) {
+    for (size_t i = 0; i < COMMANDTBL_SIZE - 1; i++) {
+        if (cstring_casecmp(s, commandtbl[i].name) == 0) {
             return i;
         }
     }
-    ERROR_INTERNAL_FAULT;
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, INVALID_COMMAND_TOKEN);
     return INVALID_COMMAND_TOKEN;
 }
+
+#if defined(ENABLE_GTEST_EXTRAS)
+const char *commandtbl_encoded(const char *name) {
+    return ENCODED_COMMANDS[commandtbl_get(name)];
+}
+#endif

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_graphics.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <stdio.h>
 
-#include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/display.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** GRAPHICS BUFFER id, width, height */
 static MmResult cmd_graphics_buffer(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
     MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
@@ -66,11 +66,11 @@ static MmResult cmd_graphics_buffer(const char *p) {
 
 /** GRAPHICS CLS id [, colour] */
 static MmResult cmd_graphics_cls(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc % 2 != 1) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MmSurface *surface = &graphics_surfaces[id];
-    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga)
+    const MmSurface *layer = mmb_features.graphics_type == kGraphicsTypePicomiteVga
             ?  &graphics_surfaces[GRAPHICS_SURFACE_L]
             : NULL;
     MmGraphicsColour colour = has_arg(2)
@@ -87,11 +87,8 @@ static MmResult cmd_graphics_cls(const char *p) {
  * @param  transparent  If T or 1 then treat BLACK as transparent when copying.
  */
 MmResult cmd_graphics_copy(const char *p) {
-    char ss[3];
-    ss[0] = tokenTO;
-    ss[1] =',';
-    ss[2] = 0;
-    getargs(&p, 7, ss);
+    const DelimType delim[] = { tokenTO, ',', 0 };
+    getargs(&p, 7, delim);
     if (argc < 3 || !(argc % 2)) return kArgumentCount;
 
     MmSurfaceId src_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -130,7 +127,7 @@ MmResult cmd_graphics_copy(const char *p) {
 
 /** GRAPHICS TITLE id, title$ */
 static MmResult cmd_graphics_title(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     const char *title = getCstring(argv[2]);
@@ -140,7 +137,7 @@ static MmResult cmd_graphics_title(const char *p) {
 
 /** GRAPHICS SPRITE id, width, height */
 static MmResult cmd_graphics_sprite(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
     ON_FAILURE_RETURN(parse_sprite_id(argv[0], 0x0, &sprite_id));
@@ -171,7 +168,7 @@ static MmResult cmd_graphics_check_window_interrupt(const char *interrupt_addr) 
 
 /** GRAPHICS WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt] */
 static MmResult cmd_graphics_window(const char *p) {
-    getargs(&p, 15, ",");
+    getargs(&p, 15, DELIM_COMMA);
     if (argc < 5 || argc > 15 || !(argc % 2)) return kArgumentCount;
 
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -189,7 +186,7 @@ static MmResult cmd_graphics_window(const char *p) {
 
 /** GRAPHICS DESTROY { id | ALL } */
 static MmResult cmd_graphics_destroy(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     if ((p = checkstring(argv[0], "ALL"))) {
         return graphics_surface_destroy_all();
@@ -201,7 +198,7 @@ static MmResult cmd_graphics_destroy(const char *p) {
 
 /** GRAPHICS INTERRUPT id, {interrupt|0} */
 static MmResult cmd_graphics_interrupt(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kArgumentCount;
 
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -218,16 +215,15 @@ MmResult cmd_graphics_list(const char *p) {
     MmResult result = kOk;
     char buf[STRINGSIZE];
 
-    if (mmb_options.simulate != kSimulateMmb4l) {
+    if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
         result = options_get_string_value(&mmb_options, kOptionSimulate, buf);
         if (FAILED(result)) return result;
-        console_puts(buf);
-        if (mmb_options.simulate == kSimulateGameMite) {
-            console_puts("\r\n");
-        } else {
-            (void) snprintf(buf, STRINGSIZE, " - Mode %d\r\n", graphics_mode);
-            console_puts(buf);
+        display_puts(buf);
+        if (mmb_features.has_cmd_mode) {
+            (void) snprintf(buf, STRINGSIZE, " - Mode %d", graphics_mode);
+            display_puts(buf);
         }
+        display_puts("\r\n");
     }
 
     const MmSurfaceId current_id = graphics_current ? graphics_current->id : -1;
@@ -240,19 +236,19 @@ MmResult cmd_graphics_list(const char *p) {
         if (FAILED(result)) break;
         snprintf(buf, STRINGSIZE, "%c %3d) %s: %d x %d\r\n", id == current_id ? '*' : ' ',
                  id, type, s->width, s->height);
-        console_puts(buf);
+        display_puts(buf);
         count++;
     }
     if (SUCCEEDED(result) && count == 0) {
-        console_puts("No graphics surfaces");
+        display_puts("No graphics surfaces");
     }
 
-    return result;
+    return display_flush();
 }
 
 /** GRAPHICS WRITE { id | NONE } */
 MmResult cmd_graphics_write(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     if ((p = checkstring(argv[0], "NONE"))) {
         return graphics_surface_write(GRAPHICS_NONE);

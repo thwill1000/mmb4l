@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_str2bin.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -59,7 +59,7 @@ void fun_str2bin(void) {
         uint16_t us;
     } map;
     int j;
-    getargs(&ep, 5, ",");
+    getargs(&ep, 5, DELIM_COMMA);
     if (!(argc == 3 || argc == 5)) ERROR_SYNTAX;
     if (argc == 5 && !checkstring(argv[4], "BIG")) ERROR_SYNTAX;
     char *p;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 graphics.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,26 +42,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "bitset.h"
-#include "cstring.h"
-#include "error.h"
-#include "events.h"
-#include "file.h"
-#include "fonttbl.h"
-#include "graphics.h"
-#include "memory.h"
-#include "mmb4l.h"
-#include "path.h"
-#include "program.h"
-#include "sprite.h"
-#include "utility.h"
-#include "../third_party/spbmp.h"
-#include "../third_party/upng.h"
-
 #include <assert.h>
 #include <stdbool.h>
 
 #include <SDL.h>
+
+#if defined(__ANDROID__)
+#include "android.h"
+#endif
+
+#include "bitset.h"
+#include "cstring.h"
+#include "error.h"
+#include "events.h"
+#include "file_private.h"
+#include "fonttbl.h"
+#include "graphics.h"
+#include "logger.h"
+#include "memory.h"
+#include "mmb4l.h"
+#include "mmgetline.h"
+#include "path.h"
+#include "program.h"
+#include "sprite.h"
+#include "streamio.h"
+#include "utility.h"
 
 /** Sprite colours on CMM2. */
 const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {
@@ -152,13 +157,21 @@ static const ModeDefinition CMM2_MODES[] = {
     { 17, 384, 240, 39, 1 },
 };
 
+static const ModeDefinition PICOMITE_HDMI_MODES[] = {
+    { 0, 0, 0, 0, 0 },
+    { 1, 640, 480, 1, 1 },
+    { 2, 320, 240, 1, 7 },
+    { 3, 640, 480, 1, 1 },
+    { 4, 320, 240, 1, 7 },
+    { 5, 320, 240, 1, 7 },
+};
+
 static const ModeDefinition PICOMITE_VGA_MODES[] = {
     { 0, 0, 0, 0, 0 },
     { 1, 640, 480, 1, 1 },
     { 2, 320, 240, 1, 7 },
 };
 
-static const char* NO_ERROR = "";
 static bool graphics_initialised = false;
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 MmSurface* graphics_current = NULL;
@@ -166,10 +179,10 @@ MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
 uint32_t graphics_font = 0x11; // Font 1, scale 1.
 unsigned graphics_mode = 0;
-static uint64_t frameEnd = 0;
+static uint64_t graphics_frame_end = 0;
 
 /**
- * If kSimulate{Cmm2|Mmb4w} && colour depth== 12 then simulate a three layer CMM2
+ * If kGraphicsTypeCmm2 && colour depth== 12 then simulate a three layer CMM2
  * display:
  *   page/surface 1 -- top
  *   page/surface 0
@@ -180,43 +193,78 @@ static uint64_t frameEnd = 0;
 unsigned graphics_colour_depth = 32;
 
 /**
- * Colour of the background layer to be used if kSimulate{Cmm2|Mmb4w} && graphics_colour_depth == 12;
+ * Colour of the background layer to be used if kGraphicsTypeCmm2 && graphics_colour_depth == 12;
  */
 MmGraphicsColour graphics_cmm2_background = RGB_BLACK;
 
+static MmResult graphics_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kGraphicsApiError, "Graphics error: %s", emsg);
+}
+
 MmResult graphics_init() {
     if (graphics_initialised) return kOk;
-    MmResult result = events_init();
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(events_init());
     for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
         memset(&graphics_surfaces[id], 0, sizeof(MmSurface));
         graphics_surfaces[id].id = id;
     }
     graphics_colour_depth = 12;
     graphics_cmm2_background = RGB_BLACK;
-    frameEnd = 0;
-    result = sprite_init();
-    if (FAILED(result)) return result;
+    graphics_frame_end = 0;
+    ON_FAILURE_RETURN(sprite_init());
     graphics_initialised = true;
     return kOk;
 }
 
-const char *graphics_last_error() {
-    const char* emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
-}
-
 MmResult graphics_term() {
     if (!graphics_initialised) return kOk;
-    MmResult result = sprite_term();
-    if (SUCCEEDED(result)) result = graphics_surface_destroy_all();
-    if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
-        graphics_mode = 0;
-        graphics_initialised = false;
+    ON_FAILURE_RETURN(sprite_term());
+    ON_FAILURE_RETURN(graphics_surface_destroy_all());
+    graphics_fcolour = RGB_WHITE;
+    graphics_bcolour = RGB_BLACK;
+    graphics_mode = 0;
+    graphics_initialised = false;
+    return kOk;
+}
+
+MmResult graphics_reset() {
+    if (!graphics_initialised) return kOk;
+
+    MmSurfaceId start_id = 0;
+    switch (mmb_features.graphics_type) {
+        case kGraphicsTypeCmm2:
+            start_id = CMM2_MODES[graphics_mode].num_pages;
+            break;
+        case kGraphicsTypeMmb4l:
+            break;
+        case kGraphicsTypePicomiteHdmi:
+        case kGraphicsTypePicomiteLcd:
+        case kGraphicsTypePicomiteVga:
+            // 0 - window surface
+            // 1 - surface N
+            start_id = 2;
+            break;
     }
-    return result;
+
+    // Destroy non-display surfaces other than the current surface.
+    for (MmSurfaceId id = start_id; id <= GRAPHICS_MAX_ID; ++id) {
+        MmSurface *surface = &graphics_surfaces[id];
+        if (surface == graphics_current) continue;
+        ON_FAILURE_RETURN(graphics_surface_destroy(surface));
+    }
+
+    // Destroy the current surface if it is a display surface.
+    if (graphics_current && graphics_current->id >= start_id) {
+        ON_FAILURE_RETURN(graphics_surface_destroy(graphics_current));
+    }
+
+    graphics_fcolour = mmb_features.foreground;
+    graphics_bcolour = mmb_features.background;
+    graphics_font = 0x11; // Font 1, scale 1
+
+    return kOk;
 }
 
 MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
@@ -236,7 +284,7 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
  */
 static MmResult graphics_refresh_cmm2_window() {
     if (graphics_colour_depth != 12) return kOk; // Use default window refresh.
-    assert(mmb_options.simulate == kSimulateCmm2 || mmb_options.simulate == kSimulateMmb4w);
+    assert(mmb_features.graphics_type == kGraphicsTypeCmm2);
     MmSurface* window = &graphics_surfaces[0];
     MmSurface* page1 = &graphics_surfaces[1];
     assert(window->type == kGraphicsWindow);
@@ -296,7 +344,9 @@ static inline MmResult graphics_copy_internal(MmSurface *src, MmSurface *dst) {
 /**
  * Copies frame buffer N (surface 1) to the display (surface 0).
  */
-static MmResult graphics_refresh_gamemite_window() {
+static MmResult graphics_refresh_picomite_lcd_window() {
+    // LOG_FN_ENTRY();
+
     MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
     if (!buffer_N->dirty) return kOk;
     MmResult result = kOk;
@@ -305,7 +355,8 @@ static MmResult graphics_refresh_gamemite_window() {
         result = graphics_copy_internal(buffer_N, window);
     }
     if (SUCCEEDED(result)) buffer_N->dirty = false;
-    return kOk;
+
+    RETURN_RESULT(kOk);
 }
 
 /**
@@ -342,45 +393,86 @@ static MmResult graphics_refresh_picomite_vga_window() {
     return result;
 }
 
+#define COUNTER_MAX  20
+#define FRAME_MS  16
+
 void graphics_refresh_windows() {
-    // if (SDL_GetTicks64() > frameEnd) {
-    if (SDL_GetTicks() > frameEnd) {
-        switch (mmb_options.simulate) {
-            case kSimulateCmm2:
-            case kSimulateMmb4w:
-                ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
-                break;
-            case kSimulateGameMite:
-                ON_FAILURE_ERROR(graphics_refresh_gamemite_window());
-                break;
-            case kSimulatePicoMiteVga:
-                ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
-                break;
-            default:
-                break;
-        }
+    static uint32_t counter = 0;
+
+    uint32_t now = SDL_GetTicks();  // TODO: update to SDL_GetTicks64
+    if (now < graphics_frame_end) return;
+    graphics_frame_end += FRAME_MS;
+    if (graphics_frame_end < now) graphics_frame_end = now + FRAME_MS;  // too far behind, reset
+
+    for (uint32_t id = 0; id <= GRAPHICS_MAX_ID; ++id) {
 
         // TODO: Optimise by using linked-list of windows.
-        for (int id = 0; id <= GRAPHICS_MAX_ID; ++id) {
-            MmSurface* s = &graphics_surfaces[id];
-            if (s->type == kGraphicsWindow && s->dirty) {
-                SDL_UpdateTexture((SDL_Texture *) s->texture, NULL, s->pixels, s->width * 4);
-                SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
-                               NULL);
+        if (graphics_surfaces[id].type != kGraphicsWindow) continue;
 
-                // Window must be shown before calling SDL_RenderPresent().
-                if (SDL_GetWindowFlags(s->window) & SDL_WINDOW_HIDDEN) {
-                    SDL_ShowWindow(s->window);
-                    SDL_RaiseWindow(s->window);
-                }
+        MmSurface* s = &graphics_surfaces[id];
+        const SDL_WindowFlags flags = SDL_GetWindowFlags(s->window);
 
-                SDL_RenderPresent((SDL_Renderer *) s->renderer);
-                s->dirty = false;
+        // For id==0, unconditionally refresh the 'display' surface every COUNTER_MAX frames,
+        // or every frame when focused. This polls for hardware state changes that occur
+        // independently of dirty-marking (e.g. simulated 'Mite output).
+        if (id == 0 && (counter == 0 || (flags & SDL_WINDOW_INPUT_FOCUS))) {
+            switch (mmb_features.graphics_type) {
+                case kGraphicsTypeCmm2:
+                    ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
+                    break;
+                case kGraphicsTypePicomiteLcd:
+                    ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
+                    break;
+                case kGraphicsTypePicomiteHdmi:
+                case kGraphicsTypePicomiteVga:
+                    ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
+                    break;
+                default:
+                    break;
             }
         }
-        // frameEnd = SDL_GetTicks64() + 15;
-        frameEnd = SDL_GetTicks() + 15;
+
+        // s->dirty is intentionally left set if we skip rendering below (no focus,
+        // not this window's counter slot) so it will be rendered on the next eligible frame.
+        if (!s->dirty) continue;
+
+        // If the window is hidden then show it, bring it to the front and give it input
+        // focus.
+        if (flags & SDL_WINDOW_HIDDEN) {
+            SDL_ShowWindow(s->window);
+            SDL_RaiseWindow(s->window);
+        }
+
+        // Throttle background windows: each window ID is assigned a slot in the counter
+        // cycle (id % COUNTER_MAX) so background updates are staggered across frames,
+        // keeping the console responsive when windows are not on top.
+        if (!((flags & SDL_WINDOW_INPUT_FOCUS) || counter == id % COUNTER_MAX)) continue;
+
+        // Upload pixels to GPU. Uses streaming texture + LockTexture for better performance
+        // than SDL_UpdateTexture. Each surface has its own renderer so RenderPresent is
+        // called per-window. pitch may differ from width*4 due to GPU row alignment.
+        void *pixels;
+        int pitch;
+        SDL_LockTexture((SDL_Texture *) s->texture, NULL, &pixels, &pitch);
+        if (pitch == s->width * 4) {
+            memcpy(pixels, s->pixels, s->height * pitch);
+        } else {
+            for (int y = 0; y < s->height; y++) {
+                memcpy((uint8_t*)pixels    + y * pitch,      // dest: GPU stride
+                    (uint8_t*)s->pixels + y * s->width * 4,  // src: tight stride
+                    s->width * 4);                           // copy only real pixels
+            }
+        }
+        SDL_UnlockTexture((SDL_Texture *) s->texture);
+        SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
+                       NULL);
+        SDL_RenderPresent((SDL_Renderer *) s->renderer);
+
+        s->dirty = false;
     }
+
+    counter++;
+    counter %= COUNTER_MAX;
 }
 
 static inline MmSurface *graphics_surface_from_id(MmSurfaceId id) {
@@ -429,10 +521,7 @@ static MmResult graphics_surface_reset(MmSurfaceId id) {
 
 static MmResult graphics_surface_create(MmSurfaceId id, GraphicsSurfaceType type, int width,
                                         int height) {
-    if (!graphics_initialised) {
-        MmResult result = graphics_init();
-        if (FAILED(result)) return result;
-    }
+    if (!graphics_initialised) ON_FAILURE_RETURN(graphics_init());
 
     if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
     if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceAlreadyExists;
@@ -460,10 +549,9 @@ MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
     if (id == 0) return kGraphicsInvalidSpriteIdZero;
 
     MmResult result = graphics_surface_create(id, kGraphicsInactiveSprite, width, height);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
+    DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
     MmSurface *s = &graphics_surfaces[id];
-#pragma GCC diagnostic pop
+    DIAGNOSTIC_RESTORE
     s->blit_flags = kBlitWithTransparency;
 
     if (SUCCEEDED(result)) {
@@ -500,7 +588,7 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
                 if (fscale < 0.5) return kGraphicsSurfaceTooLarge;
             }
         } else {
-            result = kGraphicsApiError;
+            result = graphics_api_error();
         }
     }
 
@@ -517,14 +605,19 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
         window = SDL_CreateWindow(title2, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
                                   y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
                                   height * fscale, show ? SDL_WINDOW_SHOWN : SDL_WINDOW_HIDDEN);
-        if (!window) result = kGraphicsApiError;
+        if (!window) result = graphics_api_error();
     }
 
-    // Create SDL renderer with V-Sync enabled.
+    // Create SDL renderer without V-Sync. V-Sync would cause SDL_RenderPresent()
+    // to block until the next monitor refresh pulse (~16ms at 60Hz), stalling
+    // the main thread and reducing emulation throughput. Instead we manage our
+    // own frame timing viagraphics_frame_end, accepting occasional tearing
+    // which is imperceptible in practice for an emulator.
+    // Note: SDL rendering must occur on the main thread (required by Metal on macOS).
     SDL_Renderer *renderer = NULL;
     if (SUCCEEDED(result)) {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-        if (!renderer) result = kGraphicsApiError;
+        renderer = SDL_CreateRenderer(window, -1, 0 /* not SDL_RENDER_PRESENTVSYNC */);
+        if (!renderer) result = graphics_api_error();
     }
 
     // Create SDL streaming texture.
@@ -532,16 +625,16 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
     if (SUCCEEDED(result)) {
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
                                     SDL_TEXTUREACCESS_STREAMING, width, height);
-        if (!texture) result = kGraphicsApiError;
+        if (!texture) result = graphics_api_error();
     }
 
     if (SUCCEEDED(result)) {
         result = SUCCEEDED(SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE))
-                ? kOk : kGraphicsApiError;
+                ? kOk : graphics_api_error();
     }
 
     if (SUCCEEDED(result)) {
-        result = SUCCEEDED(SDL_RenderClear(renderer)) ? kOk : kGraphicsApiError;
+        result = SUCCEEDED(SDL_RenderClear(renderer)) ? kOk : graphics_api_error();
     }
 
     if (SUCCEEDED(result)) SDL_RenderPresent(renderer);
@@ -567,6 +660,18 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
     return result;
 }
 
+/**
+ * Event filter that drops queued events belonging to one window.
+ *
+ * SDL_DestroyWindow() does not empty the queue, so events posted for a window
+ * before it was destroyed are still delivered afterwards, carrying an id that
+ * no surface answers to any more.
+ */
+static int graphics_drop_window_events(void *userdata, SDL_Event *event) {
+    const Uint32 window_id = *((Uint32 *) userdata);
+    return (event->type == SDL_WINDOWEVENT && event->window.windowID == window_id) ? 0 : 1;
+}
+
 MmResult graphics_surface_destroy(MmSurface *surface) {
     assert(surface);
 
@@ -577,9 +682,14 @@ MmResult graphics_surface_destroy(MmSurface *surface) {
     //       is currently rendered to a surface other than 'graphic_current'.
     if (surface->type == kGraphicsSprite) (void) sprite_hide(surface);
 
+    // Read while the window still exists; needed to clear its queued events.
+    Uint32 window_id = surface->window ? SDL_GetWindowID((SDL_Window *) surface->window) : 0;
+
     SDL_DestroyTexture((SDL_Texture *) surface->texture);
     SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
     SDL_DestroyWindow((SDL_Window *) surface->window);
+
+    if (window_id) SDL_FilterEvents(graphics_drop_window_events, &window_id);
 
     free(surface->pixels);
     free(surface->background);
@@ -607,13 +717,48 @@ MmResult graphics_surface_destroy_all() {
 
 MmResult graphics_surface_write(MmSurfaceId id) {
     if (id == GRAPHICS_NONE) {
+        if (graphics_current && mmb_features.graphics_type != kGraphicsTypeMmb4l) {
+            // On simulated platforms stash the shared cursor location
+            graphics_surfaces[0].cursor_x = graphics_current->cursor_x;
+            graphics_surfaces[0].cursor_y = graphics_current->cursor_y;
+        }
         graphics_current = NULL;
-    } else if (!graphics_surface_exists(id)) {
-        return kGraphicsInvalidWriteSurface;
-    } else {
-        graphics_current = &graphics_surfaces[id];
+        RETURN_RESULT(kOk);
     }
-    return kOk;
+
+    if (id == GRAPHICS_SURFACE_DEFAULT) {
+        switch (mmb_features.graphics_type) {
+            case kGraphicsTypeCmm2:
+            case kGraphicsTypeMmb4l:
+                id = 0;
+                break;
+            case kGraphicsTypePicomiteHdmi:
+            case kGraphicsTypePicomiteLcd:
+            case kGraphicsTypePicomiteVga:
+                id = GRAPHICS_SURFACE_N;
+                break;
+            default:
+                RETURN_RESULT(
+                    INTERNAL_FAULT_EX("invalid GraphicsType: %d", mmb_features.graphics_type));
+        }
+    }
+
+    if (!graphics_surface_exists(id)) {
+        RETURN_RESULT(kGraphicsInvalidWriteSurface);
+    }
+
+    if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
+        // Simulate platforms maintain a single cursor position across surfaces
+        // so when we change surface we copy the value from the old surface to
+        // the new surface.
+        MmSurface *old = graphics_current ? graphics_current: &graphics_surfaces[0];
+        graphics_surfaces[id].cursor_x = old->cursor_x;
+        graphics_surfaces[id].cursor_y = old->cursor_y;
+    }
+
+    graphics_current = &graphics_surfaces[id];
+
+    RETURN_RESULT(kOk);
 }
 
 static inline void graphics_set_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
@@ -629,6 +774,15 @@ static inline void graphics_set_pixel_safe(MmSurface *surface, int x, int y, MmG
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
     graphics_set_pixel_safe(surface, x, y, colour);
     surface->dirty = true;
+    return kOk;
+}
+
+MmResult graphics_get_pixel(MmSurface *surface, int x, int y, MmGraphicsColour *colour) {
+    if (x >= 0 && y >= 0 && x < surface->width && y < surface->height) {
+        *colour = surface->pixels[y*surface->width + x];
+    } else {
+        *colour = -1;
+    }
     return kOk;
 }
 
@@ -949,8 +1103,8 @@ MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, i
     return result;
 }
 
-MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphicsColour colour,
-                                int complete) {
+static MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti,
+                                       MmGraphicsColour colour, int complete) {
     static unsigned char pos = 0;
     static unsigned char movex, movey, movec;
     static short xtilast[8];
@@ -1046,7 +1200,7 @@ MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int 
             aspect2 = ((aspect * (MMFLOAT)radius) - (MMFLOAT)w) / ((MMFLOAT)(radius - w));
             graphics_draw_circle(surface, x, y, radius - w, 0, fill, fill, aspect2);
         } else {  // thick border with empty centre
-            int r1 = radius - w, r2 = radius, xs = -1, xi = 0, i, j, k, m, ll = radius;
+            int r1 = radius - w, r2 = radius, xs = -1, xi = 0, i, j, k, m = 0, ll = radius;
             if (aspect > 1.0) ll = (int)((MMFLOAT)radius * aspect);
             int ints_per_line = RoundUptoInt((ll * 2) + 1) / 32;
             uint32_t* br = (uint32_t*)GetTempMemory(((ints_per_line + 1) * ((r2 * 2) + 1)) * 4);
@@ -1325,175 +1479,15 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
     return kOk;
 }
 
-void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
-                          const unsigned char* buffer, int skip) {
-    const unsigned char *psrc = buffer;
-    union colourmap
-    {
-        char rgbbytes[4];
-        uint32_t rgb;
-    } c;
-    int scale = 1; // (PageTable[WritePage].expand ? 2 : 1);
-    //if (optiony)y1=maxH-1-y1;
-    //if (optiony)y2=maxH-1-y2;
-    // make sure the coordinates are kept within the display area
-    if (x2 <= x1) SWAP(int, x1, x2);
-    if (y2 <= y1) SWAP(int, y1, y2);
-    // int cursorhidden=0;
-    // if (cursoron)
-    //     if ( !(xcursor + wcursor < x1 ||
-    //         xcursor > x2 ||
-    //         ycursor + hcursor < y1 ||
-    //         ycursor > y2)){
-    //     hidecursor(0);
-    //     cursorhidden=1;
-    //     }
-    if (scale==1){
-        for (int y = y1; y <= y2; y++){
-            // routinechecks(1);
-            uint32_t *pdst = surface->pixels + (y * surface->width + x1);
-            for (int x = x1; x <= x2; x++){
-                if (x >= 0 && x < surface->width && y >= 0 && y < surface->height) {
-                    if (skip & 2) {
-                        c.rgbbytes[3] = 0xFF; //assume solid colour
-                        c.rgbbytes[2] = *psrc++; //this order swaps the bytes to match the .BMP file
-                        c.rgbbytes[1] = *psrc++;
-                        c.rgbbytes[0] = *psrc++;
-                        if (skip & 1) c.rgbbytes[3] = *psrc++; //ARGB8888 so set transparency
-                    } else {
-                        c.rgbbytes[3] = 0;
-                        c.rgbbytes[0] = *psrc++; //this order swaps the bytes to match the .BMP file
-                        c.rgbbytes[1] = *psrc++;
-                        c.rgbbytes[2] = *psrc++;
-                        if (skip & 1) psrc++;
-                    }
-                    *pdst = c.rgb;
-                } else {
-                    psrc += (skip & 1) ? 4 : 3;
-                }
-                pdst++;
-            }
-        }
-    }
-    // } else {
-    //     uint32_t *s1;
-    //     for(y=y1*2;y<=y2*2;y+=2){
-    //         routinechecks(1);
-    //         sc=(uint32_t *)((y * maxW + x1) * 4 + wpa);
-    //         s1=(uint32_t *)(((y+1) * maxW + x1) * 4 + wpa);
-    //         for(x=x1;x<=x2;x++){
-    //             if (x>=0 && x<maxW && y>=0 && y<maxH*2){
-    //                 if (skip & 2){
-    //                     c.rgbbytes[3]=0xFF;
-    //                     c.rgbbytes[2]=*p++; //this order swaps the bytes to match the .BMP file
-    //                     c.rgbbytes[1]=*p++;
-    //                     c.rgbbytes[0]=*p++;
-    //                     if (skip & 1)c.rgbbytes[3]=*p++; //ARGB8888 so set transparency
-    //                 } else {
-    //                     c.rgbbytes[3]=0;
-    //                     c.rgbbytes[0]=*p++; //this order swaps the bytes to match the .BMP file
-    //                     c.rgbbytes[1]=*p++;
-    //                     c.rgbbytes[2]=*p++;
-    //                     if (skip & 1)p++;
-    //                 }
-    //                 *sc=c.rgb;
-    //                 *s1=*sc;
-    //             } else {
-    //                 p+=(skip & 1) ? 4 : 3;
-    //             }
-    //             sc++;
-    //             s1++;
-    //         }
-    //     }
-    // }
-    // if (cursorhidden)showcursor(0, xcursor,ycursor);
-}
-
-static size_t spbmp_file_read_cb(void *file, void *buffer, size_t size, size_t count,
-                                 void *userdata) {
-    return fread(buffer, size, count, (FILE *) file);
-}
-
-static void spbmp_set_pixel_cb(int x, int y, SpColourRgba colour, void *userdata) {
-    graphics_set_pixel_safe((MmSurface *) userdata, x, y, (MmGraphicsColour) colour);
-}
-
-static int spbmp_abort_check_cb(void *userdata) {
-    CheckAbort();
-    return 0;
-}
-
-MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
-    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
-    char _filename[STRINGSIZE];
-    MmResult result = path_try_extension(filename, ".bmp", _filename, STRINGSIZE);
-    if (FAILED(result)) return result;
-
-    int fnbr = file_find_free();
-    result = file_open(_filename, "rb", fnbr);
-    if (FAILED(result)) return result;
-    spbmp_init(spbmp_file_read_cb, spbmp_set_pixel_cb, spbmp_abort_check_cb);
-    SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
-    surface->dirty = true;
-    if (FAILED(bmp_result)) {
-        (void) file_close(fnbr);
-        result = kGraphicsLoadBitmapFailed;
-    } else {
-        result = file_close(fnbr);
-    }
-
-    return result;
-}
-
-MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
-                           int force) {
-    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
-    char _filename[STRINGSIZE];
-    MmResult result = path_try_extension(filename, ".png", _filename, STRINGSIZE);
-    if (FAILED(result)) return result;
-
-    upng_t *upng = upng_new_from_file(_filename);
-    // routinechecks(1);
-    upng_header(upng);
-    const int w = upng_get_width(upng);
-    const int h = upng_get_height(upng);
-    if (x + w > graphics_current->width || y + h > graphics_current->height) {
-        upng_free(upng);
-        return kImageTooLarge;
-    }
-    if (!(upng_get_format(upng)==1 || upng_get_format(upng)==3)){
-        upng_free(upng);
-        return kImageInvalidFormat;
-    }
-    // routinechecks(1);
-    upng_decode(upng);
-    // routinechecks(1);
-    const unsigned char *buffer = upng_get_buffer(upng);
-    // int savey = optiony;
-    // optiony = 0;
-    if (upng_get_format(upng) ==3) {
-        graphics_draw_buffer(surface, x, y, x + w - 1, y + h - 1, buffer, 3 | transparent | force);
-    } else {
-        graphics_draw_buffer(surface, x, y, x + w - 1, y + h - 1, buffer, 2 | transparent | force);
-    }
-    // optiony = savey;
-    upng_free(upng);
-    // clearrepeat();
-    surface->dirty = true;
-    return kOk;
-}
-
 MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id, uint8_t colour_mode) {
     char _filename[STRINGSIZE];
-    MmResult result = path_try_extension(filename, ".spr", _filename, STRINGSIZE);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_try_extension(filename, ".spr", _filename, STRINGSIZE));
 
-    int fnbr = file_find_free();
-    result = file_open(_filename, "r", fnbr);
-    if (FAILED(result)) return result;
+    int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(_filename, "r", fnbr));
 
-    const bool is_picomite = (mmb_options.simulate == kSimulateGameMite)
-            || (mmb_options.simulate == kSimulatePicoMiteVga);
+    const bool is_picomite = mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+            || mmb_features.graphics_type == kGraphicsTypePicomiteVga;
     const MmGraphicsColour *sprite_colours = (colour_mode == 0)
             ? (is_picomite) ? GRAPHICS_CMM2_SPRITE_COLOURS_RGB121 : GRAPHICS_CMM2_SPRITE_COLOURS
             : GRAPHICS_RGB121_COLOURS;
@@ -1503,16 +1497,17 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     while (buf[0] == 39) MMgetline(fnbr, buf);  // Skip lines beginning with single quote.
     const char *z = buf;
 
-    getargs(&z, 5, ", ");
+    const DelimType delim[] = { ',', ' ', 0 };
+    getargs(&z, 5, delim);
     unsigned width = getinteger(argv[0]);
     MmSurfaceId number = getinteger(argv[2]);
     unsigned height = (argc == 5) ? getinteger(argv[4]) : width;
 
-    const MmSurfaceId max_sprite_id = (mmb_options.simulate == kSimulateMmb4l)
+    const MmSurfaceId max_sprite_id = (mmb_features.graphics_type == kGraphicsTypeMmb4l)
             ? GRAPHICS_MAX_ID
             : CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT;
     if (start_sprite_id + number > max_sprite_id) {
-        (void) file_close(fnbr);
+        (void) streamio_close(fnbr);
         return kGraphicsTooManySprites;
     }
 
@@ -1520,12 +1515,12 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     uint8_t lc = 0;
     uint32_t *p = NULL;
     MmSurfaceId surface_id = start_sprite_id;
-    while (!file_eof(fnbr) && surface_id <= number + start_sprite_id) {
+    while (!streamio_eof(fnbr) && surface_id <= number + start_sprite_id) {
         if (new_sprite) {
             new_sprite = false;
-            result = graphics_sprite_create(surface_id, width, height);
+            MmResult result = graphics_sprite_create(surface_id, width, height);
             if (FAILED(result)) {
-                (void) file_close(fnbr);
+                (void) streamio_close(fnbr);
                 return result;
             }
             lc = height;
@@ -1553,32 +1548,51 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
         new_sprite = true;
     }
 
-    return file_close(fnbr);
+    return streamio_close(fnbr);
+}
+
+static const char *graphics_blit_flags_to_string(unsigned flags) {
+    static char buf[64];
+    sprintf(buf, "0x%02X ", flags);
+    if (flags & kBlitHorizontalFlip) strcat(buf, "H");
+    if (flags & kBlitVerticalFlip) strcat(buf, "V");
+    if (flags & kBlitWithTransparency) strcat(buf, "T");
+    if (strlen(buf) > 63) {
+        buf[63] = '\0';  // Ensure null-termination.
+    }
+    return buf;
 }
 
 MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
                        MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
-    // printf("graphics_blit - BEFORE: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
-    //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
+    // LOG_FN_ENTRY(
+    //     "src_x=%d, src_y=%d, dst_x=%d, dst_y=%d, w=%d, h=%d, src_id=%d, dst_id=%d, "
+    //     "flags=%s, transparent=%d",
+    //     src_x, src_y, dst_x, dst_y, w, h, src_surface ? src_surface->id : -1,
+    //     dst_surface ? dst_surface->id : -1, graphics_blit_flags_to_string(flags), transparent);
 
-    if (!src_surface || src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
-    if (!dst_surface || dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+    if (!src_surface || src_surface->type == kGraphicsNone) {
+        RETURN_RESULT(kGraphicsInvalidReadSurface);
+    }
+    if (!dst_surface || dst_surface->type == kGraphicsNone) {
+        RETURN_RESULT(kGraphicsInvalidWriteSurface);
+    }
 
     if (flags == 0x0
             && src_x == 0 && src_y == 0 && dst_x == 0 && dst_y == 0
             && src_surface->width == w && dst_surface->width == w
             && src_surface->height == h && dst_surface->height == h) {
-        return graphics_copy_internal(src_surface, dst_surface);
+        RETURN_RESULT(graphics_copy_internal(src_surface, dst_surface));
     }
 
     // I'm not entirely convinced by this jiggery-pokery as it was arrived at
     // through trial, error and unit testing rather than real understanding.
     if (flags & kBlitHorizontalFlip) {
-        if ((src_x > 0) && (src_x + w >= src_surface->width)) {
+        if ((src_x > 0) && (src_x + w > src_surface->width)) {
             dst_x += src_x;
-        } else if ((dst_x > 0) && (dst_x + w >= dst_surface->width)) {
-            src_x += dst_x;
+        } else if ((dst_x > 0) && (dst_x + w > dst_surface->width)) {
+            src_x += dst_x + w - dst_surface->width;
         }
     } else {
         if (src_x < 0) dst_x -= src_x;
@@ -1586,10 +1600,10 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
 
     // Likewise ...
     if (flags & kBlitVerticalFlip) {
-        if ((src_y > 0) && (src_y + h >= src_surface->height)) {
+        if ((src_y > 0) && (src_y + h > src_surface->height)) {
             dst_y += src_y;
-        } else if ((dst_y > 0) && (dst_y + h >= dst_surface->height)) {
-            src_y += dst_y;
+        } else if ((dst_y > 0) && (dst_y + h > dst_surface->height)) {
+            src_y += dst_y + h - dst_surface->height;
         }
     } else {
         if (src_y < 0) dst_y -= src_y;
@@ -1627,16 +1641,19 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     }
     if (dst_y + h >= dst_surface->height) h = max(0, dst_surface->height - dst_y);
 
-    // printf("graphics_blit - AFTER: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
-    //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
+    // LOG_DEBUG(
+    //     "src_x=%d, src_y=%d, dst_x=%d, dst_y=%d, w=%d, h=%d, src_id=%d, dst_id=%d, "
+    //     "flags=%s, transparent=%d",
+    //     src_x, src_y, dst_x, dst_y, w, h, src_surface ? src_surface->id : -1,
+    //     dst_surface ? dst_surface->id : -1, graphics_blit_flags_to_string(flags), transparent);
 
-    if (w == 0 || h == 0) return kOk;
+    if (w == 0 || h == 0) RETURN_RESULT(kOk);
 
     // If source and destination surfaces overlap then copy source surface to temporary surface.
     MmSurface tmp_surface = { .width = w, .height = h, .pixels = NULL };
     if (src_surface == dst_surface) {
         tmp_surface.pixels = GetTempMemory(w * h * sizeof(uint32_t));
-        if (!tmp_surface.pixels) return kOutOfMemory;
+        if (!tmp_surface.pixels) RETURN_RESULT(kOutOfMemory);
         uint32_t *src = src_surface->pixels + (src_y * src_surface->width) + src_x;
         uint32_t *dst = tmp_surface.pixels;
         for (int i = 0; i < h; ++i) {
@@ -1659,7 +1676,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     switch (flags & 0x3) {
         case kBlitNormal: {
             dst += (dst_y * dst_surface->width) + dst_x;
-            if (flags & kBlitWithTransparency) {
+            if (flags & kBlitWithTransparency || flags & kBlitInvert) {
                 pdelta = 1;
                 ldelta = dst_surface->width - w;
             } else {
@@ -1702,7 +1719,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
         }
 
         default:
-            return kInternalFault;
+            RETURN_RESULT(INTERNAL_FAULT);
     }
 
     // printf("src_surface->pixels: %p\n", src_surface->pixels);
@@ -1717,7 +1734,20 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
             if ((flags & kBlitWithTransparency) && *src == transparent) {
                 src++;
             } else {
-                *dst = *src++;
+                if (flags & kBlitInvert) {
+                    // Currently this implements behaviour specific to flashing the cursor that
+                    // might better be handled with a distinct flag from more general inversion.
+                    if (*src == graphics_fcolour) {
+                        *dst = graphics_bcolour;
+                    } else if (*src == graphics_bcolour) {
+                        *dst = graphics_fcolour;
+                    } else {
+                        *dst = *src ^ 0xFFFFFF;
+                    }
+                    src++;
+                } else {
+                    *dst = *src++;
+                }
             }
             dst += pdelta;
         }
@@ -1726,13 +1756,13 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     }
 
     if (tmp_surface.pixels) ClearSpecificTempMemory(tmp_surface.pixels);
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, int y, int w, int h,
                                          int transparent) {
     unsigned count = 0;
-    int colour;
+    int colour = -1;
     for (int yy = y; yy < y + h; ++yy) {
         for (int xx = x; xx < x + w; ++xx) {
             if (count == 0) {
@@ -1768,7 +1798,7 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
                     data++;
                     break;
                 default:
-                    return kInternalFault;
+                    return INTERNAL_FAULT;
             }
             if (colour != transparent) {
                 graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_RGB121_COLOURS[colour]);
@@ -1782,7 +1812,81 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
     return kOk;
 }
 
+MmResult graphics_blit_resize(MmSurface *src, int src_x, int src_y,
+                              int src_w, int src_h, MmSurface *dst,
+                              int dst_x, int dst_y, int dst_w, int dst_h,
+                              MmGraphicsColour transparent) {
+    CHECK_PARAM(src != NULL && dst != NULL);
+    CHECK_PARAM(src_w >= 1 && src_h >= 1);
+    CHECK_PARAM(dst_w >= 1 && dst_h >= 1);
+    CHECK_PARAM(src_x >= 0 && src_y >= 0);
+    CHECK_PARAM(src_x + src_w <= src->width && src_y + src_h <= src->height);
+
+    const int start_x = dst_x < 0 ? 0 : dst_x;
+    const int start_y = dst_y < 0 ? 0 : dst_y;
+    int end_x = dst_x + dst_w;
+    int end_y = dst_y + dst_h;
+    if (end_x > dst->width) end_x = dst->width;
+    if (end_y > dst->height) end_y = dst->height;
+
+    // If the destination rectangle is outside the surface or has zero width
+    // or height then this is a no-op.
+    if (start_x >= end_x || start_y >= end_y) return kOk;
+
+    // If src and dst are the same surfaces and the rectangles overlap then
+    // create and use a temporary buffer to avoid conflict.
+    uint32_t *src_copy = NULL;
+    if (src == dst) {
+        if (start_x < src_x + src_w && end_x > src_x && start_y < src_y + src_h && end_y > src_y) {
+            // Guard against src_w * src_h overflowing 32-bit integer.
+            CHECK_PARAM(src_w <= INT32_MAX / src_h);
+            src_copy = (uint32_t *)malloc(sizeof(uint32_t) * src_w * src_h);
+            if (!src_copy) return kOutOfSystemMemory;
+            for (int y = 0; y < src_h; y++) {
+                memcpy(&src_copy[y * src_w], &src->pixels[(src_y + y) * src->width + src_x],
+                       sizeof(uint32_t) * src_w);
+            }
+        }
+    }
+
+    const int64_t x_step = ((int64_t)src_w << 16) / dst_w;
+    const int64_t y_step = ((int64_t)src_h << 16) / dst_h;
+    const int64_t x_fp0 = (((int64_t)(start_x - dst_x) * src_w) << 16) / dst_w;
+    int64_t y_fp = (((int64_t)(start_y - dst_y) * src_h) << 16) / dst_h;
+
+    for (int y = start_y; y < end_y; y++, y_fp += y_step) {
+        int sy = (int)(y_fp >> 16);
+        if (sy < 0) {
+            sy = 0;
+        } else if (sy >= src_h) {
+            sy = src_h - 1;
+        }
+
+        int64_t x_fp = x_fp0;
+        for (int x = start_x; x < end_x; x++, x_fp += x_step) {
+            int sx = (int)(x_fp >> 16);
+            if (sx < 0) {
+                sx = 0;
+            } else if (sx >= src_w) {
+                sx = src_w - 1;
+            }
+
+            uint32_t pix = src_copy ? src_copy[sy * src_w + sx]
+                                    : src->pixels[(src_y + sy) * src->width + (src_x + sx)];
+
+            if (transparent != NO_TRANSPARENCY && pix == (uint32_t)transparent) continue;
+
+            dst->pixels[y * dst->width + x] = pix;
+        }
+    }
+
+    if (src_copy) free(src_copy);
+    return kOk;
+}
+
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) {
+    surface->cursor_x = 0;
+    surface->cursor_y = 0;
     return graphics_draw_rectangle(surface, 0, 0, surface->width - 1, surface->height - 1, colour);
 }
 
@@ -1828,7 +1932,7 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
             bcolour = -1;
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT;
     }
 
     // To get the +, - and = chars for font 6 we fudge them by scaling up font 1.
@@ -1988,7 +2092,7 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
             *y += width * scale;
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid TextOrientation: %d", orientation);
     }
 
     return result;
@@ -2029,7 +2133,7 @@ MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, T
             if (jv == kAlignBottom) y -= (strlen(s) * font_width(font));
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid TextOrientation: %d", jo);
     }
 
     MmResult result = kOk;
@@ -2202,34 +2306,22 @@ MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill
 }
 
 MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz) {
-    MmResult result = kOk;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-    switch (mmb_options.simulate) {
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
-        case kSimulatePicoMiteVga: {
-            char device[256];
-            result = options_get_string_value(&mmb_options, kOptionSimulate, device);
-            if (SUCCEEDED(result)) snprintf(title, title_sz, "%s - Mode %d", device, graphics_mode);
-            break;
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        snprintf_nowarn(title, title_sz, "MMBasic - Window %d", id);
+    } else {
+        char device[256];
+        ON_FAILURE_RETURN(options_get_string_value(&mmb_options, kOptionSimulate, device));
+        if (mmb_features.has_cmd_mode) {
+            (void) snprintf_nowarn(title, title_sz, "%s - Mode %d", device, graphics_mode);
+        } else {
+            (void) snprintf_nowarn(title, title_sz, "%s", device);
         }
-        case kSimulateMmb4l:
-            snprintf(title, title_sz, "MMBasic - Window %d", id);
-            break;
-        case kSimulateGameMite:
-            snprintf(title, title_sz, "Game*Mite");
-            break;
-        default:
-            result = kInternalFault;
-            break;
     }
-#pragma GCC diagnostic pop
-    if (SUCCEEDED(result) && *CurrentFile) {
+    if (*CurrentFile) {
         (void) cstring_cat(title, ": ", title_sz);
         (void) cstring_cat(title, CurrentFile, title_sz);
     }
-    return result;
+    return kOk;
 }
 
 static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
@@ -2254,8 +2346,8 @@ static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
         result = graphics_surface_write(0);
     }
     if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
+        graphics_fcolour = mmb_features.foreground;
+        graphics_bcolour = mmb_features.background;
         graphics_colour_depth = colour_depth;
         graphics_cmm2_background = background;
         result = graphics_set_font(mode_def->font, 1);
@@ -2263,33 +2355,53 @@ static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
     return result;
 }
 
-static MmResult graphics_set_mode_gamemite(unsigned mode) {
+static MmResult graphics_set_mode_picomite_lcd(unsigned mode) {
     if (mode != 1) return kInvalidMode;
+    graphics_mode = mode;
+
+    ON_FAILURE_RETURN(graphics_destroy_surfaces_0_to_63());
+    ON_FAILURE_RETURN(graphics_window_create(0, mmb_features.hres, mmb_features.vres, -1, -1,
+                                             mmb_options.auto_scale ? 10 : 1, NULL, NULL, false));
+    ON_FAILURE_RETURN(graphics_buffer_create(GRAPHICS_SURFACE_N, mmb_features.hres,
+                                             mmb_features.vres));
+    ON_FAILURE_RETURN(graphics_surface_write(GRAPHICS_SURFACE_N));
+
+    graphics_fcolour = mmb_features.foreground;
+    graphics_bcolour = mmb_features.background;
+    graphics_colour_depth = 32;
+    graphics_cmm2_background = RGB_BLACK;
+
+    return graphics_set_font(1, 1);
+}
+
+static MmResult graphics_set_mode_picomite_hdmi(unsigned mode) {
+    if (mode < MIN_PICOMITE_HDMI_MODE || mode > MAX_PICOMITE_HDMI_MODE) return kInvalidMode;
+    const ModeDefinition *mode_def = &PICOMITE_HDMI_MODES[mode];
     graphics_mode = mode;
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, 320, 240, -1, -1, mmb_options.auto_scale ? 10 : 1, NULL,
-                                        NULL, false);
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1,
+                                        mmb_options.auto_scale ? 10 : 1, NULL, NULL, false);
     }
     if (SUCCEEDED(result)) {
-        result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
+        result = graphics_buffer_create(GRAPHICS_SURFACE_N, mode_def->width, mode_def->height);
     }
     if (SUCCEEDED(result)) {
         result = graphics_surface_write(GRAPHICS_SURFACE_N);
     }
     if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
+        graphics_fcolour = mmb_features.foreground;
+        graphics_bcolour = mmb_features.background;
         graphics_colour_depth = 32;
         graphics_cmm2_background = RGB_BLACK;
-        result = graphics_set_font(1, 1);
+        result = graphics_set_font(mode_def->font, 1);
     }
     return result;
 }
 
-static MmResult graphics_set_mode_pmvga(unsigned mode) {
-    if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
+static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
+    if (mode < MIN_PICOMITE_VGA_MODE || mode > MAX_PICOMITE_VGA_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
     graphics_mode = mode;
 
@@ -2305,12 +2417,13 @@ static MmResult graphics_set_mode_pmvga(unsigned mode) {
         result = graphics_surface_write(GRAPHICS_SURFACE_N);
     }
     if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
+        graphics_fcolour = mmb_features.foreground;
+        graphics_bcolour = mmb_features.background;
         graphics_colour_depth = 32;
         graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(mode_def->font, 1);
     }
+
     return result;
 }
 
@@ -2322,12 +2435,9 @@ static MmResult graphics_set_mode_mmb4l(unsigned mode) {
 }
 
 MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColour background) {
-    const OptionsSimulate simulate = mmb_options.simulate;
     switch (colour_depth) {
         case 12:
-            if (simulate != kSimulateCmm2 && simulate != kSimulateMmb4w) {
-                return kGraphicsInvalidColourDepth;
-            }
+            if (mmb_features.graphics_type != kGraphicsTypeCmm2) return kGraphicsInvalidColourDepth;
             break;
         case 32:
             if (background != RGB_BLACK) return kInvalidValue;
@@ -2336,19 +2446,34 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
             return kGraphicsInvalidColourDepth;
     }
 
-    switch (simulate) {
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
-            return graphics_set_mode_cmm2(mode, colour_depth, background);
-        case kSimulateGameMite:
-            return graphics_set_mode_gamemite(mode);
-        case kSimulateMmb4l:
-            return graphics_set_mode_mmb4l(mode);
-        case kSimulatePicoMiteVga:
-            return graphics_set_mode_pmvga(mode);
+    MmResult result = kOk;
+    switch (mmb_features.graphics_type) {
+        case kGraphicsTypeCmm2:
+            result = graphics_set_mode_cmm2(mode, colour_depth, background);
+            break;
+        case kGraphicsTypeMmb4l:
+            result = graphics_set_mode_mmb4l(mode);
+            break;
+        case kGraphicsTypePicomiteHdmi:
+            result = graphics_set_mode_picomite_hdmi(mode);
+            break;
+        case kGraphicsTypePicomiteLcd:
+            result = graphics_set_mode_picomite_lcd(mode);
+            break;
+        case kGraphicsTypePicomiteVga:
+            result = graphics_set_mode_picomite_vga(mode);
+            break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid GraphicsType: %d", mmb_features.graphics_type);
     }
+
+#if defined(__ANDROID__)
+    if (SUCCEEDED(result)) {
+        android_show_keyboard();
+    }
+#endif
+
+    return result;
 }
 
 static MmResult graphics_draw_filled_polygon_internal(MmSurface *surface, int n, float *px,
@@ -2432,7 +2557,7 @@ MmResult graphics_draw_filled_polygon(MmSurface *surface, int n, float *px, floa
         result = graphics_draw_triangle(graphics_current, px[0], py[0], px[1], py[1], px[2], py[2],
                                         c, f);
     } else {
-        result = kInternalFault;
+        result = INTERNAL_FAULT;
     }
 
     return result;
@@ -2452,19 +2577,6 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
     assert(surface);
     assert(out);
 
-    // There are 3 variations: MMB4L, CMM2-like and PicoMite-like.
-    OptionsSimulate simulate = mmb_options.simulate;
-    switch (simulate) {
-        case kSimulateGameMite: // PicoMite-like
-            simulate = kSimulatePicoMiteVga;
-            break;
-        case kSimulateMmb4w: // CMM2-like
-            simulate = kSimulateCmm2;
-            break;
-        default:
-            break;
-    }
-
     MmResult result = kOk;
     const MmSurfaceId id = surface->id;
     switch (surface->type) {
@@ -2472,15 +2584,17 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             (void) snprintf(out, out_sz, "None");
             break;
         case kGraphicsBuffer:
-            if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_N) {
+            if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_N) {
                 (void) snprintf(out, out_sz, "Buffer N");
-            } else if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_F) {
+            } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_F) {
                 (void) snprintf(out, out_sz, "Buffer F");
-            } else if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_L) {
+            } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_F2) {
+                (void) snprintf(out, out_sz, "Buffer 2");
+            } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_L) {
                 (void) snprintf(out, out_sz, "Buffer L");
-            } else if (simulate == kSimulateCmm2 && id <= CMM2_BLIT_BASE) {
+            } else if (mmb_features.graphics_type == kGraphicsTypeCmm2 && id <= CMM2_BLIT_BASE) {
                 (void) snprintf(out, out_sz, "Page %d", surface->id);
-            } else if (simulate != kSimulateMmb4l
+            } else if (mmb_features.graphics_type != kGraphicsTypeMmb4l
                     && id > CMM2_BLIT_BASE && id <= CMM2_BLIT_BASE + CMM2_BLIT_COUNT) {
                 (void) snprintf(out, out_sz, "Buffer %d", surface->id - CMM2_BLIT_BASE);
             } else {
@@ -2488,7 +2602,8 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsSprite:
-            if (simulate != kSimulateMmb4l && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
+            if (mmb_features.graphics_type != kGraphicsTypeMmb4l
+                    && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
             {
                 (void) snprintf(out, out_sz, "Sprite #%d (Active)", sprite_id_from_surface_id(id));
             } else {
@@ -2496,7 +2611,8 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsInactiveSprite:
-            if (simulate != kSimulateMmb4l && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
+            if (mmb_features.graphics_type != kGraphicsTypeMmb4l
+                    && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
             {
                 (void) snprintf(out, out_sz, "Sprite #%d (Inactive)",
                                 sprite_id_from_surface_id(id));
@@ -2505,16 +2621,16 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsWindow:
-            if (simulate == kSimulatePicoMiteVga && id == 0) {
-                (void) snprintf(out, out_sz, "Display");
-            } else if (simulate == kSimulateCmm2 && id <= CMM2_BLIT_BASE) {
+            if (mmb_features.graphics_type == kGraphicsTypeCmm2 && id <= CMM2_BLIT_BASE) {
                 (void) snprintf(out, out_sz, "Page %d", surface->id);
+            } else if (mmb_features.has_cmd_framebuffer && id == 0) {
+                (void) snprintf(out, out_sz, "Display");
             } else {
                 (void) snprintf(out, out_sz, "Window");
             }
             break;
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT_EX("invalid GraphicsSurfaceType: %d", surface->type);
             break;
     }
     return result;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_choice.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,7 +50,7 @@ void fun_choice(void) {
     MMINTEGER i64 = 0;
     char *s = NULL;
     int t = T_NOTYPE;
-    getargs(&ep, 5, ",");
+    getargs(&ep, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     int which = getnumber(argv[0]);
     if (which) {

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_load.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/image.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -54,8 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * LOAD IMAGE file$ [, x] [, y]
  */
 static MmResult cmd_load_bmp(const char *p) {
-    getargs(&p, 5, ",");
-    if (argc == 0) return kArgumentCount;
+    getargs(&p, 5, DELIM_COMMA);
+    if (argc < 1 || argc > 5 || (argc % 2 == 0)) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
     ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
@@ -63,7 +64,7 @@ static MmResult cmd_load_bmp(const char *p) {
     const int x = has_arg(2) ? getinteger(argv[2]) : 0;
     const int y = has_arg(4) ? getinteger(argv[4]) : 0;
 
-    return graphics_load_bmp(graphics_current, filename, x, y);
+    return image_load_bmp(graphics_current, filename, x, y);
 }
 
 /** LOAD DATA file$, address */
@@ -84,17 +85,35 @@ static MmResult cmd_load_gif(const char *p) {
     return kUnimplemented;
 }
 
-/** LOAD JPG file$ [, x] [, y] */
+/** LOAD JPG file$ [, x] [, y] [, mode] [, ximage] [, yimage] */
 static MmResult cmd_load_jpg(const char *p) {
-    ERROR_UNIMPLEMENTED("LOAD JPG");
-    return kUnimplemented;
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
+
+	getargs(&p, 13, DELIM_COMMA);
+    if (argc < 1 || argc > 13 || (argc % 2 == 0)) return kArgumentCount;
+
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
+    const int x = has_arg(2) ? getinteger(argv[2]) : 0;
+    const int y = has_arg(4) ? getinteger(argv[4]) : 0;
+    const int mode = has_arg(6) ? getinteger(argv[6]) : -1;
+    if (mode < -1 || mode > 7) {
+        return mmresult_ex(kInvalidArgument, "Invalid mode: %d; valid modes are -1 to 7", mode);
+    }
+    const int ximage = has_arg(8) ? getinteger(argv[8]) : 0;
+    const int yimage = has_arg(10) ? getinteger(argv[10]) : 0;
+    const int scale = has_arg(12) ? getinteger(argv[12]) : 1;
+
+    return image_load_jpg(graphics_current, filename, x, y, (ImageDitherMode) mode, ximage, yimage,
+                          scale);
 }
 
 /** LOAD PNG file$ [, x] [, y] [, transparency_cut_off] */
 static MmResult cmd_load_png(const char *p) {
     if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
-	getargs(&p, 7, ",");
+	getargs(&p, 7, DELIM_COMMA);
     if (argc == 0 || argc > 7) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -109,12 +128,13 @@ static MmResult cmd_load_png(const char *p) {
         transparent = 4;
     }
 
-    return graphics_load_png(graphics_current, filename, x, y, transparent, force);
+    return image_load_png(graphics_current, filename, x, y, transparent, force);
 }
 
 /** LOAD file$ */
 static MmResult cmd_load_default(const char *p) {
-    getargs(&p, 1, " ,");
+    const DelimType delim[] = { ' ', ',' , 0 };
+    getargs(&p, 1, delim);
     if (argc != 1) return kArgumentCount;
 
     char *filename = GetTempStrMemory();

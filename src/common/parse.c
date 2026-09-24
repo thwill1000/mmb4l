@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 parse.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -169,27 +169,42 @@ MmResult parse_name(const char **p, char *name) {
  * @brief Transforms input beginning with * into a corresponding RUN command.
  *
  * e.g.
- *   *foo              =>  RUN "foo"
- *   *"foo bar"        =>  RUN "foo bar"
- *   *foo --wombat     =>  RUN "foo", "--wombat"
- *   *foo "wom"        =>  RUN "foo", Chr$(34) + "wom" + Chr$(34)
- *   *foo "wom" "bat"  =>  RUN "foo", Chr$(34) + "wom" + Chr$(34) + " " + Chr$(34) + "bat" + Chr$(34)
- *   *foo --wom="bat"  =>  RUN "foo", "--wom=" + Chr$(34) + "bat" + Chr$(34)
+ *   *foo                =>  RUN "foo"
+ *   *"foo bar"          =>  RUN "foo bar"
+ *   *foo --wombat       =>  RUN "foo", "--wombat"
+ *   *foo "wom"          =>  RUN "foo", Chr$(34) + "wom" + Chr$(34)
+ *   *foo "wom" "bat"    =>  RUN "foo", Chr$(34) + "wom" + Chr$(34) + " " + Chr$(34) + "bat" + Chr$(34)
+ *   *foo --wom="bat"    =>  RUN "foo", "--wom=" + Chr$(34) + "bat" + Chr$(34)
+ *   *PicoCalc foo       =>  RUN "foo" AS PicoCalc
+ *   *Cmm2 foo --wombat  =>  RUN "foo", "--wombat" As Cmm2
  */
 static MmResult parse_transform_star_command(char *input) {
-    char *src = input;
-    while (isspace(*src)) src++; // Skip leading whitespace.
-    if (*src != '*') return kInternalFault;
-    src++;
+    // Skip past any leading whitespace and verify it really is a '*' command.
+    char *start = input;
+    while (isspace(*start)) start++;
+    if (*start != '*') return INTERNAL_FAULT;
+    start++;
 
     // Trim any trailing whitespace from the input.
     char *end = input + strlen(input) - 1;
     while (isspace(*end)) *end-- = '\0';
 
-    // Allocate extra space to avoid string overrun.
+    // Allocate working string with extra space to avoid string overrun.
     char *tmp = (char *) GetTempMemory(INPBUF_SIZE + 32);
+
+    // Check if the input starts with the name of a device to simulate.
+    char *dst = tmp;
+    char *src = start;
+    while (*src && !isspace(*src)) *dst++ = *src++;
+    while (isspace(*src)) src++; // Skip whitespace.
+    *dst++ = '\0';
+    int match = options_simulate_from_string(tmp);
+    OptionsSimulate simulate = match == -1 ? kSimulateMmb4l : (OptionsSimulate) match;
+    if (match == -1) src = start;
+
+    // Start constructing the RUN command.
     strcpy(tmp, "RUN");
-    char *dst = tmp + 3;
+    dst = tmp + 3;
 
     if (*src == '"') {
         // Everything before the second quote is the name of the file to RUN.
@@ -250,20 +265,27 @@ static MmResult parse_transform_star_command(char *input) {
 
         // End with a double quote unless 'src' ended with one.
         if (*(src - 1) != '"') *dst++ = '\"';
-
-        *dst = '\0';
     }
 
-    if (dst - tmp >= INPBUF_SIZE) {
-        ClearSpecificTempMemory(tmp);
-        return kStringTooLong;
-    }
+    *dst = '\0';
+
+    MmResult result = kOk;
 
     // Copy transformed string back into the input buffer.
-    cstring_cpy(input, tmp, INPBUF_SIZE);
+    if (FAILED(cstring_cpy(input, tmp, INPBUF_SIZE))) result = kStringTooLong;
+
+    // Append the device to simulate, if any.
+    if (SUCCEEDED(result) && simulate != kSimulateMmb4l) {
+        Features features;
+        ON_FAILURE_RETURN(features_init(&features, simulate));
+        if (FAILED(cstring_cat(input, " AS ", INPBUF_SIZE)) ||
+                FAILED(cstring_cat(input, features.simple_name, INPBUF_SIZE))) {
+            result = kStringTooLong;
+        }
+    }
 
     ClearSpecificTempMemory(tmp);
-    return kOk;
+    return result;
 }
 
 static MmResult parse_transform_bang_cd_command(char *input, char *src) {
@@ -310,7 +332,7 @@ static MmResult parse_transform_bang_cd_command(char *input, char *src) {
 static MmResult parse_transform_bang_command(char *input) {
     char *src = input;
     while (isspace(*src)) src++; // Skip whitespace.
-    if (*src != '!') return kInternalFault;
+    if (*src != '!') return INTERNAL_FAULT;
     src++;
 
     // Trim any whitespace after the bang.
@@ -449,7 +471,7 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
     skipspace((*p)); // Double bracket is necessary for correct macro expansion.
     signature->addr = *p;
     signature->token = commandtbl_decode(*p);
-    if (signature->token != cmdSUB && signature->token != cmdFUN) return kInternalFault;
+    if (signature->token != cmdSUB && signature->token != cmdFUN) return INTERNAL_FAULT;
     *p += sizeof(CommandToken); // Jump over the command token.
 
     // Parse FUNCTION/SUB name.
@@ -505,8 +527,8 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
             }
 
             // Parse optional trailing AS FLOAT|INTEGER|STRING.
-            if (**p == tokenAS) {
-                (*p)++; // Jump over the AS token.
+            if (tokentbl_peek(*p) == tokenAS) {
+                tokentbl_read(p); // Jump over the AS token.
                 if (param->type) return kTypeSpecifiedTwice;
                 skipspace((*p));
                 result = parse_implied_type(p, &(param->type));
@@ -540,10 +562,10 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
         bracket_count--;
         (*p)++; // Jump over the closing bracket.
         skipspace((*p));
-        if (**p == tokenAS) {
+        if (tokentbl_peek(*p) == tokenAS) {
+            tokentbl_read(p); // Jump over the AS token.
             if (signature->token == cmdSUB) return kInvalidSubDefinition;
             if (signature->type) return kTypeSpecifiedTwice;
-            (*p)++; // Jump over the AS token.
             skipspace((*p));
             result = parse_implied_type(p, &signature->type);
             if (FAILED(result)) return result;
@@ -621,14 +643,20 @@ static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) 
         *page_id = GRAPHICS_SURFACE_F;
     } else if ((tp = checkstring(p, "L"))) {
         *page_id = GRAPHICS_SURFACE_L;
+    } else if ((tp = checkstring(p, "2"))) {
+        *page_id = GRAPHICS_SURFACE_F2;
     } else { // Allow string expression.
         const char *s = getCstring(p);
-        if (strcasecmp(s, "N") == 0) {
+        if (!s) {
+            return kSyntax;
+        } else if (cstring_casecmp(s, "N") == 0) {
             *page_id = GRAPHICS_SURFACE_N;
-        } else if (strcasecmp(s, "F") == 0) {
+        } else if (cstring_casecmp(s, "F") == 0) {
             *page_id = GRAPHICS_SURFACE_F;
-        } else if (strcasecmp(s, "L") == 0) {
+        } else if (cstring_casecmp(s, "L") == 0) {
             *page_id = GRAPHICS_SURFACE_L;
+        } else if (cstring_casecmp(s, "2") == 0) {
+            *page_id = GRAPHICS_SURFACE_F2;
         } else {
             return kSyntax;
         }
@@ -638,15 +666,11 @@ static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) 
 
 MmResult parse_page(const char *p, MmSurfaceId *page_id) {
     MmResult result = kOk;
-    switch (mmb_options.simulate) {
-        case kSimulateGameMite:
-        case kSimulatePicoMiteVga:
-            result = parse_picomite_page(p, page_id);
-            break;
-        default:
-            *page_id = getint(p, 0, GRAPHICS_MAX_ID);
-            result = kOk;
-            break;
+    if (mmb_features.has_cmd_framebuffer) {
+        result = parse_picomite_page(p, page_id);
+    } else {
+        *page_id = getint(p, 0, GRAPHICS_MAX_ID);
+        result = kOk;
     }
     if (SUCCEEDED(result) && !graphics_surface_exists(*page_id)) {
         return kGraphicsInvalidSurface;
@@ -669,7 +693,7 @@ MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
     skipspace(p);
     if (*p == '#') p++;
     if (!*p) return kSyntax;
-    if (mmb_options.simulate == kSimulateMmb4l) {
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
         *blit_id = getint(p, 0, GRAPHICS_MAX_ID);
     } else {
         *blit_id = getint(p, 1, CMM2_BLIT_COUNT) + CMM2_BLIT_BASE;
@@ -686,6 +710,7 @@ MmResult parse_sprite_id(const char *p, uint64_t flags, MmSurfaceId *sprite_id) 
     if (!*p) return kSyntax;
     *sprite_id = sprite_id_to_surface_id(
             getint(p, flags & kParseSpriteIdAllowZero ? 0 : 1, sprite_max_id()));
+    if (*sprite_id == -1) return kGraphicsInvalidSprite;
 
     // If allowed then 0 does not mean surface 0;
     // it is a special value used by some of the SPRITE() functions.
@@ -712,4 +737,50 @@ MmResult parse_filename(const char *p, char *out, size_t out_sz) {
     MmResult result = path_munge(getCstring(p), out, out_sz);
     ClearSpecificTempMemory(f);
     return result;
+}
+
+int parse_number_array(char *tp, MMFLOAT **a1float, MMINTEGER **a1int, int argno, int dimensions,
+                       short *dims, bool disallowConstant) {
+    void *ptr1 = findvar(tp, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
+
+    if ((vartbl[VarIndex].type & T_CONST) && disallowConstant) {
+        ON_FAILURE_ERROR_EX(mmresult_ex(kInvalidArgument, "Cannot change a constant"), 0);
+    }
+
+    if (dims == NULL) dims = vartbl[VarIndex].dims;
+
+    if (vartbl[VarIndex].type & (T_INT | T_NBR)) {
+        memcpy(dims, vartbl[VarIndex].dims, MAXDIM * sizeof(short));
+        if (vartbl[VarIndex].type & T_NBR) {
+            *a1float = (MMFLOAT *) ptr1;
+        } else {
+            *a1int = (MMINTEGER *) ptr1;
+        }
+
+        // TODO: Not sure about this, copied from PicoMite, I think it might be a check that it
+        //       is not a very short array that is storing the values in the s_vartbl struct itself.
+        if (ptr1 != (void *) vartbl[VarIndex].val.s) ON_FAILURE_ERROR_EX(kSyntax, 0);
+    } else {
+        ON_FAILURE_ERROR_EX(
+                mmresult_ex(kInvalidArgument, "Argument %d must be a numerical array", argno), 0);
+    }
+
+    if (dimensions == 1 && (dims[0]<=0 || dims[1]>0)) {
+        ON_FAILURE_ERROR_EX(
+                mmresult_ex(kInvalidArgument, "Argument %d must be a 1D numerical array", argno),
+                0);
+    }
+
+    if (dimensions == 2 && (dims[0]<=0 || dims[1]<=0 || dims[2]>0)) {
+        ON_FAILURE_ERROR_EX(
+                mmresult_ex(kInvalidArgument, "Argument %d must be a 2D numerical array", argno),
+                0);
+    }
+
+    int card = 1;
+    for (int i = 0; i < MAXDIM; i++){
+        const int j = dims[i] - mmb_options.base + 1;
+        if (j) card *= j;
+    }
+    return card;
 }

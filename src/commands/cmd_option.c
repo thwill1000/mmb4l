@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_option.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -45,11 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 #include "../common/mmb4l.h"
 #include "../common/audio.h"
-#include "../common/console.h"
+#include "../common/display.h"
 #include "../common/error.h"
 #include "../common/flash.h"
 #include "../common/graphics.h"
@@ -75,21 +74,21 @@ void cmd_option_list(const char *p) {
         if (!all && options_has_default_value(&mmb_options, def->id)) continue;
         result = options_get_display_value(&mmb_options, def->id, buf);
         if (FAILED(result)) error_throw(result);
-        console_puts("Option ");
-        console_puts(def->name);
-        console_puts(" ");
-        console_puts(buf);
-        console_puts("\r\n");
+        display_puts("Option ");
+        display_puts(def->name);
+        display_puts(" ");
+        display_puts(buf);
+        display_puts("\r\n");
         count++;
     }
 
-    if (count == 0) console_puts("All options at default values; try OPTION LIST ALL\r\n");
+    if (count == 0) display_puts("All options at default values; try OPTION LIST ALL\r\n");
 
-    console_puts("\r\n");
+    display_puts("\r\n");
 }
 
 void cmd_option_load(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     char *filename = GetTempStrMemory();
@@ -100,7 +99,7 @@ void cmd_option_load(const char *p) {
 static MmResult cmd_option_reset_all(const char *p) {
     if (!parse_is_end(p)) return kSyntax;
 
-    MmResult result = kInternalFault;
+    MmResult result = INTERNAL_FAULT;
 
     for (const OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;
@@ -108,7 +107,7 @@ static MmResult cmd_option_reset_all(const char *p) {
         if (FAILED(result)) break;
     }
 
-    if (SUCCEEDED(result)) result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    if (SUCCEEDED(result)) result = options_save(&mmb_options, options_filename);
 
     return result;
 }
@@ -132,7 +131,7 @@ static MmResult cmd_option_reset_one(const char *p) {
         }
     }
 
-    if (SUCCEEDED(result)) result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    if (SUCCEEDED(result)) result = options_save(&mmb_options, options_filename);
 
     return result;
 }
@@ -151,7 +150,7 @@ void cmd_option_reset(const char *p) {
 }
 
 void cmd_option_save(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     char *filename = GetTempStrMemory();
@@ -160,7 +159,7 @@ void cmd_option_save(const char *p) {
 }
 
 static MmResult cmd_option_set_boolean(const char *p, const OptionsDefinition *def) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     bool value = true; // With no arguments sets option true.
     if (argc > 1) return kSyntax;
     if (argc) value = parse_bool(argv[0]);
@@ -173,17 +172,13 @@ static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *d
 }
 
 static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *def) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
 
     // Some hacked behaviour.
     switch (def->id) {
         case kOptionExplicitType:
             mmb_options.explicit_type = (argc == 1 ? parse_bool(argv[0]) : true);
             return kOk;
-
-        case kOptionConsole:
-            // Allowed but ignored.
-            return argc == 1 ? kOk : kSyntax;
 
         default:
             break;
@@ -211,7 +206,7 @@ static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *de
 
 static void cmd_option_set(const char *p) {
     const OptionsDefinition *def = NULL;
-    const char *p2;
+    const char *p2 = NULL;
     for (def = options_definitions; def->name; ++def) {
         if ((p2 = checkstring(p, (char *) def->name))) break;
     }
@@ -233,17 +228,18 @@ static void cmd_option_set(const char *p) {
             result = cmd_option_set_string(p2, def);
             break;
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT_EX("invalid OptionType: %d", def->type);
+            break;
     }
 
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_ERROR(result);
 
     if (def->saved) {
-        result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+        result = options_save(&mmb_options, options_filename);
         if (FAILED(result)) {
-            console_puts("Warning: failed to save options: ");
-            console_puts(mmresult_to_string(result));
-            console_puts("\r\n");
+            display_puts("Warning: failed to save options: ");
+            display_puts(mmresult_to_string(result));
+            display_puts("\r\n");
         }
     }
 
@@ -253,21 +249,7 @@ static void cmd_option_set(const char *p) {
             break;
 
         case kOptionSimulate:
-            switch (mmb_options.simulate) {
-                case kSimulateGameMite:
-                case kSimulatePicoMiteVga:
-                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-                    ON_FAILURE_ERROR(flash_init());
-                    break;
-                case kSimulateCmm2:
-                case kSimulateMmb4l:
-                case kSimulateMmb4w:
-                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-                    ON_FAILURE_ERROR(flash_term());
-                    break;
-                default:
-                    ON_FAILURE_ERROR(kInternalFault);
-            }
+            ON_FAILURE_ERROR(SwitchPlatform(mmb_options.simulate));
             break;
 
         default:
@@ -277,7 +259,9 @@ static void cmd_option_set(const char *p) {
 
 void cmd_option(void) {
     const char *p;
-    if ((p = checkstring(cmdline, "LIST"))) {
+    if ((p = checkstring(cmdline, "KEYBOARD"))) {
+        // Ignored for now.
+    } else if ((p = checkstring(cmdline, "LIST"))) {
         cmd_option_list(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
         cmd_option_load(p);

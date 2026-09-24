@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_close.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -44,24 +44,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 
 void cmd_close(void) {
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");
-    if ((argc & 0x01) == 0) ERROR_SYNTAX;
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, DELIM_COMMA);
+    if ((argc & 0x01) == 0) ON_FAILURE_ERROR(kArgumentCount);
 
-    MmResult result = kOk;
     for (int i = 0; i < argc; i += 2) {
         int fnbr = parse_file_number(argv[i], false);
-        if (fnbr == -1) {
-            result = kFileInvalidFileNumber;
-            break;
-        }
-        result = file_close(fnbr);
-        if (FAILED(result)) break;
+        if (fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
+        ON_FAILURE_ERROR(streamio_close(fnbr));
     }
-
-    if (FAILED(result)) error_throw(result);
 }

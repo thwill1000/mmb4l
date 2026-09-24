@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_sprite.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -57,7 +57,7 @@ MmResult cmd_blit_write(const char *p, bool sprite);
 
 /** SPRITE CLOSE [#]id */
 static MmResult cmd_sprite_close(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -80,7 +80,7 @@ static MmResult cmd_sprite_close_all(const char *p) {
 
 /** SPRITE HIDE [#]id */
 static MmResult cmd_sprite_hide(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -96,7 +96,7 @@ static MmResult cmd_sprite_hide(const char *p) {
 
 /** SPRITE INTERRUPT interrupt */
 static MmResult cmd_sprite_interrupt(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     const char* interrupt_addr = GetIntAddress(argv[0]);
     interrupt_enable(kInterruptSpriteCollision, interrupt_addr);
@@ -112,7 +112,7 @@ static inline MmResult cmd_sprite_hide_all(const char *p) {
 
 /** SPRITE HIDE SAFE [#]id */
 static MmResult cmd_sprite_hide_safe(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -128,7 +128,7 @@ static MmResult cmd_sprite_hide_safe(const char *p) {
 
 /** SPRITE LOAD file$ [, start_sprite] [, colour_mode] */
 static MmResult cmd_sprite_load(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc !=3 && argc != 5) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -142,6 +142,36 @@ static MmResult cmd_sprite_load(const char *p) {
     return graphics_load_sprite(filename, start_sprite_id, colour_mode);
 }
 
+/** SPRITE LOADARRAY [#]id, w, h, array%() */
+static MmResult cmd_sprite_load_array(const char *p) {
+    getargs(&p, 7, DELIM_COMMA);
+    if (argc != 7) return kArgumentCount;
+
+    MmSurfaceId sprite_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], 0x0, &sprite_id));
+
+    const int width = (int) getint(argv[2], 1, WINDOW_MAX_WIDTH);
+    const int height = (int) getint(argv[4], 1, WINDOW_MAX_HEIGHT);
+    MMFLOAT* a3float = NULL;
+    MMINTEGER* a3int = NULL;
+    const int size = parse_number_array(argv[6], &a3float, &a3int, 4, 1, NULL, true) - 1;
+    if (size < width * height - 1) return kInvalidArrayDimensions;
+
+    ON_FAILURE_RETURN(graphics_sprite_create(sprite_id, width, height));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    // Copy data into sprite pixel array.
+    uint32_t *q = sprite->pixels;
+    for (int i = 0; i < width * height; i++) {
+        if (a3float) {
+            *q++ = (uint32_t) a3float[i];
+        } else {
+            *q++ = (uint32_t) a3int[i];
+        }
+    }
+    return kOk;
+}
+
 /** SPRITE MOVE */
 static MmResult cmd_sprite_move(const char *p) {
     skipspace(p);
@@ -151,7 +181,7 @@ static MmResult cmd_sprite_move(const char *p) {
 
 /** SPRITE NEXT [#]id, x, y */
 static MmResult cmd_sprite_next(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -187,7 +217,7 @@ static MmResult cmd_sprite_restore(const char *p) {
 
 /** SPRITE SCROLL x, y [, colour] */
 MmResult cmd_sprite_scroll(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
     const int maxW = graphics_current->width;
     const int maxH = graphics_current->height;
@@ -195,9 +225,9 @@ MmResult cmd_sprite_scroll(const char *p) {
     const int y = getint(argv[2], -maxH / 2 - 1, maxH);
     MmGraphicsColour colour = -2; // Background wraps around.
     if (argc == 5) {
-        switch (mmb_options.simulate) {
-            case kSimulateGameMite:
-            case kSimulatePicoMiteVga:
+        switch (mmb_features.graphics_type) {
+            case kGraphicsTypePicomiteLcd:
+            case kGraphicsTypePicomiteVga:
                 colour = getint(argv[4], -2, 15);
                 if (colour >= 0) colour = GRAPHICS_RGB121_COLOURS[colour];
                 break;
@@ -224,7 +254,7 @@ static MmResult cmd_sprite_set_transparent(const char *p) {
  *     0x04 = no transparency, all pixels opaque.
  */
 static MmResult cmd_sprite_show(const char *p) {
-    getargs(&p, 9, ",");
+    getargs(&p, 9, DELIM_COMMA);
     if (argc != 7 && argc != 9) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -256,7 +286,7 @@ static MmResult cmd_sprite_show(const char *p) {
  *     0x04 = no transparency, all pixels opaque.
  */
 static MmResult cmd_sprite_show_safe(const char *p) {
-    getargs(&p, 11, ",");
+    getargs(&p, 11, DELIM_COMMA);
     if (argc != 7 && argc != 9 && argc != 11) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -313,6 +343,8 @@ void cmd_sprite(void) {
         result = cmd_blit_framebuffer(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
         result = cmd_sprite_load(p);
+    } else if ((p = checkstring(cmdline, "LOADARRAY"))) {
+        result = cmd_sprite_load_array(p);
     } else if ((p = checkstring(cmdline, "HIDE ALL"))) {
         result = cmd_sprite_hide_all(p);
     } else if ((p = checkstring(cmdline, "HIDE SAFE"))) {
@@ -345,7 +377,6 @@ void cmd_sprite(void) {
         result = cmd_sprite_write(p);
     }
     ELSE_IF_UNIMPLEMENTED("COPY")
-    ELSE_IF_UNIMPLEMENTED("LOADARRAY")
     ELSE_IF_UNIMPLEMENTED("LOADPNG")
     ELSE_IF_UNIMPLEMENTED("SCROLLR")
     ELSE_IF_UNIMPLEMENTED("SWAP")

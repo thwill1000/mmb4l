@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_keydown.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,16 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/console.h"
 #include "../common/keyboard.h"
+#include "../common/keybuf.h"
 #include "../common/mmb4l.h"
 
 /** KEYDOWN(n) */
 void fun_keydown(void) {
+    if (!mmb_features.has_fun_keydown) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     int n = getint(ep, 0, 8);
 
-    // Clear anything in the input buffer.
-    while (console_getc() != -1);
+    keybuf_clear();
 
     switch (n) {
         case 0:

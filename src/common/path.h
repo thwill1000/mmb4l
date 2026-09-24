@@ -83,14 +83,6 @@ bool path_has_extension(const char *path, const char *extension, bool case_insen
 MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz);
 
 /**
- * Is the path absolute?
- *
- * @param  path  path to check.
- * @return       true if the path is absolute, otherwise false.
- */
-bool path_is_absolute(const char *path);
-
-/**
  * Gets the parent of the given path.
  *
  * @param  path         original path to get the parent of.
@@ -99,17 +91,6 @@ bool path_is_absolute(const char *path);
  * @return              kOk on success.
  */
 MmResult path_get_parent(const char *path, char *parent_path, size_t sz);
-
-/**
- * Appends one path to another.
- *
- * @param  head    path being appended to.
- * @param  tail    path being appended.
- * @param  result  result is returned in this buffer.
- * @param  sz      size of the 'result' buffer.
- * @return         kOk on success.
- */
-MmResult path_append(const char *head, const char *tail, char *result, size_t sz);
 
 /**
  * Transforms path by:
@@ -136,7 +117,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz);
 const char *path_get_extension(const char *path);
 
 /**
- * @brief Gets an autocompletion for the given path.
+ * Gets an autocompletion for the given path.
  *
  * @param path  the path.
  * @param out   buffer that on exit will contain the autocompletion to append
@@ -144,8 +125,10 @@ const char *path_get_extension(const char *path);
  *              autocompletion or an error occurred.
  * @param sz    size of the \p out buffer.
  * @return      kOk on success.
+ *
+ * @note Exposed as a function pointer so it can be mocked in unit-tests.
  */
-MmResult path_complete(const char *path, char *out, size_t sz);
+extern MmResult (*path_complete)(const char *, char *, size_t);
 
 /**
  * Check for an existing file with a specified case-insensitive extension.

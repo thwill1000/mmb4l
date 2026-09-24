@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,9 +42,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#if !defined(MMBASIC_H)
+#define MMBASIC_H
+
 #include <ctype.h>
 #include <setjmp.h>
+#include <stdbool.h>
 #include <stddef.h>
+
+#include <SDL_atomic.h>
+
+#include "../Configuration.h"
+#include "../common/mmresult.h"
+#include "../common/options.h"
 
 // Types used to define an item of data. Often they are ORed together.
 // Used in tokens, variables and arguments to functions
@@ -72,8 +82,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T_LINENBR   2                               // three bytes for a line number
 #define T_LABEL     3                               // variable length indicating a label
 
-#define E_END       255                             // dummy last operator in an expression
-
 // these constants are used in the second argument of the findvar() function, they should be or'd together
 #define V_FIND              0x0000                    // a straight forward find, if the variable is not found it is created and set to zero
 #define V_NOFIND_ERR        0x0200                    // throw an error if not found
@@ -93,25 +101,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
 extern int LocalIndex;                                // used to track the level of local variables
-
-#if !defined(__mmb4l__)
-extern int OptionBase;                                // value of OPTION BASE
-extern char OptionExplicit;                           // true if OPTION EXPLICIT has been used
-extern char DefaultType;                              // the default type if a variable is not specifically typed
-#endif
-
-//#if !defined(BOOL_ALREADY_DEFINED)
-//    #define BOOL_ALREADY_DEFINED
-//    typedef enum _BOOL { FALSE = 0, TRUE } BOOL;    // Undefined size
-//#endif
-
-#ifndef true
-    #define true        1
-#endif
-
-#ifndef false
-    #define false       0
-#endif
 
 #define MAXLINENBR          65001                                   // maximim acceptable line number
 
@@ -140,15 +129,13 @@ extern char DefaultType;                              // the default type if a v
 // x = pointer to the basic text to be split up (char *)
 // y = maximum number of args (will throw an error if exceeded) (int)
 // s = a string of characters to be used in detecting where to split the text (char *)
-#define getargs(x, y, s) char argbuf[STRINGSIZE + STRINGSIZE/2]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
+#define ARGBUF_SIZE  STRINGSIZE + STRINGSIZE/2
+#define getargs(x, y, s) char argbuf[ARGBUF_SIZE]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
 
 #define has_arg(x)  ((argc >= (x) + 1) && *argv[(x)])
 
-extern volatile int MMAbort;
+extern SDL_atomic_t MMAbort;                    // Accessed by main + keybuf threads
 extern jmp_buf mark;                            // longjump to recover from an error
-#if !defined(__mmb4l__)
-extern char BreakKey;                           // console break key (defaults to CTRL-C)
-#endif
 
 extern int ProgMemSize;
 
@@ -167,42 +154,50 @@ extern char *sarg1, *sarg2, *sret;              // Global string pointers used b
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
 typedef uint16_t CommandToken;
+typedef uint16_t FunctionToken;
+typedef FunctionToken DelimType;
 
 extern CommandToken cmdtoken;                   // Token number of the command
 extern const char *cmdline;                     // Command line terminated with a zero char and trimmed of spaces
 extern const char *nextstmt;                    // Pointer to the next statement to be executed.
 extern const char *ep;                          // Pointer to the argument to a function
 
-#if !defined(__mmb4l__)
-extern int OptionErrorSkip;                     // value of OPTION ERROR
-extern int MMerrno;
-extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
-#endif
+extern const DelimType DELIM_COMMA[];
+extern const DelimType DELIM_BRA_COMMA[];
 
                                                 // require extra byte to store optional type suffix
 extern char CurrentSubFunName[MAXVARLEN + 2];   // the name of the current sub or fun
 extern char CurrentInterruptName[MAXVARLEN + 2];// the name of the current interrupt function
 
 // used for the trace function
-extern int TraceOn;
+extern bool TraceOn;
 extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
-void InitBasic(void);
+typedef struct {
+    bool exiting;
+    uint8_t exit_code;
+    OptionsSimulate default_simulate;
+} MmBasicState;
+
+extern MmBasicState mmb_state;
+
+MmResult InitBasic(void);
 
 int32_t FloatToInt32(MMFLOAT x);
 MMINTEGER FloatToInt64(MMFLOAT x);
 
-void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim);
+void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
+              const DelimType *delim);
 void *findvar(const char *, int);
 void erasearray(char *n);
 void ClearVars(int level);
 void ClearStack(void);
-void ClearRuntime(void);
-void ClearProgram(void);
+MmResult ClearRuntime(void);
+MmResult SwitchPlatform(OptionsSimulate platform);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
-const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
+const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *t);
 MMFLOAT getnumber(const char *p);
 MMINTEGER getinteger(const char *p);
 MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max);
@@ -226,7 +221,7 @@ const char *GetIntAddressOrNull(const char *p);
 int GetLineLength(char *p);
 char *MtoC(char *p);
 char *CtoM(char *p);
-void Mstrcpy(char *dest, const char *src);
+MmResult Mstrcpy(char *dest, const char *src);
 void Mstrcat(char *dest, const char *src);
 int Mstrcmp(const char *s1, const char *s2);
 char *getCstring(const char *p);
@@ -235,9 +230,23 @@ void InsertLastcmd(char *s);
 int CountLines(const char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(const char *p, uint8_t type);
-void PrepareProgram(int);
+MmResult PrepareProgram(bool abort_on_error);
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);
+MmResult get_current_function_name(char *buf, size_t buf_sz);
+
+/**
+ * Peforms "background" tasks:
+ *  - check for an abort (CTRL-C)
+ *  - pump for console input
+ *  - pump for serial port input
+ *  - pump for events
+ *  - refresh graphics windows
+ *  - perform audio background tasks
+ */
+void perform_background_tasks();
+
+#endif // #if !defined(MMBASIC_H)

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_loop.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../Configuration.h"
 #include "../common/error.h"
 #include "../core/Commands.h"
 #include "../core/MMBasic.h"
@@ -62,13 +61,15 @@ void cmd_loop(void) {
             // first check if the DO statement had a WHILE component
             // if not find the WHILE statement here and evaluate it
             if(dostack[i].evalptr == NULL) {                        // if it was a DO without a WHILE
-                if(*cmdline >= 0x80) {                              // if there is something
-                    if(*cmdline == tokenWHILE)
-                        tst = (getnumber(++cmdline) != 0);          // evaluate the expression
-                    else if(*cmdline == tokenUNTIL)
-                        tst = (getnumber(++cmdline) == 0);          // evaluate the expression
-                    else
+                if (*cmdline >= C_BASETOKEN) {                      // if there is something
+                    FunctionToken funtok = tokentbl_read(&cmdline);
+                    if (funtok == tokenWHILE) {
+                        tst = (getnumber(cmdline) != 0);            // evaluate the expression
+                    } else if (funtok == tokenUNTIL) {
+                        tst = (getnumber(cmdline) == 0);            // evaluate the expression
+                    } else {
                         ERROR_SYNTAX;
+                    }
                 }
                 else {
                     tst = 1;                                        // and loop forever
@@ -93,5 +94,6 @@ void cmd_loop(void) {
             return;
         }
     }
-    error_throw_ex(kError, "LOOP without a matching DO");
+    error_throw_ex(kSyntax,
+        cmdtoken == cmdWEND ? "WEND without a matching WHILE" : "LOOP without a matching DO");
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,47 +45,153 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_ERROR_H)
 #define MMB4L_ERROR_H
 
-#include "../Configuration.h" // for STRINGSIZE
-#include "mmresult.h"
-
 #include <stdbool.h>
+
+#include "../Configuration.h" // for STRINGSIZE
+#include "exit_codes.h"
+#include "logger.h"
+#include "mmresult.h"
+#include "utility.h"
+
+#define PROMPT_PATH  "<PROMPT>"
 
 typedef struct {
    MmResult code;
-   char file[STRINGSIZE];   // File that error was reported from.
-   int line;                // Line that error was reported from.
+   char file[STRINGSIZE];     // File that error was reported from.
+   int line;                  // Line that error was reported from.
    char message[MAXERRMSG];
-   int skip;                // How to handle error.
-                            //   0 = abort
-                            //  -1 = ignore
-                            //  >0 = skip errors from this many statements
-   bool override_line;      // Set to override automatic determination of line/file.
+   int skip;                  // How to handle error.
+                              //   0 = abort
+                              //  -1 = ignore
+                              //  >0 = skip errors from this many statements
+   bool override_line;        // Set to override automatic determination of line/file.
+   void (*callback)(void *);  // Callback function to call before longjmp.
+   void *callback_data;       // Data to pass to callback function.
 } ErrorState;
 
 extern ErrorState *mmb_error_state_ptr;
 extern ErrorState mmb_normal_error_state;
 
 void error_get_line_and_file(int *line, char *file_path);
-void error_init(ErrorState *error_state);
+MmResult error_init(ErrorState *error_state);
 MmResult error_throw(MmResult result);
 MmResult error_throw_ex(MmResult result, const char *msg, ...);
 MmResult error_throw_legacy(const char *msg, ...);
 uint8_t error_to_exit_code(MmResult result);
 
-#define ON_FAILURE_ERROR(x)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { error_throw(rezult); return; } \
+/** Registers a callback function to be called before longjmp(). */
+void error_set_callback(void (*fn)(void *), void *data);
+
+/** Clears callback function. */
+void error_clear_callback();
+
+/**
+ * Checks that parameter x is non-null/true. If the check fails, logs an error
+ * message with the function name, file, and line number, and returns
+ * kInternalFault to the caller.
+ *
+ * Must only be used in functions that return MmResult.
+ */
+#define CHECK_PARAM(x)                                                                           \
+    do {                                                                                         \
+        if (!(x)) {                                                                              \
+            return mmresult_ex(kInternalFault, "%s() parameter check failed: %s", __func__, #x); \
+        }                                                                                        \
+    } while (0)
+
+#define CHECK_STATE(x)                                                                             \
+    do {                                                                                           \
+        if (!(x)) {                                                                                \
+            return mmresult_ex(kInternalFault, "%s:%d: state check failed: %s", __FILE__, __LINE__, \
+                               #x);                                                                \
+        }                                                                                          \
+    } while (0)
+
+#define ON_FAILURE_ERROR(x)  do { \
+    const MmResult result__ = (x); \
+    if (FAILED(result__)) { error_throw(result__); return; } \
+} while (0)
+
+#define ON_FAILURE_ERROR_EX(x, y)  do { \
+    const MmResult result__ = (x); \
+    if (FAILED(result__)) { error_throw(result__); return y; } \
+} while (0)
+
+#define ON_FAILURE_EXIT(x) do { \
+    const MmResult result__ = (x); \
+    if (FAILED(result__)) { fprintf(stderr, "%s\n", mmresult_to_string(result__)); exit(EX_FAIL); } \
+} while (0)
+
+#define ON_FAILURE_GOTO(x, label)  do { \
+    const MmResult result__ = (x); \
+    if (FAILED(result__)) { goto label; } \
+} while (0)
+
+#define ON_FAILURE_LOG(x)  do { \
+    const MmResult result__ = (x); \
+    if (FAILED(result__)) { LOG_ERROR("error: %s (%d)", mmresult_to_string(result__), result__); } \
+} while (0)
+
+#define ON_FAILURE_RETURN(x)  do { \
+    const MmResult result__ = (x); \
+    if (FAILED(result__)) { \
+        LOG_FN_EXIT("result=%d", result__); \
+        return result__; \
+    } \
+} while (0)
+
+#define RETURN_VOID()  do { \
+    LOG_FN_EXIT("void"); \
+    return; \
+} while (0)
+
+#define RETURN_BOOL(x)  do { \
+    const bool result__ = (x); \
+    LOG_FN_EXIT("result=%s", result__ ? "true" : "false"); \
+    return result__; \
+} while (0)
+
+#define RETURN_CHAR(x)  do { \
+    const char result__ = (x); \
+    LOG_FN_EXIT("result=%c", result__); \
+    return result__; \
+} while (0)
+
+#define RETURN_INT(x)  do { \
+    const int result__ = (x); \
+    LOG_FN_EXIT("result=%d", result__); \
+    return result__; \
+} while (0)
+
+#define RETURN_RESULT(x)  do { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("result=%d", result__); \
+    return result__; \
+} while (0)
+
+#define RETURN_RESULT_EX(x, fmt, ...)  do { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("result=%d, " fmt, result__, ##__VA_ARGS__); \
+    return result__; \
+} while (0)
+
+#define THROW_ERROR(x, y) { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("threw error: %s (%d)", mmresult_to_string(result__), result__); \
+    error_throw(result__); \
+    return y; \
 }
 
-#define ON_FAILURE_ERROR_EX(x, y)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { error_throw(rezult); return y; } \
+#define THROW_ERROR_VOID(x) { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("threw error: %s (%d)", mmresult_to_string(result__), result__); \
+    error_throw(result__); \
+    return; \
 }
 
-#define ON_FAILURE_RETURN(x)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { return rezult; } \
-}
+#define INTERNAL_FAULT mmresult_ex(kInternalFault, "%s:%d internal fault", __FILE__, __LINE__)
+#define INTERNAL_FAULT_EX(fmt, ...) \
+    mmresult_ex(kInternalFault, "%s:%d internal fault: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
@@ -103,13 +209,11 @@ uint8_t error_to_exit_code(MmResult result);
 #define ERROR_DST_ARRAY_TOO_SMALL         error_throw_ex(kError, "Destination array too small")
 #define ERROR_ENV_VAR_TOO_LONG            error_throw_ex(kStringTooLong, "Environment variable value too long")
 #define ERROR_INTEGER_ARRAY_TOO_SMALL     error_throw_ex(kError, "Integer array too small")
-#define ERROR_INTERNAL_FAULT              error_throw(kInternalFault)
 #define ERROR_INVALID(s)                  error_throw_ex(kError, "Invalid $", s)
-#define ERROR_INVALID_ADDRESS             ERROR_INVALID("address")
 #define ERROR_INVALID_ARGUMENT            ERROR_INVALID("argument")
 #define ERROR_INVALID_CHARACTER           ERROR_INVALID("character")
 #define ERROR_INVALID_IN_PROGRAM          ERROR_INVALID("in a program")
-#define ERROR_INVALID_INTEGER_RANGE(i,j,k)  error_throw_ex(kError, "\% is invalid (valid is \% to \%)")
+#define ERROR_INVALID_INTEGER_RANGE(i,j,k)  mmresult_ex(kError, "%d is invalid (valid is %d to %d)", i, j, k)
 #define ERROR_INVALID_OPTION_VALUE        ERROR_INVALID("value for option")
 #define ERROR_INVALID_VARIABLE            ERROR_INVALID("variable")
 #define ERROR_LINE_LENGTH                 error_throw_ex(kStringTooLong, "Line length")
@@ -124,9 +228,7 @@ uint8_t error_to_exit_code(MmResult result);
 #define ERROR_STRING_TOO_LONG             error_throw(kStringTooLong)
 #define ERROR_SYNTAX                      error_throw(kSyntax)
 #define ERROR_SYSTEM_COMMAND_FAILED       error_throw_ex(kError, "System command failed")
-#define ERROR_TOO_MANY_OPEN_FILES         error_throw_ex(kError, "Too many open files")
 #define ERROR_UNIMPLEMENTED(s)            error_throw_ex(kUnimplemented, "Unimplemented: $", s)
-#define ERROR_UNKNOWN_ARGUMENT            error_throw_ex(kError, "Unknown argument")
 #define ERROR_UNKNOWN_COMMAND             error_throw_ex(kSyntax, "Unknown command")
 #define ERROR_UNKNOWN_OPTION              error_throw(kUnknownOption)
 #define ERROR_UNKNOWN_SUBCOMMAND(s)       error_throw_ex(kSyntax, "Unknown $ subcommand", s)

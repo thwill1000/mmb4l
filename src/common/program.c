@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,20 +42,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "console.h"
 #include "cstring.h"
+#include "display.h"
 #include "file.h"
 #include "fonttbl.h"
+#include "keycodes.h"
+#include "logger.h"
 #include "mmb4l.h"
+#include "mmgetline.h"
 #include "parse.h"
 #include "path.h"
 #include "program.h"
+#include "streamio.h"
 #include "utility.h"
+#include "../core/Commands.h"
 #include "../core/commandtbl.h"
-
-#include <assert.h>
-#include <string.h>
-#include <unistd.h>
 
 #define ERROR_INVALID_FUNCTION_NAME  error_throw_ex(kInvalidName, "Invalid function name")
 #define ERROR_INVALID_HEX            ERROR_INVALID("hex word")
@@ -181,7 +188,7 @@ static int cmpstr(const char *s1, const char *s2) {
 }
 
 void program_dump_memory() {
-    utility_dump_memory(ProgMemory);
+    utility_dump_memory(ProgMemory, 0, 0, 2);
 }
 
 static MmResult program_append_to_progmem(const char *src) {
@@ -231,7 +238,7 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
 
-    if (!path_is_absolute(path)) {
+    if (!file_is_absolute(path)) {
         char parent_dir[STRINGSIZE];
         result = path_get_parent(parent_file, parent_dir, STRINGSIZE);
         if (FAILED(result)) return result;
@@ -243,10 +250,10 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
         strcpy(path, parent_dir);
     }
 
-    assert(path_is_absolute(path));
+    assert(file_is_absolute(path));
 
     // If the file exists, or has a .inc file extension then return it.
-    bool has_extension = strcasecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
+    bool has_extension = cstring_casecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
     if (path_exists(path) || has_extension)
         return path_get_canonical(path, out, STRINGSIZE);
 
@@ -327,7 +334,7 @@ static int program_get_num_defines() {
  * @return            kOk on success.
  */
 static MmResult program_get_define(size_t idx, const char **from, const char **to) {
-    if (idx >= program_replace_map->size) return kInternalFault;
+    CHECK_PARAM(idx < program_replace_map->size);
     *from = program_replace_map->items[program_replace_map->size - 1].from;
     *to = program_replace_map->items[program_replace_map->size - 1].to;
     return kOk;
@@ -434,16 +441,16 @@ static MmResult program_process_line(char *line) {
 
             default:
                 if (expecting_command) {
-                    if (strncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
+                    if (cstring_ncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
                         in_data = true;
-                    } else if (strncasecmp(ip, "MMDEBUG", 7) == 0 && !isnamechar(*(ip + 7))) {
+                    } else if (cstring_ncasecmp(ip, "MMDEBUG", 7) == 0 && !isnamechar(*(ip + 7))) {
                         if (!program_debug_on) {
                             // If not within #MMDEBUG ON then strip line.
                             // BUG! Strips entire line even if there are multiple commands.
                             while (*ip) ip++;
                             break;
                         }
-                    } else if (strncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
+                    } else if (cstring_ncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
                         // Strip REM comments.
                         while (*ip) ip++;
                         break;
@@ -476,16 +483,19 @@ static MmResult program_process_line(char *line) {
 }
 
 static MmResult program_open_file(const char *filename) {
+    // LOG_FN_ENTRY("filename=\"%s\"", filename);
+
     char full_path[STRINGSIZE];
     MmResult result = program_file_stack->size == 0
             ? program_get_bas_file(filename, full_path)
             : program_get_inc_file(program_file_stack->files[0].filename, filename, full_path);
-    if (FAILED(result)) return result;
-    if (!path_exists(full_path)) return kFileNotFound;
+    ON_FAILURE_RETURN(result);
+    if (!path_exists(full_path)) {
+        ON_FAILURE_RETURN(mmresult_ex(kFileNotFound, "File not found: %s", full_path));
+    }
 
-    int fnbr = file_find_free();
-    result = file_open(full_path, "rb", fnbr);
-    if (FAILED(result)) return result;
+    int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(full_path, "rb", fnbr));
     program_file_stack->head = &program_file_stack->files[program_file_stack->size];
     program_file_stack->head->fnbr = fnbr;
     program_file_stack->head->line_num = 0;
@@ -504,13 +514,12 @@ static MmResult program_open_file(const char *filename) {
     mmb_error_state_ptr->line = 0;
     strcpy(mmb_error_state_ptr->file, program_file_stack->head->filename);
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 static MmResult program_close_file() {
-    if (program_file_stack->size == 0) return kInternalFault;
-    MmResult result = file_close(program_file_stack->head->fnbr);
-    if (FAILED(result)) return result;
+    CHECK_STATE(program_file_stack->size > 0);
+    ON_FAILURE_RETURN(streamio_close(program_file_stack->head->fnbr));
     program_file_stack->head->filename[0] = '\0';
     program_file_stack->head->fnbr = -1;
     program_file_stack->head->line_num = -1;
@@ -532,7 +541,7 @@ static MmResult program_handle_comment_directive(const char *p) {
         program_comment_level++;
     } else if ((q = checkstring(p, "END"))) {
         // Should never get here, instead handled in program_process_line().
-        return kInternalFault;
+        return INTERNAL_FAULT;
     } else {
         return kSyntax;
     }
@@ -540,7 +549,7 @@ static MmResult program_handle_comment_directive(const char *p) {
 }
 
 static MmResult program_handle_define_directive(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kSyntax;
     /*const*/ char *from = getCstring(argv[0]);
     /*const*/ char *to = getCstring(argv[2]);
@@ -601,7 +610,7 @@ MmResult program_process_file() {
     program_comment_level = 0;
 
     for (;;) {
-        if (file_eof(program_file_stack->head->fnbr)) {
+        if (streamio_eof(program_file_stack->head->fnbr)) {
             result = program_close_file();
             if (FAILED(result)) break;
             if (!program_file_stack->head) break;
@@ -656,6 +665,11 @@ MmResult program_process_file() {
         mmb_error_state_ptr->override_line = false;
     }
 
+    // Close any open files
+    while (program_file_stack->size > 0) {
+        ON_FAILURE_LOG(program_close_file());
+    }
+
     return result;
 }
 
@@ -670,13 +684,14 @@ static bool program_path_exists(const char *root, const char *stem, const char *
 }
 
 MmResult program_get_bas_file(const char *filename, char *out) {
+    // LOG_FN_ENTRY("filename=\"%s\", out=%p", filename, out);
 
     char path[STRINGSIZE];
     MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
 
-    bool is_absolute = path_is_absolute(path);
-    bool has_extension = strcasecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
+    bool is_absolute = file_is_absolute(path);
+    bool has_extension = cstring_casecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
 
     // If the specified file exists, or is absolute and has a .bas file
     // extension then return it.
@@ -703,11 +718,12 @@ MmResult program_get_bas_file(const char *filename, char *out) {
 
     // Get the path resolved relative to the current working directory (CWD).
     char cwd[STRINGSIZE] = { '\0'};
-    errno = 0;
-    if (!getcwd(cwd, STRINGSIZE)) return errno;
+    ON_FAILURE_RETURN(file_getcwd(cwd, STRINGSIZE));
     if (FAILED(cstring_cat(cwd, "/", STRINGSIZE))
-            || FAILED(cstring_cat(cwd, path, STRINGSIZE)))
+            || FAILED(cstring_cat(cwd, path, STRINGSIZE))) {
         return kFilenameTooLong;
+    }
+    LOG_DEBUG("Path resolved relative to CWD: %s", cwd);
 
     // Get the path resolved relative to the SEARCH PATH.
     char search_path[STRINGSIZE] = { '\0' };
@@ -715,8 +731,10 @@ MmResult program_get_bas_file(const char *filename, char *out) {
         return kFilenameTooLong;
     if (*search_path) {
         if (FAILED(cstring_cat(search_path, "/", STRINGSIZE))
-                || FAILED(cstring_cat(search_path, path, STRINGSIZE)))
+                || FAILED(cstring_cat(search_path, path, STRINGSIZE))) {
             return kFilenameTooLong;
+        }
+        LOG_DEBUG("Path resolved relative to SEARCH PATH: %s", search_path);
     }
 
     // Note we don't have to check here if the file exists in the CWD;
@@ -733,6 +751,7 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     // Try looking for the file with each extension resolved relative to CWD.
     char *pend = cwd + strlen(cwd);
     for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        LOG_DEBUG("Looking for file relative to CWD with file extension: %s", BAS_FILE_EXTENSIONS[i]);
         *pend = '\0';
         if (FAILED(cstring_cat(cwd, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
             return kFilenameTooLong;
@@ -741,18 +760,23 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     }
 
     // Try looking for the file with each extension resolved relative to SEARCH PATH.
-    pend = search_path + strlen(search_path);
-    for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-        *pend = '\0';
-        if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
-            return kFilenameTooLong;
-        if (path_exists(search_path))
-            return path_get_canonical(search_path, out, STRINGSIZE);
+    if (*search_path) {
+        pend = search_path + strlen(search_path);
+        for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+            LOG_DEBUG("Looking for file relative to SEARCH PATH with file extension: %s", BAS_FILE_EXTENSIONS[i]);
+            *pend = '\0';
+            if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE))) {
+                return kFilenameTooLong;
+            }
+            if (path_exists(search_path)) {
+                return path_get_canonical(search_path, out, STRINGSIZE);
+            }
+        }
     }
 
     // If all else fails return the path resolved relative to CWD with the
     // default .bas extension; this will already be present in 'cwd'.
-    return path_get_canonical(cwd, out, STRINGSIZE);
+    RETURN_RESULT(path_get_canonical(cwd, out, STRINGSIZE));
 }
 
 /**
@@ -903,7 +927,7 @@ static void get_csub_name(char *p, char *buf) {
 }
 
 static void print_line(const char *buf, int* line_count, int all) {
-    console_puts(buf);
+    display_puts(buf);
     ListNewLine(line_count, all);
 }
 
@@ -921,13 +945,7 @@ void program_list_csubs(int all) {
         sprintf(buf, "CSUB %s()", name);
         print_line(buf, &line_count, all);
 
-        sprintf(buf,
-#if defined(ENV64BIT)
-                "0x%016lX  name   = %s",
-#else
-                "0x%016llX  name   = %s",
-#endif
-                (uint64_t) addr, name);
+        sprintf(buf, "0x%016" PRIX64 "  name   = %s", (uint64_t)addr, name);
         print_line(buf, &line_count, all);
         int size = *p++;
         sprintf(buf, "0x%08X          size   = %d bytes = %d x 32-bit words", size, size, size / 4);
@@ -953,27 +971,23 @@ void program_list_csubs(int all) {
 
     print_line("", &line_count, all);
     uint64_t end = *((uint64_t *) p);
-    sprintf(buf,
-#if defined(ENV64BIT)
-            "0x%016lX [%s]",
-#else
-            "0x%016llX [%s]",
-#endif
-            end, end == 0xFFFFFFFFFFFFFFFF ? "OK" : "ERROR");
+    sprintf(buf, "0x%016" PRIX64 " [%s]", end, end == UINT64_MAX ? "OK" : "ERROR");
     print_line(buf, &line_count, all);
     print_line("", &line_count, all);
 }
 
 MmResult program_load_file(const char *filename) {
+    // LOG_FN_ENTRY("filename=\"%s\"", filename);
+
     // Store the current token buffer incase we are at the command prompt.
     char tmp[TKNBUF_SIZE];
     memcpy(tmp, tknbuf, TKNBUF_SIZE);
 
-    // Store a copy of the filename on the stack so it is not trampled on by ClearProgram().
+    // Store a copy of the filename on the stack so it is not trampled on by ClearRuntime().
     char filename2[STRINGSIZE];
     strcpy(filename2, filename);
 
-    ClearProgram();
+    ON_FAILURE_RETURN(ClearRuntime());
 
     program_internal_alloc();
 
@@ -990,8 +1004,12 @@ MmResult program_load_file(const char *filename) {
         char title[STRINGSIZE + 10];
         sprintf(title, "MMBasic - %s", CurrentFile);
         console_set_title(title, false);
+
+        // Restore default error line reporting
+        mmb_error_state_ptr->override_line = false;
+        mmb_error_state_ptr->line = 1;
     }
 
     // TODO: Is the 'errno' check really necessary?
-    return SUCCEEDED(result) ? errno : result;
+    RETURN_RESULT(SUCCEEDED(result) ? errno : result);
 }

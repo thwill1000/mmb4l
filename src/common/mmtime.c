@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmtime.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -62,14 +62,9 @@ const char *DAYS_OF_WEEK[] = {
 
 int64_t mmtime_base_ns;
 
-void mmtime_init(void) {
+MmResult mmtime_init(void) {
     mmtime_base_ns = mmtime_now_ns();
-}
-
-int64_t mmtime_now_ns() {
-    struct timespec now;
-    clock_gettime(CLOCK_REALTIME, &now);
-    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
+    return kOk;
 }
 
 int64_t mmtime_get_timer_ns(void) {
@@ -96,16 +91,4 @@ void mmtime_day_of_week(int64_t time_ns, bool localtz, char* buf) {
     const time_t t = NANOSECONDS_TO_SECONDS(time_ns);
     const struct tm *tmbuf = localtz ? localtime(&t) : gmtime(&t);
     sprintf(buf, "%s", DAYS_OF_WEEK[tmbuf->tm_wday]);
-}
-
-void mmtime_sleep_ns(int64_t duration_ns) {
-    assert(duration_ns >= 0);
-    struct timespec t = { duration_ns / 1000000000, duration_ns % 1000000000 };
-    nanosleep(&t, NULL);
-}
-
-int64_t mmtime_get_cputime_ns(void) {
-    struct timespec now;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now);
-    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
 }

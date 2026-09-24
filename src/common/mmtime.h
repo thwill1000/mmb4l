@@ -49,6 +49,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <time.h>
 
+#include "mmresult.h"
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+typedef struct timespec {
+    time_t tv_sec;
+    long   tv_nsec;
+} timespec;
+#endif
+
+#define MICROSECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000L)
+#define NANOSECONDS_TO_MICROSECONDS(x)  ((int64_t) x / 1000L)
 #define MILLISECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000000L)
 #define NANOSECONDS_TO_MILLISECONDS(x)  ((int64_t) x / 1000000L)
 #define NANOSECONDS_TO_SECONDS(x)       ((int64_t) x / 1000000000L)
@@ -57,7 +68,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern const struct timespec ONE_MICROSECOND;
 extern const struct timespec ONE_MILLISECOND;
 
-void mmtime_init(void);
+MmResult mmtime_init(void);
 
 /**
  * Gets the number of nanoseconds elapsed since the epoch
@@ -97,5 +108,8 @@ void mmtime_sleep_ns(int64_t duration_ns);
 
 /** Gets the CPU time consumed by the MMBasic process in nanoseconds. */
 int64_t mmtime_get_cputime_ns(void) ;
+
+/** Portable equivalent of timegm() - converts UTC struct tm to time_t. */
+time_t mmtime_timegm(struct tm *t);
 
 #endif

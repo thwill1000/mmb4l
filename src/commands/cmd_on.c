@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_on.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -61,18 +61,17 @@ static MmResult on_error_abort(const char* p) {
 }
 
 static MmResult on_error_clear(const char *p) {
-    error_init(mmb_error_state_ptr);
-    return kOk;
+    return error_init(mmb_error_state_ptr);
 }
 
 static MmResult on_error_ignore(const char *p) {
-    error_init(mmb_error_state_ptr);
+    ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
     mmb_error_state_ptr->skip = -1;
     return kOk;
 }
 
 static MmResult on_error_skip(const char *p) {
-    error_init(mmb_error_state_ptr);
+    ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
     mmb_error_state_ptr->skip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
     return kOk;
 }
@@ -99,7 +98,7 @@ static MmResult on_error(const char *p) {
  * ON KEY ASCIIcode, {interrupt|0}
  */
 static MmResult on_key(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc == 1) {
         const char *interrupt_addr = GetIntAddressOrNull(argv[0]);
         if (interrupt_addr) {
@@ -125,18 +124,19 @@ static MmResult on_key(const char *p) {
     return kOk;
 }
 
-/** ON nbr GOTO | GOSUB target[,target, target,...] */
+/** ON nbr GOTO | GOSUB target [,target, target,...] */
 static MmResult on_number(const char *p) {
-    char ss[4] = {tokenGOTO, tokenGOSUB, ',', 0};
+    const DelimType delim[] = { tokenGOTO, tokenGOSUB, ',', 0 };
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, delim);
 
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);
     if (argc < 3 || argc % 2 == 0) return kArgumentCount;
-    if (*argv[1] != ss[0] && *argv[1] != ss[1]) return kSyntax;
+    const FunctionToken funtok = tokentbl_peek(argv[1]);
+    if (funtok != tokenGOTO && funtok != tokenGOSUB) return kSyntax;
 
     int r = getint(argv[0], 0, 255);  // evaluate the expression controlling the statement
     if (r == 0 || r > argc / 2) return kOk;  // microsoft say that we just go on to the next line
 
-    if (*argv[1] == ss[1]) {
+    if (funtok == tokenGOSUB) {
         // this is a GOSUB, same as a GOTO but we need to first push the return pointer.
         if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_NESTED_GOSUB;
         errorstack[gosubindex] = CurrentLinePtr;
@@ -149,13 +149,12 @@ static MmResult on_number(const char *p) {
     } else {
         nextstmt = findline(getinteger(argv[r * 2]), true);  // try for a line number
     }
-    IgnorePIN = false;
     return kOk;
 }
 
 /** ON PS2 {interrupt|0} */
 static MmResult on_ps2(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     const char *interrupt_addr = GetIntAddressOrNull(argv[0]);
     if (interrupt_addr) {

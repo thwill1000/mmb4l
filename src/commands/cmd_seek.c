@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_seek.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -44,13 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 
 void cmd_seek(void) {
-    getargs(&cmdline, 3, ",");
-    if (argc != 3) ERROR_SYNTAX;
+    getargs(&cmdline, 3, DELIM_COMMA);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     int fnbr = parse_file_number(argv[0], false);
     int seekPosition = getinteger(argv[2]);
@@ -60,7 +60,7 @@ void cmd_seek(void) {
     } else if (seekPosition < 1) {
         result = kFileInvalidSeekPosition;
     } else {
-        file_seek(fnbr, seekPosition);
+        streamio_seek(fnbr, seekPosition);
     }
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_ERROR(result);
 }

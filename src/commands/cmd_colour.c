@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_colour.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -59,7 +59,7 @@ static MmGraphicsColour getColour(char *p, bool allow_minus) {
 
 /** COLOUR foreground [, background] */
 void cmd_colour(void) {
-    getargs(&cmdline, 3, ",");
+    getargs(&cmdline, 3, DELIM_COMMA);
     if (argc % 2 != 1 ) ON_FAILURE_ERROR(kArgumentCount);
     graphics_fcolour = getColour(argv[0], false);
     if (has_arg(2)) graphics_bcolour = getColour(argv[2], false);

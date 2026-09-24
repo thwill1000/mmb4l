@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Functions.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -44,9 +44,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Provides all the core functions in MMBasic.
 
-#include "../Hardware_Includes.h"
-#include "MMBasic.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "Functions.h"
+#include "MMBasic.h"
+#include "tokentbl.h"
+#include "../common/display.h"
+#include "../common/error.h"
+#include "../common/keybuf.h"
+#include "../common/memory.h"
+#include "../common/options.h"
 
 /********************************************************************************************************************************************
  basic functions
@@ -80,7 +89,7 @@ void fun_abs(void) {
     targ = T_INT;
     (void) evaluate(ep, &f, &i64, &s, &targ, false);                 // get the value and type of the argument
     if (targ & T_NBR) {
-        fret = fabsf(f);
+        fret = fabs(f);
     } else {
         iret = i64;
         if(iret < 0) iret = -iret;
@@ -106,37 +115,9 @@ void fun_asc(void) {
 
 // return the arctangent of a number in radians
 void fun_atn(void) {
-    fret = atanf(getnumber(ep)) * ANGLE_CONVERSION;
+    fret = atan(getnumber(ep)) * ANGLE_CONVERSION;
     targ = T_NBR;
 }
-
-
-
-void fun_atan2(void) {
-    getargs(&ep, 3, ",");
-    if (argc != 3) ERROR_SYNTAX;
-    MMFLOAT y = getnumber(argv[0]);
-    MMFLOAT x = getnumber(argv[2]);
-    MMFLOAT z = atan2(y, x);
-    fret = z * ANGLE_CONVERSION;
-    targ = T_NBR;
-}
-
-
-
-#if !defined(__mmb4l__)
-// convert a number into a one character string
-// s$ = CHR$(nbr)
-void fun_chr(void) {
-    int i;
-
-    i = getint(ep, 0, 0xff);
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    sret[0] = 1;
-    sret[1] = i;
-    targ = T_STR;
-}
-#endif
 
 
 
@@ -150,7 +131,7 @@ void fun_cint(void) {
 
 // return the cosine of a number in radians
 void fun_cos(void) {
-    fret = cosf(getnumber(ep) / ANGLE_CONVERSION);
+    fret = cos(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -166,93 +147,15 @@ void fun_deg(void) {
 
 // Returns the exponential value of a number.
 void fun_exp(void) {
-    fret = expf(getnumber(ep));
+    fret = exp(getnumber(ep));
     targ = T_NBR;
-}
-
-
-
-// utility function used by HEX$(), OCT$() and BIN$()
-void DoHexOctBin(int base) {
-    UNSIGNED_MMINTEGER i;
-    int j = 1;
-    getargs(&ep, 3, ",");
-    i = (UNSIGNED_MMINTEGER) getinteger(argv[0]);                   // get the number
-    if(argc == 3) j = getint(argv[2], 0, MAXSTRLEN);                // get the optional number of chars to return
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    IntToStrPad(sret, (MMINTEGER) i, '0', j, base);
-    CtoM(sret);
-    targ = T_STR;
-}
-
-
-
-// return the hexadecimal representation of a number
-// s$ = HEX$(nbr)
-void fun_hex(void) {
-    DoHexOctBin(16);
-}
-
-
-
-// return the octal representation of a number
-// s$ = OCT$(nbr)
-void fun_oct(void) {
-    DoHexOctBin(8);
-}
-
-
-
-// return the binary representation of a number
-// s$ = BIN$(nbr)
-void fun_bin(void) {
-    DoHexOctBin(2);
-}
-
-
-
-// syntax:  nbr = INSTR([start,] string1, string2)
-//          find the position of string2 in string1 starting at start chars in string1
-// returns an integer
-void fun_instr(void) {
-    char *s1 = NULL, *s2 = NULL;
-    int start = 0;
-    getargs(&ep, 5, ",");
-
-    if(argc == 5) {
-        start = getint(argv[0], 1, MAXSTRLEN + 1) - 1;
-        s1 = getstring(argv[2]);
-        s2 = getstring(argv[4]);
-    }
-    else if(argc == 3) {
-        start = 0;
-        s1 = getstring(argv[0]);
-        s2 = getstring(argv[2]);
-    }
-    else
-        error("Argument count");
-
-    targ = T_INT;
-    if(start > *s1 - *s2 + 1 || *s2 == 0)
-        iret = 0;
-    else {
-        // find s2 in s1 using MMBasic strings
-        int i;
-        for(i = start; i < *s1 - *s2 + 1; i++) {
-            if(memcmp(s1 + i + 1, s2 + 1, *s2) == 0) {
-                iret = i + 1;
-                return;
-            }
-        }
-    }
-    iret = 0;
 }
 
 
 
 // Truncate an expression to the next whole number less than or equal to the argument.
 void fun_int(void) {
-    iret = floorf(getnumber(ep));
+    iret = floor(getnumber(ep));
     targ = T_INT;
 }
 
@@ -263,44 +166,6 @@ void fun_int(void) {
 void fun_fix(void) {
     iret = getnumber(ep);
     targ = T_INT;
-}
-
-
-
-// Return a substring offset by a number of characters from the left (beginning) of the string.
-// s$ = LEFT$( string$, nbr )
-void fun_left(void) {
-    int i;
-    char *s;
-    getargs(&ep, 3, ",");
-
-    if(argc != 3) error("Argument count");
-    s = GetTempStrMemory();                                         // this will last for the life of the command
-    Mstrcpy(s, getstring(argv[0]));
-    i = getint(argv[2], 0, MAXSTRLEN);
-    if(i < *s) *s = i;                                              // truncate if it is less than the current string length
-    sret = s;
-    targ = T_STR;
-}
-
-
-
-// Return a substring of ?string$? with ?number-of-chars? from the right (end) of the string.
-// s$ = RIGHT$( string$, number-of-chars )
-void fun_right(void) {
-    int nbr;
-    char *s, *p1, *p2;
-    getargs(&ep, 3, ",");
-
-    if(argc != 3) error("Argument count");
-    s = getstring(argv[0]);
-    nbr = getint(argv[2], 0, MAXSTRLEN);
-    if(nbr > *s) nbr = *s;                                            // get the number of chars to copy
-    sret = GetTempStrMemory();                                        // this will last for the life of the command
-    p1 = sret; p2 = s + (*s - nbr) + 1;
-    *p1++ = nbr;                                                      // inset the length of the returned string
-    while(nbr--) *p1++ = *p2++;                                       // and copy the characters
-    targ = T_STR;
 }
 
 
@@ -319,44 +184,10 @@ void fun_len(void) {
 void fun_log(void) {
     MMFLOAT f;
     f = getnumber(ep);
-    if(f == 0) error("Divide by zero");
-    if(f < 0) error("Negative argument");
-    fret = logf(f);
+    if(f == 0) error_throw_legacy("Divide by zero");
+    if(f < 0) error_throw_legacy("Negative argument");
+    fret = log(f);
     targ = T_NBR;
-}
-
-
-
-// Returns a substring of ?string$? beginning at ?start? and continuing for ?nbr? characters.
-// S$ = MID$(s, spos [, nbr])
-void fun_mid(void) {
-    char *s, *p1, *p2;
-    int spos, nbr = 0, i;
-    getargs(&ep, 5, ",");
-
-    if(argc == 5) {                                                   // we have MID$(s, n, m)
-        nbr = getint(argv[4], 0, MAXSTRLEN);                          // nbr of chars to return
-    }
-    else if(argc == 3) {                                              // we have MID$(s, n)
-        nbr = MAXSTRLEN;                                              // default to all chars
-    }
-    else
-        error("Argument count");
-
-    s = getstring(argv[0]);                                           // the string
-    spos = getint(argv[2], 1, MAXSTRLEN);                             // the mid position
-
-    sret = GetTempStrMemory();                                        // this will last for the life of the command
-    targ = T_STR;
-    if(spos > *s || nbr == 0)                                         // if the numeric args are not in the string
-        return;                                                       // return a null string
-    else {
-        i = *s - spos + 1;                                            // find how many chars remaining in the string
-        if(i > nbr) i = nbr;                                          // reduce it if we don't need that many
-        p1 = sret; p2 = s + spos;
-        *p1++ = i;                                                    // set the length of the MMBasic string
-        while(i--) *p1++ = *p2++;                                     // copy the nbr chars required
-    }
 }
 
 
@@ -407,7 +238,7 @@ void fun_sgn(void) {
 // Return the sine of the argument 'number' in radians.
 // n = SIN( number )
 void fun_sin(void) {
-    fret = sinf(getnumber(ep) / ANGLE_CONVERSION);
+    fret = sin(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -418,8 +249,8 @@ void fun_sin(void) {
 void fun_sqr(void) {
     MMFLOAT f;
     f = getnumber(ep);
-    if(f < 0) error("Negative argument");
-    fret = sqrtf(f);
+    if(f < 0) error_throw_legacy("Negative argument");
+    fret = sqrt(f);
     targ = T_NBR;
 }
 
@@ -428,7 +259,7 @@ void fun_sqr(void) {
 // Return the tangent of the argument 'number' in radians.
 // n = TAN( number )
 void fun_tan(void) {
-    fret = tanf(getnumber(ep)/ ANGLE_CONVERSION);
+    fret = tan(getnumber(ep)/ ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -471,31 +302,8 @@ void fun_val(void) {
 
 
 
-void fun_eval(void) {
-    char *s, *st;
-    char *temp_tknbuf = GetTempMemory(TKNBUF_SIZE);
-    strcpy(temp_tknbuf, tknbuf);                                    // first save the current token buffer in case we are in immediate mode
-    // we have to fool the tokeniser into thinking that it is processing a program line entered at the console
-    st = GetTempStrMemory();
-    strcpy(st, getstring(ep));                                      // then copy the argument
-    MtoC(st);                                                       // and convert to a C string
-    inpbuf[0] = 'r'; inpbuf[1] = '=';                               // place a dummy assignment in the input buffer to keep the tokeniser happy
-    strcpy(inpbuf + 2, st);
-    tokenise(true);                                                 // and tokenise it (the result is in tknbuf)
-    strcpy(st, tknbuf + 2 + sizeof(CommandToken));
-    targ = T_NOTYPE;
-    evaluate(st, &fret, &iret, &s, &targ, false);                   // get the value and type of the argument
-    if(targ & T_STR) {
-        Mstrcpy(st, s);                                             // if it is a string then save it
-        sret = st;
-    }
-    strcpy(tknbuf, temp_tknbuf);                                    // restore the saved token buffer
-}
-
-
-
 void fun_errno(void) {
-    iret = MMerrno;
+    iret = mmb_error_state_ptr->code;
     targ = T_INT;
 }
 
@@ -503,7 +311,7 @@ void fun_errno(void) {
 
 void fun_errmsg(void) {
     sret = GetTempStrMemory();
-    strcpy(sret, MMErrMsg);
+    strcpy(sret, mmb_error_state_ptr->message);
     CtoM(sret);
     targ = T_STR;
 }
@@ -518,80 +326,6 @@ void fun_space(void) {
     i = getint(ep, 0, MAXSTRLEN);
     sret = GetTempStrMemory();                                      // this will last for the life of the command
     memset(sret + 1, ' ', i);
-    *sret = i;
-    targ = T_STR;
-}
-
-
-
-// Returns a string in the decimal (base 10) representation of  'number'.
-// s$ = STR$( number, m, n, c$ )
-void fun_str(void) {
-    char *s;
-    MMFLOAT f;
-    MMINTEGER i64;
-    int t;
-    int m, n;
-    char ch;
-    const char *p;
-
-    getargs(&ep, 7, ",");
-    if((argc & 1) != 1) ERROR_SYNTAX;
-    t = T_NOTYPE;
-    p = evaluate(argv[0], &f, &i64, &s, &t, false);                 // get the value and type of the argument
-    if(t & T_STR) error("Expected a number");
-    m = 0; n = STR_AUTO_PRECISION; ch = ' ';
-    if(argc > 2) m = getint(argv[2], -128, 128);                    // get the number of digits before the point
-    if(argc > 4) n = getint(argv[4], -20, 20);                      // get the number of digits after the point
-    if(argc == 7) {
-        p = getstring(argv[6]);
-        if(*p == 0) error("Zero length argument");
-        ch = ((unsigned char)p[1] & 0x7f);
-    }
-
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    if(t & T_NBR)
-        FloatToStr(sret, f, m, n, ch);                              // convert the float
-    else {
-        if(n < 0)
-            FloatToStr(sret, i64, m, n, ch);                        // convert as a float
-        else {
-            IntToStrPad(sret, i64, ch, m, 10);                      // convert the integer
-            if(n != STR_AUTO_PRECISION && n > 0) {
-                strcat(sret, ".");
-                while(n--) strcat(sret, "0");                       // and add on any zeros after the point
-            }
-        }
-    }
-    CtoM(sret);
-    targ = T_STR;
-}
-
-
-
-// Returns a string 'nbr' bytes long
-// s$ = STRING$( nbr,  string$ )
-// s$ = STRING$( nbr,  number )
-void fun_string(void) {
-    int i, j, t = T_NOTYPE;
-    void *p;
-
-    getargs(&ep, 3, ",");
-    if(argc != 3) ERROR_SYNTAX;
-
-    i = getint(argv[0], 0, MAXSTRLEN);
-    p = DoExpression(argv[2], &t);                                  // get the value and type of the argument
-    if(t & T_STR) {
-        if(!*(char *)p) error("Argument value: $", argv[2]);
-        j = *((char *)p + 1);
-    } else if(t & T_INT)
-        j = *(MMINTEGER *)p;
-    else
-        j = FloatToInt32(*((MMFLOAT *)p));
-    if(j < 0 || j > 255) error("Argument value: $", argv[2]);
-
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    memset(sret + 1, j, i);
     *sret = i;
     targ = T_STR;
 }
@@ -643,9 +377,10 @@ void fun_version(void){
 
 
 // Returns the current cursor position in the line in characters.
-// n = POS
 void fun_pos(void){
-    iret = MMCharPos;
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR(display_get_cursor_pos(false, &x, &y));
+    iret = x + 1; // TODO: Should this be 0-based ?
     targ = T_INT;
 }
 
@@ -654,34 +389,32 @@ void fun_pos(void){
 // Outputs spaces until the column indicated by 'number' has been reached.
 // PRINT TAB( number )
 void fun_tab(void) {
-    int i;
-    char *p;
-
-    i = getint(ep, 1, 255);
-    sret = p = GetTempStrMemory();                                  // this will last for the life of the command
-    if(MMCharPos > i) {
+    MMINTEGER i = getint(ep, 1, 255);
+    sret = GetTempStrMemory();
+    char *p = sret;
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR(display_get_cursor_pos(false, &x, &y));
+    if (x >= i) {
         i--;
         *p++ = '\r';
         *p++ = '\n';
+    } else {
+        i -= x;
     }
-    else
-        i -= MMCharPos;
     memset(p, ' ', i);
-    p[i] = 0;
+    p[i] = '\0';
     CtoM(sret);
     targ = T_STR;
 }
 
 
 
-// get a character from the console input queue
+// get a character from the keyboard buffer
 // s$ = INKEY$
 void fun_inkey(void){
-    int i;
-
     sret = GetTempStrMemory();                                      // this buffer is automatically zeroed so the string is zero size
 
-    i = getConsole();
+    int i = keybuf_get();
     if(i != -1) {
         sret[0] = 1;                                                // this is the length
         sret[1] = i;                                                // and this is the character
@@ -693,7 +426,7 @@ void fun_inkey(void){
 
 // used by ACos() and ASin() below
 MMFLOAT arcsinus(MMFLOAT x) {
-     return 2.0L * atanf(x / (1.0L + sqrtf(1.0L - x * x)));
+     return 2.0L * atan(x / (1.0L + sqrt(1.0L - x * x)));
 }
 
 
@@ -701,7 +434,7 @@ MMFLOAT arcsinus(MMFLOAT x) {
 // n = ASIN(number)
 void fun_asin(void) {
      MMFLOAT f = getnumber(ep);
-     if(f < -1.0 || f > 1.0) error("Number out of bounds");
+     if(f < -1.0 || f > 1.0) error_throw_legacy("Number out of bounds");
      if (f == 1.0) {
           fret = PI_VALUE/2;
      } else if (f == -1.0) {
@@ -718,7 +451,7 @@ void fun_asin(void) {
 // n = ACOS(number)
 void fun_acos(void) {
      MMFLOAT f = getnumber(ep);
-     if(f < -1.0L || f > 1.0L) error("Number out of bounds");
+     if(f < -1.0L || f > 1.0L) error_throw_legacy("Number out of bounds");
      if (f == 1.0L) {
           fret = 0.0L;
      } else if (f == -1.0L) {
@@ -728,32 +461,4 @@ void fun_acos(void) {
      }
      fret *= ANGLE_CONVERSION;
      targ = T_NBR;
-}
-
-
-// utility function to do the max/min comparison and return the value
-// it is only called by fun_max() and fun_min() below.
-void do_max_min(int cmp) {
-    int i;
-    MMFLOAT nbr, f;
-    getargs(&ep, (MAX_ARG_COUNT * 2) - 1, ",");
-    if((argc & 1) != 1) ERROR_SYNTAX;
-    if(cmp) nbr = -FLT_MAX; else nbr = FLT_MAX;
-    for(i = 0; i < argc; i += 2) {
-        f = getnumber(argv[i]);
-        if(cmp && f > nbr) nbr = f;
-        if(!cmp && f < nbr) nbr = f;
-    }
-    fret = nbr;
-    targ = T_NBR;
-}
-
-
-void fun_max(void) {
-    do_max_min(1);
-}
-
-
-void fun_min(void) {
-    do_max_min(0);
 }

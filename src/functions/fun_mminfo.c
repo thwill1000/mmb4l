@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_mminfo.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,9 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "../common/mmb4l.h"
-#include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/display.h"
+#include "../common/file.h"
 #include "../common/flash.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
@@ -55,12 +60,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/parse.h"
 #include "../common/path.h"
 #include "../common/program.h"
+#include "../common/system.h"
 #include "../common/utility.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 extern char cmd_run_args[STRINGSIZE];
 
@@ -70,6 +71,12 @@ static void mminfo_architecture(const char *p) {
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, MM_ARCH);
     CtoM(g_string_rtn);
+}
+
+static void mminfo_bcolour(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = graphics_bcolour;
+    g_rtn_type = T_INT;
 }
 
 static void mminfo_calldepth(const char *p) {
@@ -87,11 +94,11 @@ static void mminfo_cmdline(const char *p) {
 }
 
 static void mminfo_cpuspeed(const char *p) {
+    if (!mmb_features.has_mminfo_cpuspeed) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
-        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
-    }
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
     strcpy(g_string_rtn, "378000000");
     CtoM(g_string_rtn);
 }
@@ -111,12 +118,7 @@ static void mminfo_current(const char *p) {
 }
 
 MmResult get_mmdevice(char *device) {
-    if (mmb_options.simulate == kSimulateGameMite) {
-        strcpy(device, "PicoMite");
-    } else {
-        MmResult result = options_get_string_value(&mmb_options, kOptionSimulate, device);
-        if (FAILED(result)) return kUnknownDevice;
-    }
+    strcpy(device, mmb_features.device);
     return kOk;
 }
 
@@ -142,11 +144,11 @@ static void mminfo_device(const char *p) {
 }
 
 static void mminfo_drive(const char *p) {
+    if (!mmb_features.has_mminfo_drive) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
-        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
-    }
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
     strcpy(g_string_rtn, "A:");
     CtoM(g_string_rtn);
 }
@@ -156,9 +158,7 @@ static void mminfo_directory(const char *p) {
 
     g_rtn_type = T_STR;
     g_string_rtn = GetTempStrMemory();
-
-    errno = 0;
-    if (!getcwd(g_string_rtn, STRINGSIZE)) error_throw(errno);
+    ON_FAILURE_ERROR(file_getcwd(g_string_rtn, STRINGSIZE));
 
     // Add a trailing '/' if one is not already present.
     size_t len = strlen(g_string_rtn);
@@ -181,7 +181,7 @@ static void mminfo_envvar(const char *p) {
 }
 
 static void mminfo_errmsg(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc > 1) ERROR_ARGUMENT_COUNT;
 
     g_string_rtn = GetTempStrMemory();
@@ -210,25 +210,25 @@ static char *get_path(const char *p) {
 }
 
 static void mminfo_exists_dir(const char *p) {
-    char *path = get_path(p);
-    struct stat st;
-    g_integer_rtn = (stat(path, &st) == 0) && S_ISDIR(st.st_mode) ? 1 : 0;
+    const char *path = get_path(p);
+    FileInfo info;
+    ON_FAILURE_ERROR(file_info(path, &info));
     g_rtn_type = T_INT;
+    g_integer_rtn = info.exists && (info.type == kFileTypeDirectory);
 }
 
 static void mminfo_exists_file(const char *p) {
-    char *path = get_path(p);
-    struct stat st;
-    g_integer_rtn = (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? 1 : 0;
+    const char *path = get_path(p);
+    FileInfo info;
+    ON_FAILURE_ERROR(file_info(path, &info));
     g_rtn_type = T_INT;
+    g_integer_rtn = info.exists && (info.type == kFileTypeRegularFile);
 }
 
 static void mminfo_exists_symlink(const char *p) {
-    char *path = get_path(p);
-    struct stat st;
-    // Note use of lstat() rather than stat(), the latter would follow the symbolic link.
-    g_integer_rtn = (lstat(path, &st) == 0) && S_ISLNK(st.st_mode) ? 1 : 0;
+    const char *path = get_path(p);
     g_rtn_type = T_INT;
+    g_integer_rtn = file_exists_symlink(path);
 }
 
 static void mminfo_exists(const char *p) {
@@ -241,45 +241,56 @@ static void mminfo_exists(const char *p) {
         mminfo_exists_symlink(p2);
     } else {
         const char *path = get_path(p);
-        struct stat st;
-        g_integer_rtn = (stat(path, &st) == 0);
+        FileInfo info;
+        ON_FAILURE_ERROR(file_info(path, &info));
         g_rtn_type = T_INT;
+        g_integer_rtn = info.exists ? 1 : 0;
     }
 }
 
 static void mminfo_exitcode(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
-    g_integer_rtn = mmb_exit_code;
+    g_integer_rtn = mmb_state.exit_code;
 }
 
-static void mminfo_filesize(const char *p) {
-    char *path = get_path(p);
-
-    struct stat st;
-    if (stat(path, &st) == 0) {
-        if (S_ISDIR(st.st_mode)) {
-            g_integer_rtn = -2; // TODO: this matches CMM2, but probably better
-                                // just to return st.st_size.
-        } else {
-            g_integer_rtn = st.st_size;
-        }
-    } else {
-        g_integer_rtn = -1; // Does not exist.
-    }
-
+static void mminfo_fcolour(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = graphics_fcolour;
     g_rtn_type = T_INT;
 }
 
-static void mminfo_flash_address(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+static void mminfo_filesize(const char *p) {
+    const char *path = get_path(p);
+    FileInfo info;
+    ON_FAILURE_ERROR(file_info(path, &info));
+    g_rtn_type = T_INT;
+    if (info.exists) {
+        if (info.type == kFileTypeDirectory) {
+            g_integer_rtn = -2; // TODO: this matches the Colour Maximite 2,
+                                // but possibly it should return info.size.
+        } else {
+            g_integer_rtn = info.size;
+        }
+    } else {
+        g_integer_rtn = -1;
     }
-    getargs(&p, 1, ",");
+}
+
+static void mminfo_flash_address(const char *p) {
+    if (!mmb_features.has_cmd_flash) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
     g_rtn_type = T_INT;
     ON_FAILURE_ERROR(flash_get_addr(flash_index, (char **) &g_integer_rtn));
+}
+
+static void mminfo_font(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = graphics_font >> 4;
+    g_rtn_type = T_INT;
 }
 
 static void mminfo_fontheight(const char *p) {
@@ -295,7 +306,7 @@ static void mminfo_fontwidth(const char *p) {
 }
 
 static void mminfo_gamepad(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     MMINTEGER id = getint(argv[0], 1, 4);
     g_string_rtn = GetTempStrMemory();
@@ -309,30 +320,62 @@ static void mminfo_gamepad(const char *p) {
     CtoM(g_string_rtn);
 }
 
-void mminfo_hres(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_rtn_type = T_INT;
-    if (graphics_current) {
-        g_integer_rtn = graphics_current->width;
-    } else {
-        int width, height;
-        if (FAILED(console_get_size(&width, &height, 0))) {
-            ERROR_UNKNOWN_TERMINAL_SIZE;
-        }
-        int scale = mmb_options.resolution == kPixel ? font_width(graphics_font) : 1;
-        g_integer_rtn = width * scale;
+void mminfo_hres(const char *p, bool check_feature) {
+    if (check_feature && !mmb_features.has_mminfo_res) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
+
+    int width = 0;
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        if (graphics_current) {
+            width = graphics_current->width;
+        } else {
+            int height = 0;
+            ON_FAILURE_ERROR(display_get_size(true, &width, &height));
+        }
+    } else {
+        width = graphics_surfaces[0].width;
+    }
+
+    if (!pixel) {
+        width /= font_width(graphics_font);
+    }
+
+    g_rtn_type = T_INT;
+    g_integer_rtn = width;
 }
 
 static void mminfo_hpos(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    int x, y;
-    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
-        ERROR_COULD_NOT("determine cursor position");
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
-    int scale = mmb_options.resolution == kPixel ? font_width(graphics_font) : 1;
-    g_integer_rtn = x * scale;
+
+    int hpos = 0;
+    if (graphics_current) {
+        hpos = graphics_current->cursor_x;
+    } else if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        int vpos = 0;
+        display_get_cursor_pos(true, &hpos, &vpos);
+    } else {
+        hpos = graphics_surfaces[0].cursor_x;
+    }
+
+    if (!pixel) {
+        hpos /= font_width(graphics_font);
+    }
+
     g_rtn_type = T_INT;
+    g_integer_rtn = hpos;
 }
 
 static void mminfo_line(const char *p) {
@@ -359,29 +402,29 @@ static void mminfo_option(const char *p) {
 
     if (!def->name) ERROR_UNKNOWN_OPTION;
 
-    MmResult result = kInternalFault;
-
     switch (def->type) {
         case kOptionTypeFloat:
             g_rtn_type = T_NBR;
-            result = options_get_float_value(&mmb_options, def->id, &g_float_rtn);
+            ON_FAILURE_ERROR(options_get_float_value(&mmb_options, def->id, &g_float_rtn));
             break;
 
         case kOptionTypeInteger:
         case kOptionTypeBoolean:
             g_rtn_type = T_INT;
-            result = options_get_integer_value(&mmb_options, def->id, &g_integer_rtn);
+            ON_FAILURE_ERROR(options_get_integer_value(&mmb_options, def->id, &g_integer_rtn));
             break;
 
         case kOptionTypeString:
             g_rtn_type = T_STR;
             g_string_rtn = GetTempStrMemory();
-            result = options_get_string_value(&mmb_options, def->id, g_string_rtn);
-            if (SUCCEEDED(result)) CtoM(g_string_rtn);
+            ON_FAILURE_ERROR(options_get_string_value(&mmb_options, def->id, g_string_rtn));
+            CtoM(g_string_rtn);
+            break;
+
+        default:
+            ON_FAILURE_ERROR(INTERNAL_FAULT_EX("invalid OptionType: %d", def->type));
             break;
     }
-
-    if (FAILED(result)) error_throw(result);
 }
 
 static void mminfo_path(const char *p) {
@@ -404,17 +447,13 @@ static void mminfo_path(const char *p) {
 static void mminfo_pid(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
-    g_integer_rtn = (MMINTEGER) getpid();
+    g_integer_rtn = system_getpid();
 }
 
 static void mminfo_pin_no(const char *p) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulateGameMite) {
-        error_throw(kUnsupportedOnCurrentDevice);
-        return;
-    }
+    if (!mmb_features.has_mminfo_pin) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
 
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
 
     uint8_t pin_gp = 0;
@@ -453,15 +492,13 @@ static void mminfo_platform(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    if (mmb_options.simulate == kSimulateGameMite) {
-        strcpy(g_string_rtn, "Game*Mite");
-    } else {
-        strcpy(g_string_rtn, "");
-    }
+    strcpy(g_string_rtn, mmb_features.platform);
     CtoM(g_string_rtn);
 }
 
 static void mminfo_ps2(const char *p) {
+    if (!mmb_features.has_mminfo_ps2) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
     g_integer_rtn = keyboard_get_last_ps2_scancode();
@@ -470,8 +507,86 @@ static void mminfo_ps2(const char *p) {
 static void mminfo_sdcard(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
     strcpy(g_string_rtn, "READY");
     CtoM(g_string_rtn);
+}
+
+static void mminfo_usb(const char *p) {
+    if (!mmb_features.has_mminfo_usb) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    getargs(&p, 1, DELIM_COMMA);
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    const MMINTEGER channel = getint(argv[0], 1, 4);
+
+    g_rtn_type = T_INT;
+    g_integer_rtn = 0;
+    switch (channel) {
+        case 1:
+            g_integer_rtn = 1; // Keyboard
+            break;
+        case 2:
+            g_integer_rtn = 2; // Mouse
+            break;
+        case 3:
+        case 4: {
+            char *tmp = GetTempMemory(512);
+            const MmResult result = gamepad_info(channel - 2, tmp);
+            if (SUCCEEDED(result)) {
+                if (strstr(tmp, "rightstick") != NULL && strstr(tmp, "leftstick") != NULL) {
+                    g_integer_rtn = 129; // Simulate a PS3 Controller
+                } else {
+                    g_integer_rtn = 130; // Simulate a NEXT SNES Controller
+                }
+            }
+            ClearSpecificTempMemory(tmp);
+            break;
+        }
+        default:
+            ON_FAILURE_ERROR(INTERNAL_FAULT_EX("Invalid USB channel: %d", channel));
+    }
+}
+
+static void mminfo_usb_pid(const char *p) {
+    mminfo_usb(p);
+    switch (g_integer_rtn) {
+        case 1:
+            g_integer_rtn = 0x0001;
+            break;
+        case 2:
+            g_integer_rtn = 0x0002;
+            break;
+        case 129:
+            g_integer_rtn = 0x0268; // Simulate a PS3 Controller
+            break;
+        case 130:
+            g_integer_rtn = 0xE501; // Simulate a NEXT SNES Controller
+            break;
+        default:
+            g_integer_rtn = 0;
+            break;
+    }
+}
+
+static void mminfo_usb_vid(const char *p) {
+    mminfo_usb(p);
+    switch (g_integer_rtn) {
+        case 1:
+            g_integer_rtn = 0xABCD;
+            break;
+        case 2:
+            g_integer_rtn = 0xABCD;
+            break;
+        case 129:
+            g_integer_rtn = 0x054C; // Simulate a PS3 Controller
+            break;
+        case 130:
+            g_integer_rtn = 0x0810; // Simulate a NEXT SNES Controller
+            break;
+        default:
+            g_integer_rtn = 0;
+            break;
+    }
 }
 
 static void mminfo_version(const char *p) {
@@ -496,30 +611,62 @@ static void mminfo_version(const char *p) {
     }
 }
 
-void mminfo_vres(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_rtn_type = T_INT;
-    if (graphics_current) {
-        g_integer_rtn = graphics_current->height;
-    } else {
-        int width, height;
-        if (FAILED(console_get_size(&width, &height, 0))) {
-            ERROR_UNKNOWN_TERMINAL_SIZE;
-        }
-        int scale = mmb_options.resolution == kPixel ? font_height(graphics_font) : 1;
-        g_integer_rtn = height * scale;
+void mminfo_vres(const char *p, bool check_feature) {
+    if (check_feature && !mmb_features.has_mminfo_res) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
+
+    int height = 0;
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        if (graphics_current) {
+            height = graphics_current->height;
+        } else {
+            int width = 0;
+            ON_FAILURE_ERROR(display_get_size(true, &width, &height));
+        }
+    } else {
+        height = graphics_surfaces[0].height;
+    }
+
+    if (!pixel) {
+        height /= font_height(graphics_font);
+    }
+
+    g_rtn_type = T_INT;
+    g_integer_rtn = height;
 }
 
 static void mminfo_vpos(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    int x, y;
-    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
-        ERROR_COULD_NOT("determine cursor position");
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
-    int scale = mmb_options.resolution == kPixel ? font_height(graphics_font) : 1;
-    g_integer_rtn = y * scale;
+
+    int vpos = 0;
+    if (graphics_current) {
+        vpos = graphics_current->cursor_y;
+    } else if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        int hpos = 0;
+        display_get_cursor_pos(true, &hpos, &vpos);
+    } else {
+        vpos = graphics_surfaces[0].cursor_y;
+    }
+
+    if (!pixel) {
+        vpos /= font_height(graphics_font);
+    }
+
     g_rtn_type = T_INT;
+    g_integer_rtn = vpos;
 }
 
 static void mminfo_writebuff(const char *p) {
@@ -531,6 +678,10 @@ void fun_mminfo(void) {
     const char *p;
     if ((p = checkstring(ep, "ARCH"))) {
         mminfo_architecture(p);
+    } else if ((p = checkstring(ep, "BCOLOUR"))) {
+        mminfo_bcolour(p);
+    } else if ((p = checkstring(ep, "BCOLOR"))) {
+        mminfo_bcolour(p);
     } else if ((p = checkstring(ep, "CALLDEPTH"))) {
         mminfo_calldepth(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
@@ -557,10 +708,16 @@ void fun_mminfo(void) {
         mminfo_exists(p);
     } else if ((p = checkstring(ep, "EXITCODE"))) {
         mminfo_exitcode(p);
+    } else if ((p = checkstring(ep, "FCOLOUR"))) {
+        mminfo_fcolour(p);
+    } else if ((p = checkstring(ep, "FCOLOR"))) {
+        mminfo_fcolour(p);
     } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
     } else if ((p = checkstring(ep, "FLASH ADDRESS"))) {
         mminfo_flash_address(p);
+    } else if ((p = checkstring(ep, "FONT"))) {
+        mminfo_font(p);
     } else if ((p = checkstring(ep, "FONTHEIGHT"))) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {
@@ -568,7 +725,7 @@ void fun_mminfo(void) {
     } else if ((p = checkstring(ep, "GAMEPAD"))) {
         mminfo_gamepad(p);
     } else if ((p = checkstring(ep, "HRES"))) {
-        mminfo_hres(p);
+        mminfo_hres(p, true);
     } else if ((p = checkstring(ep, "HPOS"))) {
         mminfo_hpos(p);
     } else if ((p = checkstring(ep, "LINE"))) {
@@ -587,15 +744,21 @@ void fun_mminfo(void) {
         mminfo_ps2(p);
     } else if ((p = checkstring(ep, "SDCARD"))) {
         mminfo_sdcard(p);
+    } else if ((p = checkstring(ep, "USB PID"))) {
+        mminfo_usb_pid(p);
+    } else if ((p = checkstring(ep, "USB VID"))) {
+        mminfo_usb_vid(p);
+    } else if ((p = checkstring(ep, "USB"))) {
+        mminfo_usb(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
-        mminfo_vres(p);
+        mminfo_vres(p, true);
     } else if ((p = checkstring(ep, "VPOS"))) {
         mminfo_vpos(p);
     } else if ((p = checkstring(ep, "WRITEBUFF"))) {
         mminfo_writebuff(p);
     } else {
-        ERROR_UNKNOWN_ARGUMENT;
+        ERROR_UNKNOWN_SUBFUNCTION("MM.INFO");
     }
 }

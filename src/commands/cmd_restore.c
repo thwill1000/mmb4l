@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_rename.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -60,16 +60,17 @@ void cmd_restore(void) {
     }
     else {
         skipspace(cmdline);
-        if (*cmdline == '"') {
+        const FunctionToken funtok = tokentbl_peek(cmdline);
+        if (funtok == '"') {
             // Restore target starts with a literal string.
             NextDataLine = findlabel(getCstring(cmdline));
             NextData = 0;
         }
-        else if (isdigit(*cmdline)
-                || *cmdline == GetTokenValue("+")
-                || *cmdline == GetTokenValue("-")
-                || *cmdline == '.'
-                || *cmdline == '&') {
+        else if (isdigit(funtok)
+                || funtok == tokenADD
+                || funtok == tokenSUBTRACT
+                || funtok == '.'
+                || funtok == '&') {
             // Restore target starts with a number.
             NextDataLine = findline(getinteger(cmdline), true);
             NextData = 0;

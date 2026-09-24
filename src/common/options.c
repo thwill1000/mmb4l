@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,18 +42,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "mmb4l.h"
-#include "codepage.h"
-#include "cstring.h"
-#include "path.h"
-#include "utility.h"
-
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "codepage.h"
+#include "cstring.h"
+#include "logger.h"
+#include "mmb4l.h"
+#include "path.h"
+#include "utility.h"
+
 #define INVALID_VALUE  "???"
+
+// To match defaults in "logger.h"
+#if defined(NDEBUG)
+#define LOG_DEFAULT_VALUE  "None"
+#else
+#define LOG_DEFAULT_VALUE  "Info"
+#endif
 
 OptionsEditor options_editors[] = {
     { "Atom",    "atom ${file}:${line}",             false },
@@ -61,6 +70,7 @@ OptionsEditor options_editors[] = {
     { "Gedit",   "gedit ${file} +${line} &",         false },
     { "Leafpad", "leafpad --jump=${line} ${file} &", false },
     { "Nano",    "nano +${line} ${file}",            true  },
+    { "Internal", "*unused placeholder*",            true  },
     { "Sublime", "subl ${file}:${line}",             false },
     { "Vi",      "vi +${line} ${file}",              true  },
     { "Vim",     "vim +${line} ${file}",             true  },
@@ -76,9 +86,10 @@ static const NameOrdinalPair options_angle_map[] = {
 };
 
 static const NameOrdinalPair options_console_map[] = {
-    { "Both",    kBoth },
+    { "None",    kConsoleNone },
+    { "Serial",  kSerial },
     { "Screen",  kScreen },
-    { "Serial" , kSerial },
+    { "Both" ,   kBoth },
     { NULL,      -1 }
 };
 
@@ -92,18 +103,19 @@ static const NameOrdinalPair options_default_type_map[] = {
 
 // Note that at the moment the ordinal is unused in this map.
 static const NameOrdinalPair options_editor_map[] = {
-    { "Atom",    0 },
-    { "Code",    0 },
-    { "Default", 0 },
-    { "Geany",   0 },
-    { "Gedit",   0 },
-    { "Leafpad", 0 },
-    { "Nano",    0 },
-    { "Sublime", 0 },
-    { "Vi",      0 },
-    { "Vim",     0 },
-    { "VSCode",  0 },
-    { "Xed",     0 },
+    { "Atom",     0 },
+    { "Code",     0 },
+    { "Default",  0 },
+    { "Geany",    0 },
+    { "Gedit",    0 },
+    { "Internal", 0 },
+    { "Leafpad",  0 },
+    { "Nano",     0 },
+    { "Sublime",  0 },
+    { "Vi",       0 },
+    { "Vim",      0 },
+    { "VSCode",   0 },
+    { "Xed",      0 },
     { NULL,      -1 }
 };
 
@@ -114,20 +126,28 @@ static const NameOrdinalPair options_list_case_map[] = {
     { NULL,    -1 }
 };
 
-static const NameOrdinalPair options_resolution_map[] = {
-    { "Character", kCharacter },
-    { "Pixel",     kPixel },
-    { NULL,        -1 }
+static const NameOrdinalPair options_log_map[] = {
+    { "None",  kLoggerLevelNone },
+    { "Debug", kLoggerLevelDebug },
+    { "Info",  kLoggerLevelInfo },
+    { "Warning", kLoggerLevelWarning },
+    { "Error", kLoggerLevelError },
+    { NULL,    -1 }
 };
 
-static const NameOrdinalPair options_simulate_map[] = {
+const NameOrdinalPair options_simulate_map[] = {
+    { "Unspecified",       kSimulateUnspecified },
     { "MMB4L",             kSimulateMmb4l },
     { "MMBasic for Windows", kSimulateMmb4w },
     { "MMB4W",             kSimulateMmb4w },
     { "Colour Maximite 2", kSimulateCmm2 },
     { "CMM2",              kSimulateCmm2 },
-    { "PicoMiteVGA",       kSimulatePicoMiteVga },
-    { "Game*Mite",         kSimulateGameMite },
+    { "PicoCalc",          kSimulatePicocalc },
+    { "PicoMiteVGA",       kSimulatePicomiteVga },
+    { "PicoMiteHDMI",      kSimulatePicomiteHdmi },
+    { "PicoMiteVGAUSB",    kSimulatePicomiteVgaUsb },
+    { "Game*Mite",         kSimulateGamemite },
+    { "GameMite",          kSimulateGamemite },
     { NULL,    -1 }
 };
 
@@ -141,7 +161,11 @@ OptionsDefinition options_definitions[] = {
     { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    codepage_name_to_ordinal_map },
     { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
     { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
+#if defined(__ANDROID__) || defined(_WIN32) || defined(__APPLE__)
+    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Internal",                options_editor_map },
+#else
     { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Nano",                    options_editor_map },
+#endif
     { "Explicit",    kOptionExplicitType, kOptionTypeString,  false, "Off",                     NULL },
     { "F1",          kOptionF1,           kOptionTypeString,  true,  "FILES\r\n",               NULL },
     { "F2",          kOptionF2,           kOptionTypeString,  true,  "RUN\r\n",                 NULL },
@@ -155,9 +179,10 @@ OptionsDefinition options_definitions[] = {
     { "F10",         kOptionF10,          kOptionTypeString,  true,  "RUN \"\"\202",            NULL },
     { "F11",         kOptionF11,          kOptionTypeString,  true,  "",                        NULL },
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
-    { "Resolution",  kOptionResolution,   kOptionTypeString,  false, "Character",               options_resolution_map },
+    { "Log",         kOptionLog,          kOptionTypeString,  false, LOG_DEFAULT_VALUE,         options_log_map },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
     { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
+    { "Syntax Highlight", kOptionSyntaxHighlight, kOptionTypeBoolean, true, "On",               NULL },
     { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
 #if defined(OPTION_TESTS)
     { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "On",                      NULL },
@@ -168,13 +193,13 @@ OptionsDefinition options_definitions[] = {
     { NULL, -1, -1, false, "", NULL }
 };
 
+char options_filename[PATH_MAX];
+
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
 
-    // TODO: Do these even belong in options?
+    // TODO: Does this even belong in options ?
     options->autorun = 0;
-    options->height = 0;
-    options->width = 0;
 
     for (const OptionsDefinition *def = options_definitions; def->name; def++) {
         MmResult result = options_set_string_value(options, def->id, def->default_value);
@@ -241,14 +266,14 @@ static MmResult options_parse(const char *line, char *name, char *value) {
 }
 
 static MmResult options_parse_boolean(const char *value, bool *out) {
-    if (strcasecmp(value, "0") == 0
-            || strcasecmp(value, "false") == 0
-            || strcasecmp(value, "off") == 0) {
+    if (cstring_casecmp(value, "0") == 0
+            || cstring_casecmp(value, "false") == 0
+            || cstring_casecmp(value, "off") == 0) {
         *out = false;
         return kOk;
-    } else if (strcasecmp(value, "1") == 0
-            || strcasecmp(value, "true") == 0
-            || strcasecmp(value, "on") == 0) {
+    } else if (cstring_casecmp(value, "1") == 0
+            || cstring_casecmp(value, "true") == 0
+            || cstring_casecmp(value, "on") == 0) {
         *out = true;
         return kOk;
     } else {
@@ -295,7 +320,7 @@ static void options_report_warning(int line_num, char *name, MmResult result, OP
 
 MmResult options_get_definition(const char *name, OptionsDefinition **definition) {
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
-        if (strcasecmp(def->name, name) == 0) {
+        if (cstring_casecmp(def->name, name) == 0) {
             *definition = def;
             return kOk;
         }
@@ -305,19 +330,21 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 }
 
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
+    // LOG_FN_ENTRY("options=%p, filename=\"%s\", warning_cb=%p", options, filename, warning_cb);
+
     char path[STRINGSIZE];
-    MmResult result = path_munge(filename, path, STRINGSIZE);
-    if (FAILED(result)) return result;
-    if (path_is_directory(path)) return kIsADirectory;
+    ON_FAILURE_RETURN(path_munge(filename, path, STRINGSIZE));
+    if (path_is_directory(path)) RETURN_RESULT(kIsADirectory);
 
     errno = 0;
     FILE *f = fopen(path, "r");
-    if (!f) return errno;
+    if (!f) RETURN_RESULT(errno);
 
     char line[STRINGSIZE * 2];
     char name[STRINGSIZE];
     char value[STRINGSIZE];
     int line_num = 0;
+    MmResult result = kOk;
     while (!feof(f) && fgets(line, STRINGSIZE * 2, f)) {
         line_num++;
         result = options_parse(line, name, value);
@@ -336,7 +363,7 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
 
     fclose(f);
 
-    return result;
+    RETURN_RESULT(result);
 }
 
 static void options_get_save_name(const OptionsDefinition *def, char *svalue) {
@@ -381,13 +408,14 @@ bool options_has_default_value(const Options *options, OptionsId id) {
 
 MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
-    MmResult result = path_munge(filename, path, STRINGSIZE);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(filename, path, STRINGSIZE));
+    if (path_is_directory(path)) RETURN_RESULT(kIsADirectory);
 
     errno = 0;
     FILE *f = fopen(path, "w");
-    if (!f) return errno;
+    if (!f) RETURN_RESULT(errno);
 
+    MmResult result = kOk;
     char tmp[STRINGSIZE];
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;
@@ -401,7 +429,7 @@ MmResult options_save(const Options *options, const char *filename) {
 
     fclose(f);
 
-    return result;
+    RETURN_RESULT(result);
 }
 
 MmResult options_decode_string(const char *encoded, char *decoded) {
@@ -555,7 +583,7 @@ MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *
             break;
 #endif
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
             break;
     }
     return result;
@@ -573,8 +601,12 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
         case kOptionBase:
             *ivalue = options->base;
             break;
-        case kOptionBreakKey:
-            *ivalue = options->break_key;
+        case kOptionBreakKey: {
+            *ivalue = SDL_AtomicGet(&((Options *) options)->break_key);
+            break;
+        }
+        case kOptionSyntaxHighlight:
+            *ivalue = options->syntax_highlight;
             break;
         case kOptionTab:
             *ivalue = options->tab;
@@ -588,7 +620,7 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
             break;
 #endif
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
             break;
     }
     return result;
@@ -625,7 +657,7 @@ static MmResult options_get_codepage(const Options *options, char *page_name) {
         }
     }
 
-    return kInternalFault;
+    return INTERNAL_FAULT;
 }
 
 MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue) {
@@ -637,25 +669,21 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 
     switch (options_definitions[id].type) {
         case kOptionTypeBoolean: {
-            MMINTEGER ivalue;
+            MMINTEGER ivalue = 0;
             result = options_get_integer_value(options, id, &ivalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%s", ivalue ? "On" : "Off");
             return result;
         }
 
         case kOptionTypeInteger: {
-            MMINTEGER ivalue;
+            MMINTEGER ivalue = 0;
             result = options_get_integer_value(options, id, &ivalue);
-#if defined(ENV64BIT)
-            if (SUCCEEDED(result)) sprintf(svalue, "%ld", ivalue);
-#else
-            if (SUCCEEDED(result)) sprintf(svalue, "%lld", ivalue);
-#endif
+            if (SUCCEEDED(result)) sprintf(svalue, "%" PRId64, ivalue);
             return result;
         }
 
         case kOptionTypeFloat: {
-            MMFLOAT fvalue;
+            MMFLOAT fvalue = 0.0;
             result = options_get_float_value(options, id, &fvalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%g", fvalue);
             return result;
@@ -691,7 +719,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             break;
 
         case kOptionConsole:
-            assert(options->console >= kBoth && options->console <= kSerial);
+            assert(options->console >= kConsoleNone && options->console <= kBoth);
             options_ordinal_to_name(
                     options_definitions[kOptionConsole].enum_map,
                     options->console,
@@ -740,12 +768,12 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
                     svalue);
             break;
 
-        case kOptionResolution:
-            assert(options->resolution >= kCharacter && options->resolution <= kPixel);
+        case kOptionLog:
+            assert(options->log >= kLoggerLevelDebug && options->log <= kLoggerLevelNone);
             options_ordinal_to_name(
-                    options_definitions[kOptionResolution].enum_map,
-                    options->resolution,
-                    svalue);
+                options_definitions[kOptionLog].enum_map,
+                options->log,
+                svalue);
             break;
 
         case kOptionSearchPath:
@@ -753,7 +781,8 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             break;
 
         case kOptionSimulate:
-            assert(options->simulate >= kSimulateMmb4l && options->simulate <= kSimulateGameMite);
+            assert(options->simulate >= kSimulateMmb4l &&
+                   options->simulate <= kSimulatePicomiteVgaUsb);
             options_ordinal_to_name(
                     options_definitions[kOptionSimulate].enum_map,
                     options->simulate,
@@ -767,14 +796,14 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 #endif
 
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
     }
     return result;
 }
 
 static MmResult options_set_angle(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_angle_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->angle = entry->ordinal;
             return kOk;
         }
@@ -811,7 +840,7 @@ static MmResult options_set_base(Options *options, int ivalue) {
 
 static MmResult options_set_break_key(Options *options, int ivalue) {
     if (ivalue > 0 && ivalue < 256) {
-        options->break_key = ivalue;
+        SDL_AtomicSet(&options->break_key, ivalue);
         return kOk;
     } else {
         return kInvalidValue;
@@ -820,7 +849,7 @@ static MmResult options_set_break_key(Options *options, int ivalue) {
 
 static MmResult options_set_codepage(Options *options, const char *page_name) {
     for (const NameOrdinalPair *entry = codepage_name_to_ordinal_map; entry->name; ++entry) {
-        if (strcasecmp(page_name, entry->name) == 0) {
+        if (cstring_casecmp(page_name, entry->name) == 0) {
             options->codepage = codepage_data_to_ordinal_map[entry->ordinal].name;
             return kOk;
         }
@@ -830,7 +859,7 @@ static MmResult options_set_codepage(Options *options, const char *page_name) {
 
 static MmResult options_set_console(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_console_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->console = entry->ordinal;
             return kOk;
         }
@@ -840,7 +869,7 @@ static MmResult options_set_console(Options *options, const char *svalue) {
 
 static MmResult options_set_default_type(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_default_type_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->default_type = entry->ordinal;
             return kOk;
         }
@@ -852,15 +881,19 @@ static MmResult options_set_editor(Options *options, const char *svalue) {
     if (svalue[0] == '\0') return kInvalidValue;
     if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
 
-    if (strcasecmp(svalue, "code") == 0) {
+    if (cstring_casecmp(svalue, "code") == 0) {
         strcpy(options->editor, "VSCode");
-    } else if (strcasecmp(svalue, "default") == 0) {
+    } else if (cstring_casecmp(svalue, "default") == 0) {
+#if defined(__ANDROID__) || defined(_WIN32) || defined(__APPLE__)
+        strcpy(options->editor, "Internal");
+#else
         strcpy(options->editor, "Nano");
+#endif
     } else {
         // Convert to standard capitalisation for standard editor names.
         options->editor[0] = '\0';
         for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
-            if (strcasecmp(svalue, editor->name) == 0) {
+            if (cstring_casecmp(svalue, editor->name) == 0) {
                 strcpy(options->editor, editor->name);
             }
         }
@@ -878,7 +911,7 @@ static MmResult options_set_explicit_type(Options *options, const char *svalue) 
 }
 
 static MmResult options_set_fn_key(Options *options, OptionsId id, const char *svalue) {
-    if (id < kOptionF1 || id > kOptionF12) return kInternalFault;
+    CHECK_PARAM(id >= kOptionF1 && id <= kOptionF12);
     if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
     strcpy(options->fn_keys[id - kOptionF1], svalue);
     return kOk;
@@ -886,7 +919,7 @@ static MmResult options_set_fn_key(Options *options, OptionsId id, const char *s
 
 static MmResult options_set_list_case(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_list_case_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->list_case = entry->ordinal;
             return kOk;
         }
@@ -894,10 +927,20 @@ static MmResult options_set_list_case(Options *options, const char *svalue) {
     return kInvalidValue;
 }
 
-static MmResult options_set_resolution(Options *options, const char *svalue) {
-    for (const NameOrdinalPair *entry = options_resolution_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
-            options->resolution = entry->ordinal;
+static MmResult options_set_log(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_log_map; entry->name; ++entry) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
+            options->log = entry->ordinal;
+            switch (options->log) {
+                case kLoggerLevelNone:
+                case kLoggerLevelDebug:
+                case kLoggerLevelInfo:
+                case kLoggerLevelWarning:
+                case kLoggerLevelError:
+                    return logger_set_min_level(options->log);
+                default:
+                    return kInvalidValue;
+            }
             return kOk;
         }
     }
@@ -905,34 +948,41 @@ static MmResult options_set_resolution(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
+    // LOG_FN_ENTRY("options=%p, svalue=\"%s\"", options, svalue);
+
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
-        return kOk;
+        RETURN_RESULT(kOk);
     }
 
     char canonical_path[STRINGSIZE];
-    MmResult result = path_get_canonical(svalue, canonical_path, STRINGSIZE);
-    if (FAILED(result)) return result;
-    if (!path_exists(canonical_path)) return kFileNotFound;
-    if (!path_is_directory(canonical_path)) return kNotADirectory;
+    ON_FAILURE_RETURN(path_get_canonical(svalue, canonical_path, STRINGSIZE));
+    if (!path_exists(canonical_path)) RETURN_RESULT(kFileNotFound);
+    if (!path_is_directory(canonical_path)) RETURN_RESULT(kNotADirectory);
 
     strcpy(options->search_path, canonical_path);
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 static MmResult options_set_simulate(Options *options, const char *svalue) {
-    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
-            options->simulate = entry->ordinal;
-            return kOk;
-        }
-    }
-    return kInvalidValue;
+    int match = options_simulate_from_string(svalue);
+    if (match == -1) return kInvalidValue;
+    options->simulate = (OptionsSimulate) match;
+    return kOk;
 }
 
 static MmResult options_set_tab(Options *options, int ivalue) {
     if (ivalue == 2 || ivalue == 4 || ivalue == 8) {
         options->tab = (char) ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
+}
+
+static MmResult options_set_syntax_highlight(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->syntax_highlight = ivalue;
         return kOk;
     } else {
         return kInvalidValue;
@@ -948,7 +998,8 @@ MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue)
             return kOk;
 #endif
 
-        default: return kInternalFault;
+        default:
+            return INTERNAL_FAULT;
     }
 }
 
@@ -959,6 +1010,7 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
         case kOptionBase:      return options_set_base(options, ivalue);
         case kOptionBreakKey:  return options_set_break_key(options, ivalue);
         case kOptionTab:       return options_set_tab(options, ivalue);
+        case kOptionSyntaxHighlight:  return options_set_syntax_highlight(options, ivalue);
 
 #if defined(OPTION_TESTS)
         case kOptionZBoolean:
@@ -973,7 +1025,8 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
             return kOk;
 #endif
 
-        default: return kInternalFault;
+        default:
+            return INTERNAL_FAULT;
     }
 }
 
@@ -1006,7 +1059,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
             break;
 
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid OptionType: %d", options_definitions[id].type);
     }
 
     switch (id) {
@@ -1029,7 +1082,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
         case kOptionF11:
         case kOptionF12:          return options_set_fn_key(options, id, svalue);
         case kOptionListCase:     return options_set_list_case(options, svalue);
-        case kOptionResolution:   return options_set_resolution(options, svalue);
+        case kOptionLog:          return options_set_log(options, svalue);
         case kOptionSearchPath:   return options_set_search_path(options, svalue);
         case kOptionSimulate:     return options_set_simulate(options, svalue);
 
@@ -1042,4 +1095,21 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
 
         default: return kUnknownOption;
     }
+}
+
+int options_simulate_from_string(const char *s) {
+    if (!s) return -1;
+    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
+        if (cstring_casecmp(s, entry->name) == 0) {
+            return entry->ordinal;
+        }
+    }
+    return -1;
+}
+
+const char *options_simulate_to_string(OptionsSimulate simulate) {
+    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; entry++) {
+        if (entry->ordinal == (int) simulate) return entry->name;
+    }
+    return NULL;
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_mode.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -66,11 +66,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                       the start of frame blanking.
  */
 static MmResult cmd_mode_cmm2(void) {
-    getargs(&cmdline, 7, ",");
+    getargs(&cmdline, 7, DELIM_COMMA);
     if ((argc % 2 == 0) || argc < 1) return kArgumentCount;
 
     const unsigned mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
-    const unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
+    unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
+    if (colour_depth == 8 || colour_depth == 16) colour_depth = 32;
     const MmGraphicsColour background = (argc >= 5)
             ? getint(argv[4], RGB_BLACK, RGB_WHITE)
             : RGB_BLACK;
@@ -78,28 +79,41 @@ static MmResult cmd_mode_cmm2(void) {
     return graphics_set_mode(mode, colour_depth, background);
 }
 
-static MmResult cmd_mode_pmvga(void) {
-    getargs(&cmdline, 1, ",");
+static MmResult cmd_mode_picomite_hdmi(void) {
+    getargs(&cmdline, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
-    const unsigned mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
+    const unsigned mode = getint(argv[0], MIN_PICOMITE_HDMI_MODE, MAX_PICOMITE_HDMI_MODE);
+    return graphics_set_mode(mode, 32, RGB_BLACK);
+}
+
+static MmResult cmd_mode_picomite_vga(void) {
+    getargs(&cmdline, 1, DELIM_COMMA);
+    if (argc != 1) return kArgumentCount;
+
+    const unsigned mode = getint(argv[0], MIN_PICOMITE_VGA_MODE, MAX_PICOMITE_VGA_MODE);
     return graphics_set_mode(mode, 32, RGB_BLACK);
 }
 
 void cmd_mode(void) {
+    if (!mmb_features.has_cmd_mode) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     MmResult result = kOk;
-    switch (mmb_options.simulate) {
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
+    switch (mmb_features.graphics_type) {
+        case kGraphicsTypeCmm2:
             result = cmd_mode_cmm2();
             break;
 
-        case kSimulatePicoMiteVga:
-            result = cmd_mode_pmvga();
+        case kGraphicsTypePicomiteHdmi:
+            result = cmd_mode_picomite_hdmi();
+            break;
+
+        case kGraphicsTypePicomiteVga:
+            result = cmd_mode_picomite_vga();
             break;
 
         default:
-            result = kUnsupportedOnCurrentDevice;
+            result = INTERNAL_FAULT_EX("invalid GraphicsType: %d", mmb_features.graphics_type);
             break;
     }
     ON_FAILURE_ERROR(result);

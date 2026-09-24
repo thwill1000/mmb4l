@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 interrupt.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -47,10 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
-#include "console.h"
 #include "error.h"
 #include "exit_codes.h"
 #include "interrupt.h"
+#include "keybuf.h"
 #include "mmb4l.h"
 #include "mmtime.h"
 #include "queue.h"
@@ -68,6 +68,7 @@ typedef struct {
     int64_t due_ns;
     const char *interrupt_addr;
     int64_t period_ns;
+    bool paused;
 } TickStruct;
 
 typedef struct {
@@ -75,14 +76,14 @@ typedef struct {
     const char *interrupt_addr;
 } SerialRxStruct;
 
-static char DUMMY_IRETURN[3]; // Dummy IRETURN call.
+static char DUMMY_IRETURN[3];  // Dummy IRETURN call.
 static int interrupt_count = 0;
-static bool interrupt_legacy = false; // Is the current interrupt using a label/line number ?
+static bool interrupt_legacy = false;  // Is the current interrupt using a label/line number ?
 static const char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
 static const char *interrupt_return_stmt = NULL;
-static int interrupt_specific_key = 0;
-static int interrupt_specific_key_pressed = false;
+static SDL_atomic_t interrupt_specific_key;          // Accessed by main + keybuf threads
+static SDL_atomic_t interrupt_specific_key_pressed;  // Accessed by main + keybuf threads
 static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
@@ -90,20 +91,24 @@ static ErrorState interrupt_error_state;
 static Queue interrupt_window_event_queue;
 static Interrupt interrupt_list[kInterruptLast];
 
-void interrupt_init() {
+MmResult interrupt_init() {
     // Only expected to be called once on application startup.
     static bool called = false;
-    if (called) ON_FAILURE_ERROR(kInternalFault);
+    if (called) {
+        return INTERNAL_FAULT_EX("interrupt module already initialised");
+    }
     called = true;
 
     interrupt_clear();
 
-    ON_FAILURE_ERROR(queue_init(&interrupt_window_event_queue, SDL_WindowEvent,
-                                  WINDOW_EVENT_QUEUE_CAPACITY));
+    ON_FAILURE_RETURN(
+        queue_init(&interrupt_window_event_queue, SDL_WindowEvent, WINDOW_EVENT_QUEUE_CAPACITY));
 
     char *p = DUMMY_IRETURN;
     commandtbl_encode(&p, cmdIRET);
     *p = '\0';
+
+    return kOk;
 }
 
 void interrupt_clear(void) {
@@ -111,13 +116,14 @@ void interrupt_clear(void) {
     interrupt_return_stmt = NULL;
     interrupt_any_key_addr = NULL;
     interrupt_pause_flag = false;
-    interrupt_specific_key = 0;
-    interrupt_specific_key_pressed = false;
+    SDL_AtomicSet(&interrupt_specific_key, 0);
+    SDL_AtomicSet(&interrupt_specific_key_pressed, false);
     interrupt_specific_key_addr = NULL;
     for (int i = 0; i <= NBRSETTICKS; ++i) {
         interrupt_ticks[i].due_ns = 0;
         interrupt_ticks[i].interrupt_addr = NULL;
         interrupt_ticks[i].period_ns = 0;
+        interrupt_ticks[i].paused = true;
     }
     for (int i = 0; i <= MAXOPENFILES; ++i) {
         interrupt_serial_rx[i].count = 0;
@@ -131,12 +137,12 @@ bool interrupt_running() {
     return interrupt_return_stmt != NULL;
 }
 
-static int handle_interrupt(const char *interrupt_address) {
+static bool handle_interrupt(const char *interrupt_address) {
     LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
                    // case exiting the SUB decrements it.
-    mmb_error_state_ptr = &interrupt_error_state; // Swap to the interrupt error state
-    error_init(mmb_error_state_ptr);              //   and clear it
-    interrupt_return_stmt = nextstmt;             //   for when IRETURN is executed.
+    mmb_error_state_ptr = &interrupt_error_state;                 // Swap to the interrupt error state
+    ON_FAILURE_ERROR_EX(error_init(mmb_error_state_ptr), false);  //   and clear it
+    interrupt_return_stmt = nextstmt;                             //   for when IRETURN is executed.
 
     const CommandToken token = commandtbl_decode(interrupt_address);
     if (token == cmdSUB) {
@@ -146,7 +152,7 @@ static int handle_interrupt(const char *interrupt_address) {
         skipelement(interrupt_address);            // Point to the body of the SUB.
         interrupt_legacy = false;
     } else if (token == cmdFUN) {
-        return kInternalFault;
+        return INTERNAL_FAULT;
     } else {
         // Label or line number.
         interrupt_legacy = true;
@@ -164,7 +170,7 @@ static inline void interrupt_add_local_integer_const(const char *name, MMINTEGER
     vartbl[var_idx].val.i = value;
 }
 
-static int handle_window_interrupt() {
+static bool handle_window_interrupt() {
     // Get the oldest window event.
     SDL_WindowEvent event;
     MmResult result = queue_dequeue(&interrupt_window_event_queue, &event);
@@ -180,7 +186,7 @@ static int handle_window_interrupt() {
             // We can receive this event after the window has been destroyed.
             return true;
         }
-        ON_FAILURE_ERROR_EX(kInternalFault, false);
+        ON_FAILURE_ERROR_EX(INTERNAL_FAULT, false);
     }
     MmSurface *window = &graphics_surfaces[window_id];
 
@@ -189,7 +195,7 @@ static int handle_window_interrupt() {
     if (!window->interrupt_addr) {
         if (event.event == SDL_WINDOWEVENT_CLOSE) {
             (void) graphics_surface_destroy(window);
-            mmb_exit_code = EX_OK;
+            mmb_state.exit_code = EX_OK;
             longjmp(mark, JMP_END);
         } else {
             return true;
@@ -208,9 +214,9 @@ static int handle_window_interrupt() {
     // Setup stack and return state.
     LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
                    // case exiting the SUB decrements it.
-    mmb_error_state_ptr = &interrupt_error_state;  // Swap to the interrupt error state
-    error_init(mmb_error_state_ptr);               //   and clear it
-    interrupt_return_stmt = nextstmt;              //   for when IRETURN is executed
+    mmb_error_state_ptr = &interrupt_error_state;                 // Swap to the interrupt error state
+    ON_FAILURE_ERROR_EX(error_init(mmb_error_state_ptr), false);  //   and clear it
+    interrupt_return_stmt = nextstmt;                             //   for when IRETURN is executed
     if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
     errorstack[gosubindex] = CurrentLinePtr;
     gosubstack[gosubindex++] = DUMMY_IRETURN;  // Return from the subroutine to the dummy IRETURN command.
@@ -255,13 +261,13 @@ bool interrupt_check(void) {
     if (interrupt_return_stmt != NULL || CurrentLinePtr == NULL) return false;
 
     // Check for an ON KEY loc interrupt.
-    if (interrupt_any_key_addr && console_kbhit()) {
+    if (interrupt_any_key_addr && keybuf_count()) {
         return handle_interrupt(interrupt_any_key_addr);
     }
 
     // Check for an ON KEY ascii_code%, handler_sub() interrupt.
-    if (interrupt_specific_key_addr && interrupt_specific_key_pressed) {
-        interrupt_specific_key_pressed = false;
+    if (interrupt_specific_key_addr && SDL_AtomicGet(&interrupt_specific_key_pressed)) {
+        SDL_AtomicSet(&interrupt_specific_key_pressed, false);
         return handle_interrupt(interrupt_specific_key_addr);
     }
 
@@ -274,9 +280,9 @@ bool interrupt_check(void) {
         //         interrupt_ticks[i].period_ns,
         //         interrupt_ticks[i].due_ns,
         //         interrupt_ticks[i].interrupt_addr);
-        if (interrupt_ticks[i].interrupt_addr) {
-            if (now_ns >= interrupt_ticks[i].due_ns) {
-                interrupt_ticks[i].due_ns += interrupt_ticks[i].period_ns;
+        if (now_ns >= interrupt_ticks[i].due_ns) {
+            interrupt_ticks[i].due_ns += interrupt_ticks[i].period_ns;
+            if (!interrupt_ticks[i].paused) {
                 return handle_interrupt(interrupt_ticks[i].interrupt_addr);
             }
         }
@@ -343,16 +349,17 @@ void interrupt_disable_specific_key() {
 
 void interrupt_enable_specific_key(int key, const char *interrupt_addr) {
     if (!interrupt_specific_key_addr) interrupt_count++;
-    interrupt_specific_key = key;
+    SDL_AtomicSet(&interrupt_specific_key, key);
     interrupt_specific_key_addr = interrupt_addr;
 }
 
 void interrupt_disable_tick(int irq) {
     assert(irq >= 0 && irq < NBRSETTICKS);
     if (interrupt_ticks[irq].interrupt_addr) {
-        interrupt_ticks[irq].due_ns       = 0;
+        interrupt_ticks[irq].due_ns         = 0;
         interrupt_ticks[irq].interrupt_addr = NULL;
-        interrupt_ticks[irq].period_ns    = 0;
+        interrupt_ticks[irq].period_ns      = 0;
+        interrupt_ticks[irq].paused         = true;
         interrupt_count--;
     }
 }
@@ -362,9 +369,10 @@ void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_add
     assert(period_ns > 0);
     assert(interrupt_addr);
     if (!interrupt_ticks[irq].interrupt_addr) interrupt_count++;
-    interrupt_ticks[irq].due_ns       = mmtime_now_ns() + period_ns;
+    interrupt_ticks[irq].due_ns         = mmtime_now_ns() + period_ns;
     interrupt_ticks[irq].interrupt_addr = interrupt_addr;
-    interrupt_ticks[irq].period_ns    = period_ns;
+    interrupt_ticks[irq].period_ns      = period_ns;
+    interrupt_ticks[irq].paused         = false;
     // printf("Interrupt %d, period = %ld, due = %ld, fn = %ld\n",
     //         irq,
     //         interrupt_ticks[irq].period_ns,
@@ -372,12 +380,28 @@ void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_add
     //         interrupt_ticks[irq].interrupt_addr);
 }
 
+MmResult interrupt_pause_tick(int irq) {
+    assert(irq >= 0 && irq < NBRSETTICKS);
+    if (!interrupt_ticks[irq].interrupt_addr) return kError;
+    interrupt_ticks[irq].paused = true;
+    return kOk;
+}
+
+MmResult interrupt_resume_tick(int irq) {
+    assert(irq >= 0 && irq < NBRSETTICKS);
+    if (!interrupt_ticks[irq].interrupt_addr) return kError;
+    interrupt_ticks[irq].paused = false;
+    return kOk;
+}
+
 bool interrupt_check_key_press(char ch) {
-    if (ch == interrupt_specific_key && interrupt_specific_key_addr) {
-        interrupt_specific_key_pressed = true;
-        return true;
+    // LOG_FN_ENTRY();
+
+    if (ch == SDL_AtomicGet(&interrupt_specific_key) && interrupt_specific_key_addr) {
+        SDL_AtomicSet(&interrupt_specific_key_pressed, true);
+        RETURN_BOOL(true);
     } else {
-        return false;
+        RETURN_BOOL(false);
     }
 }
 

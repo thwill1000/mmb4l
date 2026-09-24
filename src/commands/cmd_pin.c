@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_pin.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include "../common/error.h"
 #include "../common/gpio.h"
@@ -53,11 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** PIN(pin) = {1|0} */
 void cmd_pin(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_features.gamepad_type != kGamepadTypePicomiteSnes) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
-    getargs(&cmdline, 1, ",");
+    getargs(&cmdline, 1, DELIM_COMMA);
     if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     uint8_t pin_num = 0;
@@ -73,8 +72,7 @@ void cmd_pin(void) {
 
     // Equals operator expected.
     skipspace(p);
-    if (tokenfunction(*p) != op_equal) ON_FAILURE_ERROR(kSyntax);
-    ++p;
+    if (tokentbl_read(&p) != tokenEQUAL) ON_FAILURE_ERROR(kSyntax);
 
     // 0 or 1 expected.
     uint8_t value = getint(p, 0, 1);

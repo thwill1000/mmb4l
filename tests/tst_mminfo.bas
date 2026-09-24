@@ -1,6 +1,6 @@
-' Copyright (c) 2021-2024 Thomas Hugo Williams
+' Copyright (c) 2021-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For MMBasic 5.07
+' For MMBasic 6
 
 Option Explicit On
 Option Default None
@@ -17,8 +17,9 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
+Const IS_WINDOWS% = sys.is_windows%()
 If sys.is_platform%("mmb4l") Then
-  Const EXPECTED_VERSION$ = "70010000"
+  Const EXPECTED_VERSION$ = "80010000"
 ElseIf sys.is_platform%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
 ElseIf sys.is_platform%("pm*") Then
@@ -26,6 +27,8 @@ ElseIf sys.is_platform%("pm*") Then
 Else
   Const EXPECTED_VERSION$ = "5.0702"
 EndIf
+' "C:" exists without a trailing slash on Windows, it is the current directory on the C drive.
+Const C_WITHOUT_SLASH_EXISTS% = IS_WINDOWS%
 
 add_test("test_arch")
 add_test("test_cputime")
@@ -58,7 +61,6 @@ add_test("test_option_default")
 add_test("test_option_explicit")
 add_test("test_option_codepage")
 add_test("test_option_fn_key")
-add_test("test_option_resolution")
 add_test("test_option_search_path")
 add_test("test_option_serial")
 add_test("test_option_tab")
@@ -104,6 +106,7 @@ Sub test_arch()
     Case "x86_64 GNU/Linux"  : expected_arch$ = "Linux x86_64"
     Case "armv6l GNU/Linux"  : expected_arch$ = "Linux armv6l"
     Case "armv7l GNU/Linux"  : expected_arch$ = "Linux armv6l"
+    Case Else                : expected_arch$ = "Windows x86_64"
   End Select
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
@@ -126,6 +129,8 @@ Function expected_path$()
     System "echo $HOME", out$
     If Mm.Info(Exists Dir out$ + "/github/thwill1000") Then
       expected_path$ = out$ + "/github/thwill1000/mmb4l/tests/"
+    ElseIf Mm.Info(Arch) = "Windows x86_64" Then
+      expected_path$ = "D:/github/thwill1000/mmb4l/tests/"
     Else
       expected_path$ = out$ + "/github/mmb4l/tests/"
     EndIf
@@ -155,11 +160,14 @@ Sub test_directory()
   If sys.is_platform%("pm*") Then Exit Sub
 
   Local expected_dir$
-  Select Case Mm.Device$
-    Case "MMB4L"               : System "pwd", expected_dir$
-    Case "MMBasic for Windows" : System "cd", expected_dir$
-    Case Else                  : expected_dir$ = Cwd$
-  End Select
+  If IS_WINDOWS% Then
+    System "cd", expected_dir$
+    expected_dir$ = str.replace$(expected_dir$, "\", "/")
+  ElseIf Mm.Device$ = "MMB4L" Then
+    System "pwd", expected_dir$
+  Else
+    expected_dir$ = Cwd$
+  EndIf Select
 
   Local actual$ = Mm.Info$(Directory)
 
@@ -175,10 +183,15 @@ End Sub
 Sub test_envvar()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
+  Const varname$ = Choice(IS_WINDOWS%, "USERPROFILE", "HOME")
   Local expected_home$
-  System "echo $HOME", expected_home$
+  If IS_WINDOWS% Then
+    System "echo %" + varname$ + "%", expected_home$
+  Else
+    System "echo $" + varname$, expected_home$
+  EndIf
 
-  assert_string_equals(expected_home$, Mm.Info$(EnvVar "HOME"))
+  assert_string_equals(expected_home$, Mm.Info$(EnvVar varname$))
 End Sub
 
 Sub test_errmsg()
@@ -212,15 +225,15 @@ Sub test_exists()
   If Not sys.is_platform%("mmb4l", "mmb4w") Then Exit Sub
 
   ' Drives/root.
-  Const A_EXISTS = Not sys.is_platform%("mmb4w")
-  Const B_EXISTS = Not sys.is_platform%("mmb4w")
-  assert_int_equals(A_EXISTS, Mm.Info(Exists "A:"))
+  Const A_EXISTS = Not IS_WINDOWS%
+  Const B_EXISTS = Not IS_WINDOWS%
+  assert_int_equals(0, Mm.Info(Exists "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:\"))
-  assert_int_equals(B_EXISTS, Mm.Info(Exists "B:"))
+  assert_int_equals(0, Mm.Info(Exists "B:"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists "B:/"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists "B:\"))
-  assert_int_equals(1, Mm.Info(Exists "C:"))
+  assert_int_equals(C_WITHOUT_SLASH_EXISTS%, Mm.Info(Exists "C:"))
   assert_int_equals(1, Mm.Info(Exists "C:/"))
   assert_int_equals(1, Mm.Info(Exists "C:\"))
   assert_int_equals(1, Mm.Info(Exists "/"))
@@ -243,7 +256,7 @@ Sub test_exists()
   assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists ""))
 
   ' Symbolic links.
-  If sys.is_platform%("mmb4l") Then
+  If sys.is_platform%("mmb4l") And Mm.Info(Arch) <> "Windows x86_64" Then
     MkDir TMPDIR$
 
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
@@ -258,12 +271,12 @@ Sub test_exists_dir()
   MkDir TMPDIR$
 
   ' Drives/root.
-  Const A_EXISTS = Not sys.is_platform%("mmb4w")
-  Const B_EXISTS = Not sys.is_platform%("mmb4w")
-  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:"))
+  Const A_EXISTS = Not IS_WINDOWS%
+  Const B_EXISTS = Not IS_WINDOWS%
+  assert_int_equals(0, Mm.Info(Exists Dir "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:\"))
-  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:"))
+  assert_int_equals(0, Mm.Info(Exists Dir "B:"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:/"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:\"))
   If sys.is_platform%("pm*") Then
@@ -278,7 +291,7 @@ Sub test_exists_dir()
     dummy% = Mm.Info(Exists Dir "C:\")
     assert_raw_error("Invalid disk")
   Else
-    assert_int_equals(1, Mm.Info(Exists Dir "C:"))
+    assert_int_equals(C_WITHOUT_SLASH_EXISTS%, Mm.Info(Exists Dir "C:"))
     assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
     assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
   EndIf
@@ -302,7 +315,7 @@ Sub test_exists_dir()
   assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists Dir ""))
 
   ' Symbolic links.
-  If sys.is_platform%("mmb4l") Then
+  If sys.is_platform%("mmb4l") And Mm.Info(Arch) <> "Windows x86_64" Then
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
     System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
 
@@ -313,10 +326,10 @@ Sub test_exists_dir()
   ' Test for odd bug encountered on PicoMite when not in root dir.
   Const OLD_DIR = Cwd$
   ChDir TMPDIR$
-  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:"))
+  assert_int_equals(0, Mm.Info(Exists Dir "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:\"))
-  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:"))
+  assert_int_equals(0, Mm.Info(Exists Dir "B:"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:/"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:\"))
   assert_int_equals(1, Mm.Info(Exists Dir "."))
@@ -369,7 +382,7 @@ Sub test_exists_file()
   assert_int_equals(0, Mm.Info(Exists File ""))
 
   ' Symbolic links.
-  If sys.is_platform%("mmb4l") Then
+  If sys.is_platform%("mmb4l") And Mm.Info(Arch) <> "Windows x86_64" Then
     MkDir TMPDIR$
 
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
@@ -413,12 +426,14 @@ Sub test_exists_symlink()
   assert_int_equals(0, Mm.Info(Exists SymLink ""))
 
   ' Symbolic links.
-  MkDir TMPDIR$
-  System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
-  System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
+  If Not IS_WINDOWS% Then
+    MkDir TMPDIR$
+    System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
+    System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
 
-  assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/file_link"))
-  assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/dir_link"))
+    assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/file_link"))
+    assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/dir_link"))
+  EndIf
 End Sub
 
 Sub test_filesize_given_empty()
@@ -446,19 +461,26 @@ End Sub
 Sub test_filesize_given_directory()
   MkDir TMPDIR$
 
+  Const A_EXISTS = Not IS_WINDOWS%
+  Const B_EXISTS = Not IS_WINDOWS%
+
   If sys.is_platform%("mmb4l", "pm*") Then
     expect_filesize_is_dir(Cwd$)
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_is_dir("/")
     expect_filesize_is_dir("\")
-    expect_filesize_is_dir("A:")
-    expect_filesize_is_dir("A:/")
-    expect_filesize_is_dir("A:\")
-    expect_filesize_is_dir("B:")
-    expect_filesize_is_dir("B:/")
-    expect_filesize_is_dir("B:\")
+    If 0 Then expect_filesize_is_dir("A:") Else expect_filesize_not_found("A:")
+    If A_EXISTS Then expect_filesize_is_dir("A:/") Else expect_filesize_not_found("A:/")
+    If A_EXISTS Then expect_filesize_is_dir("A:\") Else expect_filesize_not_found("A:\")
+    If 0 Then expect_filesize_is_dir("B:") Else expect_filesize_not_found("B:")
+    If B_EXISTS Then expect_filesize_is_dir("B:/") Else expect_filesize_not_found("B:/")
+    If B_EXISTS Then expect_filesize_is_dir("B:\") Else expect_filesize_not_found("B:\")
     If sys.is_platform%("mmb4l") Then
-      expect_filesize_is_dir("C:")
+      If C_WITHOUT_SLASH_EXISTS% Then
+        expect_filesize_is_dir("C:")
+      Else
+        expect_filesize_not_found("C:")
+      EndIf
       expect_filesize_is_dir("C:/")
       expect_filesize_is_dir("C:\")
     Else
@@ -516,12 +538,12 @@ Sub test_filesize_given_directory()
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_is_dir("/")
     expect_filesize_is_dir("\")
-    expect_filesize_is_dir("A:")
-    expect_filesize_is_dir("A:/")
-    expect_filesize_is_dir("A:\")
-    expect_filesize_is_dir("B:")
-    expect_filesize_is_dir("B:/")
-    expect_filesize_is_dir("B:\")
+    expect_filesize_not_found("A:")
+    If A_EXISTS Then expect_filesize_is_dir("A:/") Else expect_filesize_not_found("A:/")
+    If A_EXISTS Then expect_filesize_is_dir("A:\") Else expect_filesize_not_found("A:\")
+    expect_filesize_not_found("B:")
+    If B_EXISTS Then expect_filesize_is_dir("B:/") Else expect_filesize_not_found("B:/")
+    If B_EXISTS Then expect_filesize_is_dir("B:\") Else expect_filesize_not_found("B:\")
     expect_filesize_is_dir(str.replace$(TMPDIR$, "/", "\"))
     expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
     expect_filesize_is_dir(".")
@@ -577,7 +599,7 @@ Sub test_fontheight()
     ' Expect error if there is a space between FONT and HEIGHT.
     On Error Skip
     Local i% = Mm.Info(Font Height)
-    assert_raw_error("Unknown argument")
+    assert_raw_error("Syntax")
   Else
     ' Incorrectly reports result of MM.INFO(FONT).
     assert_int_equals(1, Mm.Info(Font Height))
@@ -593,7 +615,7 @@ Sub test_fontwidth()
     ' Expect error if there is a space between FONT and WIDTH.
     On Error Skip
     Local i% = Mm.Info(Font Width)
-    assert_raw_error("Unknown argument")
+    assert_raw_error("Syntax")
   Else
     ' Incorrectly reports result of MM.INFO(FONT).
     assert_int_equals(1, Mm.Info(Font Width))
@@ -603,41 +625,45 @@ End Sub
 Sub test_hpos()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-  Option Resolution Character
+  ' Set cursor in character coordinates.
   Local old_x%, old_y%
   Console GetCursor old_x%, old_y%
   Console SetCursor 5, 10
 
-  Local actual% = Mm.Info(HPos)
+  ' Test position in character coordinates.
+  Local actual% = Mm.Info(HPos C)
   assert_int_equals(5, actual%)
 
-  Option Resolution Pixel
+  ' Test position in pixel coordinates.
   assert_int_equals(5 * EXPECTED_FONT_WIDTH%, Mm.Info(HPos))
 
-  Option Resolution Character
+  ' Restore cursor position.
   Console SetCursor old_x%, old_y%
 End Sub
 
 Sub test_hres()
-  If sys.is_platform%("mmb4l") Then
-    Option Resolution Character
-    Local actual% = Mm.Info(HRes)
-    Local out$
-    System "tput cols", out$
-    Local expected_hres% = Val(out$)
-    assert_int_equals(expected_hres%, actual%)
-    assert_int_equals(actual%, Mm.HRes)
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-    Option Resolution Pixel
-    assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
-    assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
+  ' Test resolution in characters.
+  Const actual% = Mm.Info(HRes C)
+  Local out$
+  If IS_WINDOWS% Then
+    System "powershell -Command " + str.quote$("$Host.UI.RawUI.WindowSize.Width"), out$
+  Else
+    System "tput cols", out$
   EndIf
+  Local expected_hres% = Val(out$)
+  assert_int_equals(expected_hres%, actual%)
+
+  ' Test resolution in pixels.
+  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
+  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
 End Sub
 
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(638, Val(Field$(line$, 1, ",")))
+    assert_int_equals(664, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
@@ -686,7 +712,11 @@ Sub test_option_editor()
   assert_string_equals("VSCode", Mm.Info(Option Editor))
 
   Option Editor Default
-  assert_string_equals("Nano", Mm.Info(Option Editor))
+  If IS_WINDOWS% Then
+    assert_string_equals("Internal", Mm.Info(Option Editor))
+  Else
+    assert_string_equals("Nano", Mm.Info(Option Editor))
+  EndIf
 
   Option Editor Geany
   assert_string_equals("Geany", Mm.Info(Option Editor))
@@ -836,16 +866,6 @@ Sub test_option_fn_key()
   Option Load TMPDIR$ + "/mmbasic.options.bak"
 End Sub
 
-Sub test_option_resolution()
-  If Not sys.is_platform%("mmb4l") Then Exit Sub
-
-  Option Resolution Pixel
-  assert_string_equals("Pixel", Mm.Info(Option Resolution))
-
-  Option Resolution Character
-  assert_string_equals("Character", Mm.Info(Option Resolution))
-End Sub
-
 Sub test_option_search_path()
   If sys.is_platform%("cmm2*", "pm*") Then Exit Sub
 
@@ -896,38 +916,22 @@ End Sub
 Sub test_option_serial()
   If sys.is_platform%("pm*") Then Exit Sub
 
-  If sys.is_platform%("mmb4l") Then
-
+  If Mm.Info(Device X) = "MMB4L" Then
     assert_string_equals("Serial", Mm.Info(Option Console))
-
-    ' OPTION CONSOLE is a dummy command for MMB4L and the value of the option
-    ' always remains SERIAL.
-
-    Option Console Both
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
-    Option Console Screen
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
-    Option Console Serial
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
   Else
-
     ' Note that on "MMBasic for Windows" the default is OPTION CONSOLE SCREEN,
     ' but the unit-test framework sets OPTION CONSOLE BOTH.
     assert_string_equals("Both", Mm.Info(Option Console))
-
-    Option Console Serial
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
-    Option Console Screen
-    assert_string_equals("Screen", Mm.Info(Option Console))
-
-    Option Console Both
-    assert_string_equals("Both", Mm.Info(Option Console))
-
   EndIf
+
+  Option Console Serial
+  assert_string_equals("Serial", Mm.Info(Option Console))
+
+  Option Console Screen
+  assert_string_equals("Screen", Mm.Info(Option Console))
+
+  Option Console Both
+  assert_string_equals("Both", Mm.Info(Option Console))
 End Sub
 
 Sub test_option_tab()
@@ -951,6 +955,10 @@ End Sub
 
 Sub test_pid()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
+
+  ' It does not seem to be possible to get the parent process ID via the System
+  ' command on Windows.
+  If IS_WINDOWS% Then Exit Sub
 
   Local out$
   System "echo $PPID", out$
@@ -1059,40 +1067,51 @@ Sub test_pinno()
   On Error Skip
   p% = Mm.Info(PinNo GP10 trailing)
   assert_raw_error("Unexpected text")
+
+  If Mm.Info(Device X) = "MMB4L" Then
+    Option Simulate MMB4L
+    ' Switching back to MMB4L does not change the current graphics surface
+    ' so we need to do it explicitly.
+    Graphics Write None
+  EndIf
 End Sub
 
 Sub test_vpos()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-  Option Resolution Character
+  ' Set cursor position in character coordinates.
   Local old_x%, old_y%
   Console GetCursor old_x%, old_y%
-  Console SetCursor 5, 10
+  Console SetCursor 15, 20
 
-  Local actual% = Mm.Info(VPos)
-  assert_int_equals(10, actual%)
+  ' Test position in character coordinates.
+  Local actual% = Mm.Info(VPos C)
+  assert_int_equals(20, actual%)
 
-  Option Resolution Pixel
-  assert_int_equals(10 * EXPECTED_FONT_HEIGHT%, Mm.Info(VPos))
+  ' Test position in pixel coordinates.
+  assert_int_equals(20 * EXPECTED_FONT_HEIGHT%, Mm.Info(VPos))
 
-  Option Resolution Character
+  ' Restore cursor position.
   Console SetCursor old_x%, old_y%
 End Sub
 
 Sub test_vres()
-  If sys.is_platform%("mmb4l") Then
-    Option Resolution Character
-    Local actual% = Mm.Info(VRes)
-    Local out$
-    System "tput lines", out$
-    Local expected_vres% = Val(out$)
-    assert_int_equals(expected_vres%, actual%)
-    assert_int_equals(actual%, Mm.VRes)
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-    Option Resolution Pixel
-    assert_int_equals(actual% * Mm.Info(FontHeight), Mm.Info(VRes))
-    assert_int_equals(actual% * Mm.Info(FontHeight), Mm.VRes)
+  ' Test resolution in characters.
+  Local actual% = Mm.Info(VRes C)
+  Local out$
+  If IS_WINDOWS% Then
+    System "powershell -Command " + str.quote$("$Host.UI.RawUI.WindowSize.Height"), out$
+  Else
+    System "tput lines", out$
   EndIf
+  Local expected_vres% = Val(out$)
+  assert_int_equals(expected_vres%, actual%)
+
+  ' Test resolution in pixels.
+  assert_int_equals(expected_vres% * EXPECTED_FONT_HEIGHT%, Mm.Info(VRes))
+  assert_int_equals(expected_vres% * EXPECTED_FONT_HEIGHT%, Mm.VRes)
 End Sub
 
 Sub test_version()
@@ -1100,7 +1119,7 @@ Sub test_version()
 
   If sys.is_platform%("mmb4l") Then
     assert_int_equals(0, Mm.Info(Version Major))
-    assert_int_equals(7, Mm.Info(Version Minor))
+    assert_int_equals(8, Mm.Info(Version Minor))
     assert_int_equals(1, Mm.Info(Version Micro))
     assert_int_equals(0, Mm.Info(Version Build))
   End If

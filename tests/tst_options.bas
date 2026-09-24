@@ -1,6 +1,6 @@
-' Copyright (c) 2022-2024 Thomas Hugo Williams
+' Copyright (c) 2022-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For MMBasic 5.07
+' For MMBasic 6
 
 Option Explicit On
 Option Default None
@@ -20,6 +20,8 @@ Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 Const HOME$ = sys.HOME$()
 Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
+Const IS_MMB4W% = Mm.Info$(Arch) = "Windows x86_64"
+Const DEFAULT_EDITOR$ = Choice(IS_MMB4W%, "Internal", "Nano")
 
 add_test("test_option_load")
 add_test("test_option_load_given_directory")
@@ -70,7 +72,14 @@ Sub test_option_load()
 End Sub
 
 Sub test_option_load_given_directory()
-  Local dir$ = Choice(IS_ANDROID%, "/data/data/com.termux/files/usr/bin", "/usr/bin")
+  Local dir$
+  If IS_ANDROID% Then
+    dir$ = "/data/data/com.termux/files/usr/bin"
+  ElseIf IS_MMB4W% Then
+    dir$ = "C:/Windows/System32"
+  Else
+    dir$ = "/usr/bin"
+  EndIf
 
   On Error Skip
   Option Load dir$
@@ -166,7 +175,7 @@ Sub test_option_reset()
   Option Reset Editor
 
   assert_string_equals("Title",        Mm.Info$(Option Case))
-  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals(DEFAULT_EDITOR$, Mm.Info$(Option Editor))
   assert_string_equals("four",         Mm.Info$(Option F4))
   assert_string_equals(HOME$,          Mm.Info$(Option Search Path))
   assert_int_equals(8,                 Mm.Info(Option Tab))
@@ -174,7 +183,7 @@ Sub test_option_reset()
   Option Reset F4
 
   assert_string_equals("Title",        Mm.Info$(Option Case))
-  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals(DEFAULT_EDITOR$, Mm.Info$(Option Editor))
   assert_string_equals("EDIT" + CRLF$, Mm.Info$(Option F4))
   assert_string_equals(HOME$,          Mm.Info$(Option Search Path))
   assert_int_equals(8,                 Mm.Info(Option Tab))
@@ -182,7 +191,7 @@ Sub test_option_reset()
   Option Reset Search Path
 
   assert_string_equals("Title",        Mm.Info$(Option Case))
-  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals(DEFAULT_EDITOR$, Mm.Info$(Option Editor))
   assert_string_equals("EDIT" + CRLF$, Mm.Info$(Option F4))
   assert_string_equals("",             Mm.Info$(Option Search Path))
   assert_int_equals(8,                 Mm.Info(Option Tab))
@@ -190,7 +199,7 @@ Sub test_option_reset()
   Option Reset Tab
 
   assert_string_equals("Title",        Mm.Info$(Option Case))
-  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals(DEFAULT_EDITOR$, Mm.Info$(Option Editor))
   assert_string_equals("EDIT" + CRLF$, Mm.Info$(Option F4))
   assert_string_equals("",             Mm.Info$(Option Search Path))
   assert_int_equals(4,                 Mm.Info(Option Tab))
@@ -230,7 +239,7 @@ Sub test_option_reset_all()
 
   Const quotes$ = " " + Chr$(34) + Chr$(34) + Chr$(130)
   assert_string_equals("Title",                    Mm.Info$(Option Case))
-  assert_string_equals("Nano",                     Mm.Info$(Option Editor))
+  assert_string_equals(DEFAULT_EDITOR$,            Mm.Info$(Option Editor))
   assert_string_equals("FILES" + CRLF$,            Mm.Info$(Option F1))
   assert_string_equals("RUN" + CRLF$,              Mm.Info$(Option F2))
   assert_string_equals("LIST" + CRLF$,             Mm.Info$(Option F3))

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_read.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -85,7 +85,7 @@ void cmd_read_data(void) {
     int vtype[MAX_ARG_COUNT];
     int vsize[MAX_ARG_COUNT];
     int vcnt, vidx;
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, DELIM_COMMA);  // getargs macro must be the first executable stmt in a block
 
     if (argc == 0) ERROR_SYNTAX;
 
@@ -130,7 +130,7 @@ search_again:
 
         // we have a DATA statement, first split the line into arguments
         {                                                           // new block, the getargs macro must be the first executable stmt in a block
-        getargs(&p, (MAX_ARG_COUNT * 2) - 1, ",");
+        getargs(&p, (MAX_ARG_COUNT * 2) - 1, DELIM_COMMA);
         if((argc & 1) == 0) { CurrentLinePtr = lineptr; ERROR_SYNTAX; }
         // now step through the variables on the READ line and get their new values from the argument list
         // we set the line number to the number of the DATA stmt so that any errors are reported correctly

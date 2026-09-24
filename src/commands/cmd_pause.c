@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_pause.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdbool.h>
-#include <stdio.h>
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
@@ -53,10 +52,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static void cmd_pause_in_interrupt(int64_t duration_ns) {
     int64_t wakeup = mmtime_now_ns() + duration_ns;
     while (mmtime_now_ns() < wakeup) {
-        CheckAbort();
+        perform_background_tasks();
 
         // A short sleep so we do not continue to thrash CPU when paused.
-        nanosleep(&ONE_MICROSECOND, NULL);
+        mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
     }
     return;
 }
@@ -70,7 +69,7 @@ static void cmd_pause_in_main_program(int64_t duration_ns) {
     }
 
     while (mmtime_now_ns() < wakeup) {
-        CheckAbort();
+        perform_background_tasks();
 
         if (interrupt_check()) {
             // If there is an interrupt fake the return point to the start of
@@ -85,7 +84,7 @@ static void cmd_pause_in_main_program(int64_t duration_ns) {
         }
 
         // A short sleep so we do not continue to thrash CPU when paused.
-        nanosleep(&ONE_MICROSECOND, NULL);
+        mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
     }
 }
 

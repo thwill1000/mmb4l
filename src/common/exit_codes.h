@@ -45,7 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_EXIT_CODES)
 #define MMB4L_EXIT_CODES
 
+#if defined(_WIN32)
+#define EX_OK     0
+#else
 #include <sysexits.h>
+#endif
 
 // Extensions to <sysexits.h>
 #define EX_FAIL   1
