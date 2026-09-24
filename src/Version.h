@@ -99,7 +99,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
     #define MM_MAJOR      0
     #define MM_MINOR      8
-    #define MM_MICRO      1
+    #define MM_MICRO      2
     #define BUILD_NUMBER  0  // Currently always 0.
 #endif
     #define MM_VERSION    (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
