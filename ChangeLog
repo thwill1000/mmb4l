@@ -1,7 +1,7 @@
 ChangeLog
 ---------
 
-Version 0.8 alpha 1 - 14-Sep-2026:
+Version 0.8 alpha 1 - 24-Sep-2026:
   - Added support for console I/O to graphics windows:
       OPTION CONSOLE BOTH ' or OPTION CONSOLE SCREEN
       GRAPHICS WINDOW 0, 300, 300
@@ -118,6 +118,9 @@ Version 0.8 alpha 1 - 14-Sep-2026:
   - Changed STDIN reading to use a worker thread:
       - The principal reason for this is that on Windows reading from STDIN
         is very slow.
+  - Fixed bug in SDL audio buffering. Callback now processes full stereo frames
+    instead of assuming a 1-sample buffer which reduces underruns and the
+    crackling and popping in the sound that they were causing.
   - Fixed bug in single-line IF <expr> THEN <stmt1> ELSE <stmt2>:
       - Was broken if <stmt1> began with a command whose command token id was
         equal to ELSE's function token id.

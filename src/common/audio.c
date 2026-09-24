@@ -218,7 +218,7 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
             .format = AUDIO_F32,
             .channels = num_channels,
             .freq = sample_rate,
-            .samples = 1,  // TODO: Support a bigger sample buffer.
+            .samples = 1024,  // ~23ms buffer @ 44100Hz
             .callback = audio_callback,
         };
 
@@ -253,7 +253,7 @@ MmResult audio_init() {
             .format = AUDIO_F32,
             .channels = 2,
             .freq = AUDIO_SAMPLE_RATE,
-            .samples = 1,  // TODO: Support a bigger sample buffer.
+            .samples = 1024,  // ~23ms buffer @ 44100Hz
             .callback = audio_callback,
         };
 
@@ -423,7 +423,6 @@ static float audio_callback_tone(int channel) {
     if (audio_tone_duration <= 0) {
         return 0.0f;
     } else {
-        audio_tone_duration--;
         const int volume =
             (sine_table[(int)audio_phase_ac[channel][0]] - 2000) * mapping[TONE_VOLUME] / 2000;
         audio_phase_ac[channel][0] += audio_phase_m[channel][0];
@@ -540,29 +539,52 @@ static float audio_callback_sound(int channel) {
     return (float)volume / 2000.0f;
 }
 
-// For the moment 'len' is expected to always be 8 bytes (2 samples) for stereo.
+// SDL may now call this with any multiple of a stereo frame (len is no
+// longer guaranteed to be 8 bytes / one frame) since .samples was raised
+// from 1 to a real buffer size. We loop over however many complete stereo
+// frames were requested and synthesize each one via the same per-channel
+// callbacks as before; audio_callback_mod()/audio_callback_track()'s
+// buffer-swap logic is unaffected since it already re-checks
+// byte_count/pos on every single call rather than assuming one call per
+// buffer, so calling it many times per audio_callback() invocation is safe.
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
-    assert(len == 8);
-    float *fstream = (float *)stream;
-    for (int i = 0; i < 2; ++i) {
-        switch (audio_state) {
-            case P_TONE:
-                fstream[i] = audio_callback_tone(i);
-                break;
-            case P_MOD:
-                fstream[i] = audio_callback_mod(i);
-                break;
-            case P_MP3:
-            case P_WAV:
-            case P_FLAC:
-                fstream[i] = audio_callback_track(i);
-                break;
-            case P_SOUND:
-                fstream[i] = audio_callback_sound(i);
-                break;
-            default:
-                fstream[i] = 0.0f;
-                break;
+    assert(audio_current_spec.channels == 2);
+    assert(len % (2 * (int) sizeof(float)) == 0);
+
+    float *fstream = (float *) stream;
+    const int num_frames = len / (2 * (int) sizeof(float));
+
+    for (int frame = 0; frame < num_frames; ++frame) {
+        for (int channel = 0; channel < 2; ++channel) {
+            float value;
+            switch (audio_state) {
+                case P_TONE:
+                    value = audio_callback_tone(channel);
+                    break;
+                case P_MOD:
+                    value = audio_callback_mod(channel);
+                    break;
+                case P_MP3:
+                case P_WAV:
+                case P_FLAC:
+                    value = audio_callback_track(channel);
+                    break;
+                case P_SOUND:
+                    value = audio_callback_sound(channel);
+                    break;
+                default:
+                    value = 0.0f;
+                    break;
+            }
+            fstream[frame * 2 + channel] = value;
+        }
+
+        // One frame of tone duration consumed per output frame, regardless
+        // of channel count - decremented here rather than inside
+        // audio_callback_tone() so the per-channel synthesis function stays
+        // free of shared mutable state.
+        if (audio_state == P_TONE && audio_tone_duration > 0) {
+            audio_tone_duration--;
         }
     }
 }
