@@ -91,7 +91,8 @@ static MmResult cmd_log_internal() {
             IntToStr(inpbuf + ((i64 >= 0) ? 1:0), i64, 10);  // if positive output a space instead of the sign
             s = inpbuf;
         } else if (t & T_STR) {
-            s = MtoC(s);
+            memcpy(inpbuf, s, STRINGSIZE);
+            s = MtoC(inpbuf);
         } else {
             return INTERNAL_FAULT_EX("invalid type: %d", t);
         }
