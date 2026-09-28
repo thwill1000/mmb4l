@@ -83,17 +83,17 @@ static MmResult cmd_log_internal() {
 
         p = evaluate(p, &f, &i64, &s, &t, true);
         if (t & T_NBR) {
-           *inpbuf = ' ';  // preload a space
-           FloatToStr(inpbuf + ((f >= 0) ? 1:0), f, 0, STR_AUTO_PRECISION, ' ');  // if positive output a space instead of the sign
-           s = inpbuf;
+            *inpbuf = ' ';  // preload a space
+            FloatToStr(inpbuf + ((f >= 0) ? 1:0), f, 0, STR_AUTO_PRECISION, ' ');  // if positive output a space instead of the sign
+            s = inpbuf;
         } else if (t & T_INT) {
-           *inpbuf = ' ';  // preload a space
-           IntToStr(inpbuf + ((i64 >= 0) ? 1:0), i64, 10);  // if positive output a space instead of the sign
-           s = inpbuf;
+            *inpbuf = ' ';  // preload a space
+            IntToStr(inpbuf + ((i64 >= 0) ? 1:0), i64, 10);  // if positive output a space instead of the sign
+            s = inpbuf;
         } else if (t & T_STR) {
-           s = MtoC(s);
+            s = MtoC(s);
         } else {
-           return INTERNAL_FAULT_EX("invalid type: %d", t);
+            return INTERNAL_FAULT_EX("invalid type: %d", t);
         }
 
         if (FAILED(cstring_cat(msg, s, STRINGSIZE))) return kStringTooLong;
