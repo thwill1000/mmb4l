@@ -1047,6 +1047,10 @@ MmResult graphics_draw_bitmap(MmSurface *surface, int x1, int y1, int width, int
     const int hres = surface->width;
     const int vres = surface->height;
 
+    surface->dirty = true;
+    
+    assert(x1 < hres && y1 < vres);
+
     if (x1 >= hres
             || y1 >= vres
             || x1 + (width * scale) < 0
