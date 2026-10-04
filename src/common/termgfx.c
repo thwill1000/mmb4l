@@ -191,12 +191,21 @@ MmResult termgfx_putc(char c) {
     const int fh = (int) font_height(graphics_font);
     const int fw = (int) font_width(graphics_font);
 
-    // If 'c' is printable and it is going to take us off the right hand end of
-    // the terminal then print a CRLF.
+    // Ensure printable characters are actully printed on visible terminal.
     if (c >= font_first_char(font) && c <= font_last_char(font)) {
+
+        // If char is going to be printed off the right hand side of the
+        // terminal then print a CRLF.
         if (s->cursor_x + fw > s->width) {
             ON_FAILURE_RETURN(termgfx_putc('\r'));
             ON_FAILURE_RETURN(termgfx_putc('\n'));
+        }
+
+        // If char is going to be printed off the bottom of the terminal then
+        // scroll up.
+        while (s->cursor_y + fh > s->height) {
+            ON_FAILURE_RETURN(termgfx_scroll_up());
+            s->cursor_y -= fh;
         }
     }
 
@@ -215,7 +224,7 @@ MmResult termgfx_putc(char c) {
 
         case '\n':
             if (s->cursor_y + 2 * fh > s->height) {
-                ON_FAILURE_RETURN(graphics_scroll(s, 0, fh, graphics_bcolour));
+                ON_FAILURE_RETURN(termgfx_scroll_up());
             } else {
                 s->cursor_y += fh;
             }
@@ -291,12 +300,26 @@ MmResult termgfx_scroll_up() {
 
 MmResult termgfx_set_cursor_pos(bool pixel, int x, int y) {
     ASSERT_GFX();
+
+    // Keep cursor within display bounds
+    int width = 0;
+    int height = 0;
+    ON_FAILURE_RETURN(termgfx_get_size(pixel, &width, &height));
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        LOG_WARN("out of bounds %s cursor position: x = %d, y = %d",
+                 pixel ? "pixel" : "char", x, y);
+    }
+    x = min(max(0, x), width - 1);
+    y = min(max(0, y), height - 1);
+
     if (!pixel) {
         x *= font_width(graphics_font);
         y *= font_height(graphics_font);
     }
+
     graphics_current->cursor_x = x;
     graphics_current->cursor_y = y;
+
     return kOk;
 }
 

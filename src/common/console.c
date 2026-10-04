@@ -209,19 +209,14 @@ void console_home_cursor(void) {
 }
 
 void console_set_cursor_pos(int x, int y) {
-    LOG_FN_ENTRY("x=%d, y=%d", x, y);
+    // LOG_FN_ENTRY("x=%d, y=%d", x, y);
 
-    if (x < 0) {
-        x = 0;
-    } else if (x >= self.width) {
-        x = self.width - 1;
+    // Keep cursor within display bounds
+    if (x < 0 || x >= self.width || y < 0 || y >= self.height) {
+        LOG_WARN("out of bounds char cursor position: x = %d, y = %d", x, y);
     }
-
-    if (y < 0) {
-        y = 0;
-    } else if (y >= self.height) {
-        y = self.height - 1;
-    }
+    x = min(max(0, x), self.width - 1);
+    y = min(max(0, y), self.height - 1);
 
     printf("\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
     fflush(stdout);
