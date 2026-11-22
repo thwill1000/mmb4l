@@ -280,6 +280,7 @@ static void *getheap(int size) {
     // out of memory
     LocalIndex = 0;
     ClearTempMemory();                                              // hopefully this will give us enough to print the prompt
+    LOG_INFO("request for %d bytes failed", size);
     ERROR_OUT_OF_MEMORY;
     return NULL;                                                    // keep the compiler happy
 }
