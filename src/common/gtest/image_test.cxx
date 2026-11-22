@@ -14,6 +14,7 @@ extern "C" {
 #include <SDL.h>
 
 #include "../image_private.h"
+#include "../memory.h"
 #include "../features.h"
 #include "../system.h"
 #include "../../common/gtest/stubs/error_stubs.h"
@@ -326,12 +327,14 @@ class ImageLoadJpgValidationTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
     }
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
     }
 };
 
@@ -498,6 +501,7 @@ protected:
     char filename[STRINGSIZE];
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
@@ -510,6 +514,7 @@ protected:
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
         remove(filename);
     }
 };
@@ -660,6 +665,7 @@ protected:
     char filename[STRINGSIZE];
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
         snprintf_nowarn(filename, sizeof(filename), "/tmp/mmb4l_test_save_jpg_validation_%d.jpg",
@@ -668,6 +674,7 @@ protected:
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
         remove(filename);
     }
 };
@@ -728,6 +735,7 @@ protected:
     char base[STRINGSIZE];
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
         ASSERT_EQ(kOk, graphics_buffer_create(0, 4, 4));
@@ -737,6 +745,7 @@ protected:
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
     }
 };
 
@@ -809,6 +818,7 @@ protected:
     char filename[STRINGSIZE];
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
         snprintf_nowarn(filename, sizeof(filename), "/tmp/mmb4l_test_save_jpg_encode_%d.jpg",
@@ -817,6 +827,7 @@ protected:
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
         remove(filename);
     }
 
@@ -960,12 +971,14 @@ class ImageJpgGetRowCbTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
     }
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
     }
 };
 
@@ -1080,12 +1093,14 @@ class ImageDrawBufferTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
     }
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
     }
 };
 
@@ -1238,12 +1253,14 @@ class ImageLoadPngValidationTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
     }
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
     }
 };
 
@@ -1341,6 +1358,7 @@ protected:
     }
 
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
@@ -1359,6 +1377,7 @@ protected:
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
+        EXPECT_EQ(kOk, memory_term());
         remove(rgb_filename);
         remove(rgba_filename);
         remove(gray_filename);
