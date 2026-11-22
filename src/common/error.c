@@ -161,40 +161,7 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     }
     mmb_error_state_ptr->override_line = false;
 
-    char buf[STRINGSIZE * 2];
-
-    if (mmb_error_state_ptr->line <= 0) {
-        sprintf(buf, "Error: ");
-    } else if (strcmp(mmb_error_state_ptr->file, CurrentFile) == 0) {
-        sprintf(buf, "Error in line %d: ", mmb_error_state_ptr->line);
-    } else {
-        sprintf(buf, "Error in %s line %d: ", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
-    }
-
-    assert(msg);
-    char tmp[20];
-    while (*msg) {
-        if (*msg == '$') {
-            (void) cstring_cat(buf, va_arg(argp, char *), STRINGSIZE * 2);
-        } else if (*msg == '@') {
-            sprintf(tmp, "%c", (char) va_arg(argp, int));
-            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
-        } else if (*msg == '%' || *msg == '|') {
-            IntToStr(tmp, va_arg(argp, int), 10);
-            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
-        } else if (*msg == '&') {
-            IntToStr(tmp, va_arg(argp, int), 16);
-            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
-        } else {
-            sprintf(tmp, "%c", *msg);
-            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
-        }
-        msg++;
-    }
-
-    LOG_DEBUG("%s (%d)", buf, error);
-
-    cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
+    error_set_message(error, msg, argp);
 
     // If an error callback has been registered then call it.
     if (mmb_error_state_ptr->callback) {
@@ -216,6 +183,48 @@ static void verror(MmResult error, const char *msg, va_list argp) {
 #pragma warning(push)
 #pragma warning(disable: 4702)
 #endif
+
+void error_set_message(MmResult error, const char *msg, va_list argp) {
+    char buf[STRINGSIZE * 2];
+
+    if (mmb_error_state_ptr->line <= 0) {
+        sprintf(buf, "Error: ");
+    } else if (strcmp(mmb_error_state_ptr->file, CurrentFile) == 0) {
+        sprintf(buf, "Error in line %d: ", mmb_error_state_ptr->line);
+    } else {
+        sprintf(buf, "Error in %s line %d: ", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
+    }
+
+    assert(msg);
+    char tmp[20];
+    while (*msg) {
+        if (*msg == '\\' && strchr("$@%|&", msg[1])) {
+            sprintf(tmp, "%c", msg[1]);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+            msg += 2;
+            continue;
+        } else if (*msg == '$') {
+            (void) cstring_cat(buf, va_arg(argp, char *), STRINGSIZE * 2);
+        } else if (*msg == '@') {
+            sprintf(tmp, "%c", (char) va_arg(argp, int));
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        } else if (*msg == '%' || *msg == '|') {
+            IntToStr(tmp, va_arg(argp, int), 10);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        } else if (*msg == '&') {
+            IntToStr(tmp, va_arg(argp, int), 16);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        } else {
+            sprintf(tmp, "%c", *msg);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        }
+        msg++;
+    }
+
+    LOG_DEBUG("%s (%d)", buf, error);
+
+    cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
+}
 
 MmResult error_throw_legacy(const char *msg, ...) {
     va_list argp;

@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_ERROR_H
 
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include "../Configuration.h" // for STRINGSIZE
 #include "exit_codes.h"
@@ -74,6 +75,7 @@ extern ErrorState mmb_normal_error_state;
 
 void error_get_line_and_file(int *line, char *file_path);
 MmResult error_init(ErrorState *error_state);
+void error_set_message(MmResult error, const char *msg, va_list argp);
 MmResult error_throw(MmResult result);
 MmResult error_throw_ex(MmResult result, const char *msg, ...);
 MmResult error_throw_legacy(const char *msg, ...);

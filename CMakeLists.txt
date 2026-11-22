@@ -591,6 +591,27 @@ target_link_libraries(test_cstring
 gtest_discover_tests(test_cstring)
 
 ################################################################################
+# test_error
+################################################################################
+
+add_executable(test_error
+    src/common/cstring.c
+    src/common/error.c
+    src/common/mmresult.c
+    src/common/gtest/error_test.cxx
+)
+
+configure_sdl2(test_error FALSE)
+
+target_link_libraries(test_error
+    gtest_main
+    gmock
+    gmock_main
+)
+
+gtest_discover_tests(test_error)
+
+################################################################################
 # test_file
 ################################################################################
 

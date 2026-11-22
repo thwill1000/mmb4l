@@ -45,6 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 
+static void escape_error_message(const char *msg, char *escaped) {
+    while (*msg) {
+        if (strchr("$@%|&", *msg)) *escaped++ = '\\';
+        *escaped++ = *msg++;
+    }
+    *escaped = '\0';
+}
+
 void cmd_error(void) {
     getargs(&cmdline, 3, DELIM_COMMA);
 
@@ -54,14 +62,18 @@ void cmd_error(void) {
             break;
         case 1: {
             char *s = getCstring(argv[0]);
-            error_throw_ex(kError, s);
+            char escaped[STRINGSIZE * 2];
+            escape_error_message(s, escaped);
+            error_throw_ex(kError, escaped);
             break;
         }
         case 3: {
             char *s = getCstring(argv[0]);
             int32_t i = getint(argv[2], INT32_MIN, INT32_MAX);
             if (i == 0) ERROR_INVALID("error code");
-            error_throw_ex(i, s);
+            char escaped[STRINGSIZE * 2];
+            escape_error_message(s, escaped);
+            error_throw_ex(i, escaped);
             break;
         }
         default:
